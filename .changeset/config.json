@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.changeset.com/config.json.schema.json",
+  "changelog": [
+    "@changesets/changelog-git",
+    {
+      "repo": "."
+    }
+  ],
+  "commit": true,
+  "commitMessage": "chore(release): version packages",
+  "fixed": [],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}
+
