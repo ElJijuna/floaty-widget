@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, ReactNode, CSSProperties } from 'react';
+import { useState, useRef, useEffect, useContext, ReactNode, CSSProperties, forwardRef, useImperativeHandle } from 'react';
 import './Floaty.css';
+import { useFloatyManager, FloatyHandle } from '../../context/FloatyWidgetManager';
 
 interface Position {
   x: number;
@@ -10,6 +11,7 @@ export interface FloatyProps {
   children?: ReactNode;
   title?: string;
   style?: CSSProperties;
+  id?: string;
 }
 
 const PinIcon = ({ pinned }: { pinned: boolean }) => (
@@ -53,106 +55,141 @@ const ChevronIcon = ({ collapsed }: { collapsed: boolean }) => (
  * @param props.children - Content to display in the floaty body
  * @param props.title - Header title
  * @param props.style - Additional inline styles
+ * @param props.id - Unique identifier for widget manager integration
+ * @param ref - Forward ref to access imperative methods
  */
-export const Floaty = ({
-  children = 'Content',
-  title = 'Floaty',
-  style = {},
-}: FloatyProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
-  const [position, setPosition] = useState<Position>({ x: 100, y: 100 });
-  const floatyRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
+export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
+  (
+    {
+      children = 'Content',
+      title = 'Floaty',
+      style = {},
+      id,
+    }: FloatyProps,
+    ref
+  ) => {
+    const registerFloaty = useFloatyManager();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isPinned, setIsPinned] = useState(false);
+    const [position, setPosition] = useState<Position>({ x: 100, y: 100 });
+    const floatyRef = useRef<HTMLDivElement>(null);
+    const dragStateRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
+    const internalHandleRef = useRef<FloatyHandle>(null);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
-    if (isPinned) return;
+    // Create handle methods
+    const handleMethods: FloatyHandle = {
+      expand: () => setIsCollapsed(false),
+      collapse: () => setIsCollapsed(true),
+      pin: () => setIsPinned(true),
+      unpin: () => setIsPinned(false),
+      toggle: () => setIsCollapsed((prev) => !prev),
+    };
 
-    const rect = floatyRef.current?.getBoundingClientRect();
-    if (rect) {
-      dragStateRef.current = {
-        isDragging: true,
-        offsetX: e.clientX - rect.left,
-        offsetY: e.clientY - rect.top,
-      };
-    }
-  };
+    // Keep internal ref always updated
+    internalHandleRef.current = handleMethods;
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragStateRef.current.isDragging) return;
+    // Expose imperative methods via forward ref
+    useImperativeHandle(ref, () => handleMethods, []);
+
+    // Register with manager using internal ref that always has methods
+    useEffect(() => {
+      if (id && registerFloaty && internalHandleRef) {
+        registerFloaty(id, internalHandleRef);
+      }
+    }, [id, registerFloaty]);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+      if (isPinned) return;
 
       const rect = floatyRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      let newX = e.clientX - dragStateRef.current.offsetX;
-      let newY = e.clientY - dragStateRef.current.offsetY;
-
-      // Constrain to viewport
-      const maxX = window.innerWidth - rect.width;
-      const maxY = window.innerHeight - rect.height;
-
-      newX = Math.max(0, Math.min(newX, maxX));
-      newY = Math.max(0, Math.min(newY, maxY));
-
-      setPosition({
-        x: newX,
-        y: newY,
-      });
+      if (rect) {
+        dragStateRef.current = {
+          isDragging: true,
+          offsetX: e.clientX - rect.left,
+          offsetY: e.clientY - rect.top,
+        };
+      }
     };
 
-    const handleMouseUp = () => {
-      dragStateRef.current.isDragging = false;
-    };
+    useEffect(() => {
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!dragStateRef.current.isDragging) return;
 
-    globalThis.addEventListener('mousemove', handleMouseMove);
-    globalThis.addEventListener('mouseup', handleMouseUp);
+        const rect = floatyRef.current?.getBoundingClientRect();
+        if (!rect) return;
 
-    return () => {
-      globalThis.removeEventListener('mousemove', handleMouseMove);
-      globalThis.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
+        let newX = e.clientX - dragStateRef.current.offsetX;
+        let newY = e.clientY - dragStateRef.current.offsetY;
 
-  return (
-    <div
-      ref={floatyRef}
-      className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${dragStateRef.current.isDragging ? 'dragging' : ''}`}
-      style={{
-        transform: `translate(${position.x}px, ${position.y}px)`,
-        ...style,
-      }}
-    >
-      <header
-        className={`floaty-header ${isPinned ? 'pinned' : ''}`}
-        onMouseDown={handleMouseDown}
+        // Constrain to viewport
+        const maxX = window.innerWidth - rect.width;
+        const maxY = window.innerHeight - rect.height;
+
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+
+        setPosition({
+          x: newX,
+          y: newY,
+        });
+      };
+
+      const handleMouseUp = () => {
+        dragStateRef.current.isDragging = false;
+      };
+
+      globalThis.addEventListener('mousemove', handleMouseMove);
+      globalThis.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        globalThis.removeEventListener('mousemove', handleMouseMove);
+        globalThis.removeEventListener('mouseup', handleMouseUp);
+      };
+    }, []);
+
+    return (
+      <div
+        ref={floatyRef}
+        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${dragStateRef.current.isDragging ? 'dragging' : ''}`}
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          ...style,
+        }}
       >
-        <button
-          className="floaty-button floaty-button--pin"
-          onClick={() => setIsPinned(!isPinned)}
-          title={isPinned ? 'Unpin' : 'Pin'}
-          aria-label={isPinned ? 'Unpin floaty' : 'Pin floaty'}
+        <header
+          className={`floaty-header ${isPinned ? 'pinned' : ''}`}
+          onMouseDown={handleMouseDown}
         >
-          <PinIcon pinned={isPinned} />
-        </button>
+          <button
+            className="floaty-button floaty-button--pin"
+            onClick={() => setIsPinned(!isPinned)}
+            title={isPinned ? 'Unpin' : 'Pin'}
+            aria-label={isPinned ? 'Unpin floaty' : 'Pin floaty'}
+          >
+            <PinIcon pinned={isPinned} />
+          </button>
 
-        <span className="floaty-title">{title}</span>
+          <span className="floaty-title">{title}</span>
 
-        <button
-          className="floaty-button floaty-button--expand"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? 'Expand' : 'Collapse'}
-          aria-label={isCollapsed ? 'Expand floaty' : 'Collapse floaty'}
-        >
-          <ChevronIcon collapsed={isCollapsed} />
-        </button>
-      </header>
+          <button
+            className="floaty-button floaty-button--expand"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+            aria-label={isCollapsed ? 'Expand floaty' : 'Collapse floaty'}
+          >
+            <ChevronIcon collapsed={isCollapsed} />
+          </button>
+        </header>
 
-      {!isCollapsed && (
-        <div className="floaty-body">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
+        {!isCollapsed && (
+          <div className="floaty-body">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+export default Floaty;
+

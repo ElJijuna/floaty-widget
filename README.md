@@ -47,6 +47,9 @@ interface FloatyProps {
 
   /** Additional inline styles */
   style?: CSSProperties;
+
+  /** Unique ID for widget manager integration */
+  id?: string;
 }
 ```
 
@@ -108,6 +111,45 @@ Click the pin icon (📍) in the header to lock the component. When pinned (📌
 ### ➖ Expand/Collapse
 
 Click the chevron icon in the top-right to toggle content visibility. The animation is smooth with spring easing.
+
+## Widget Manager
+
+Manage multiple widgets from a single control point using `FloatyWidgetManager`:
+
+```tsx
+import { FloatyWidgetManager, Floaty, useFloatyWidgetManager } from 'floaty-widget';
+
+function ControlPanel() {
+  const manager = useFloatyWidgetManager();
+
+  return (
+    <div>
+      <button onClick={() => manager.expandAll()}>Expand All</button>
+      <button onClick={() => manager.collapseAll()}>Collapse All</button>
+      <button onClick={() => manager.pinAll()}>Pin All</button>
+      <button onClick={() => manager.unpinAll()}>Unpin All</button>
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <FloatyWidgetManager>
+      <ControlPanel />
+      <Floaty id="widget-1" title="Panel 1">Content 1</Floaty>
+      <Floaty id="widget-2" title="Panel 2">Content 2</Floaty>
+    </FloatyWidgetManager>
+  );
+}
+```
+
+**Features:**
+- 🎛️ Control expand/collapse for all widgets
+- 📌 Pin/unpin all widgets at once
+- 📊 Track all active widgets
+- 🔄 Real-time state synchronization
+
+See [WIDGET_MANAGER.md](./WIDGET_MANAGER.md) for detailed documentation.
 
 ## Styling
 

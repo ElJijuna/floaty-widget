@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Floaty } from './Floaty';
+import { FloatyWidgetManager, FloatyWidgetManagerHandle } from '../../context/FloatyWidgetManager';
 
 const meta: Meta<typeof Floaty> = {
   title: 'Components/FloatyWidget',
@@ -76,14 +77,124 @@ export const WithCustomContent: Story = {
   },
 };
 
-export const Pinned: Story = {
-  args: {
-    title: 'Pinned Floaty',
-    children: 'This floaty is pinned by default. Try pinning with the icon.',
-  },
-  render: (args) => {
-    const [isPinned] = useState(true);
-    return <Floaty {...args} />;
-  },
+// Widget Manager Story
+const ManagerDemoContent = () => {
+  const managerRef = useRef<FloatyWidgetManagerHandle>(null);
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'white',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+          zIndex: 999,
+          minWidth: '250px',
+        }}
+      >
+        <h3 style={{ margin: '0 0 15px 0', fontSize: '16px', fontWeight: 600 }}>
+          Widget Manager Controls
+        </h3>
+
+        <div style={{ display: 'grid', gap: '8px' }}>
+          <button
+            onClick={() => managerRef.current?.expandAll()}
+            style={{
+              padding: '8px 12px',
+              background: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 500,
+            }}
+          >
+            📖 Expand All
+          </button>
+          <button
+            onClick={() => managerRef.current?.collapseAll()}
+            style={{
+              padding: '8px 12px',
+              background: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 500,
+            }}
+          >
+            📕 Collapse All
+          </button>
+          <button
+            onClick={() => managerRef.current?.pinAll()}
+            style={{
+              padding: '8px 12px',
+              background: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 500,
+            }}
+          >
+            📌 Pin All
+          </button>
+          <button
+            onClick={() => managerRef.current?.unpinAll()}
+            style={{
+              padding: '8px 12px',
+              background: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 500,
+            }}
+          >
+            📍 Unpin All
+          </button>
+        </div>
+
+        <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #e5e7eb' }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: 500 }}>
+            Active Widgets: {managerRef.current?.getWidgetCount() ?? 0}
+          </p>
+        </div>
+      </div>
+
+      <FloatyWidgetManager ref={managerRef}>
+        <div>otro elemento</div>
+        <Floaty id="widget-1" title="Widget 1">
+          <p>First floating widget. Try dragging me!</p>
+        </Floaty>
+
+        <Floaty id="widget-2" title="Widget 2" style={{ top: '250px', left: '100px' }}>
+          <p>Second floating widget.</p>
+        </Floaty>
+
+        <Floaty id="widget-3" title="Widget 3" style={{ top: '400px', right: '100px' }}>
+          <p>Third floating widget. Use the control panel to manage all!</p>
+        </Floaty>
+      </FloatyWidgetManager>
+    </div>
+  );
 };
 
+export const WithManager: Story = {
+  render: () => <ManagerDemoContent />,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Use FloatyWidgetManager to control multiple widgets imperative via refs. Expand/collapse and pin/unpin all widgets from the control panel.',
+      },
+    },
+  },
+};
