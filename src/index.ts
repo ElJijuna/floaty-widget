@@ -1,3 +1,6 @@
+export { openFloaty, closeFloaty, closeAllFloaty, updateFloaty, connectFloatySingleton } from './singleton';
+export { useFloatySingleton } from './hooks/useFloatySingleton';
+
 export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyProps } from './components/Floaty/Floaty';
 export { FloatyViewport } from './components/Floaty/FloatyViewport';

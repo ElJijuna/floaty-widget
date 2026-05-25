@@ -7,20 +7,9 @@
 [![npm version](https://img.shields.io/npm/v/floaty-widget.svg)](https://www.npmjs.com/package/floaty-widget)
 [![npm downloads](https://img.shields.io/npm/dm/floaty-widget.svg)](https://www.npmjs.com/package/floaty-widget)
 [![CI](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml)
-[![Publish](https://github.com/ElJijuna/floaty-widget/actions/workflows/publish.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/publish.yml)
 [![License](https://img.shields.io/github/license/ElJijuna/floaty-widget.svg)](./LICENSE)
 
-A beautiful, draggable, and collapsible floating widget library built with React 19, TypeScript, and Vite.
-
-## Features
-
-✨ **Draggable Header** - Click and drag the header to move the component anywhere on the screen
-📍 **Pin/Unpin** - Lock the component in place with the pin button to prevent dragging
-🔽 **Expand/Collapse** - Smooth animations when toggling content visibility
-🎨 **Customizable** - Flexible styling with CSS variables and inline styles
-📱 **Responsive** - Works seamlessly on different screen sizes
-♿ **Accessible** - Built with ARIA labels and semantic HTML
-🚀 **Optimized** - Tree-shaking enabled, minimal bundle size
+Draggable, collapsible floating widgets for React 19.
 
 ## Installation
 
@@ -28,34 +17,51 @@ A beautiful, draggable, and collapsible floating widget library built with React
 npm install floaty-widget
 ```
 
-## Usage
+## Usage modes
+
+There are three ways to use Floaty, from simplest to most powerful.
+
+---
+
+### 1. Singleton — zero setup
+
+Call `openFloaty` from anywhere. No Provider or Viewport needed — Floaty mounts its own root on the first call.
 
 ```tsx
-import { FloatyProvider, FloatyViewport, useFloaty } from 'floaty-widget';
-import 'floaty-widget/dist/style.css';
+import { openFloaty, closeFloaty } from 'floaty-widget';
 
-function Commits({ owner, repo }: { owner: string; repo: string }) {
-  return <div>{owner}/{repo}</div>;
+function MyComponent({ userId }: { userId: string }) {
+  return <div>User: {userId}</div>;
 }
 
-function Toolbar() {
-  const floaty = useFloaty();
+// Open a floating widget
+openFloaty({
+  id: 'user-panel',
+  title: 'User Info',
+  component: MyComponent,
+  props: { userId: '123' },
+});
 
-  return (
-    <button
-      onClick={() =>
-        floaty.open({
-          id: 'commits-gnome-ui',
-          title: 'Commits',
-          component: Commits,
-          props: { owner: 'eljijuna', repo: 'gnome-ui' },
-        })
-      }
-    >
-      Open commits
-    </button>
-  );
-}
+// Close it
+closeFloaty('user-panel');
+```
+
+Other singleton functions:
+
+```ts
+updateFloaty('user-panel', { collapsed: true });
+closeAllFloaty();
+```
+
+---
+
+### 2. Provider + hook — full control
+
+Wrap your app with `FloatyProvider` and place `FloatyViewport` where widgets should render. Use `useFloaty()` to open widgets from any component.
+
+```tsx
+// main.tsx
+import { FloatyProvider, FloatyViewport } from 'floaty-widget';
 
 export function App() {
   return (
@@ -67,293 +73,276 @@ export function App() {
 }
 ```
 
-You can still use `Floaty` directly for a standalone draggable panel:
-
 ```tsx
-import { Floaty } from 'floaty-widget';
+// Toolbar.tsx
+import { useFloaty } from 'floaty-widget';
+import { CommitsPanel } from './CommitsPanel';
 
-<Floaty title="My Panel">
-  <p>Your content here</p>
-</Floaty>
-```
-
-## Floaty Props
-
-All props are optional.
-
-```tsx
-interface FloatyProps {
-  children?: ReactNode;
-  title?: ReactNode;
-  style?: CSSProperties;
-  className?: string;
-  id?: string;
-  labels?: Partial<FloatyTexts>;
-  icons?: FloatyIcons;
-  defaultCollapsed?: boolean;
-  defaultPinned?: boolean;
-  initialPosition?: { x: number; y: number };
-  zIndex?: number;
-  onClose?: () => void;
-}
-```
-
-### Default Values
-
-- `children`: `'Content'`
-- `title`: `'Floaty'`
-- `style`: `{}`
-
-## Examples
-
-### Basic Usage
-
-```tsx
-<Floaty title="Dashboard">
-  <div>
-    <h3>Welcome!</h3>
-    <p>This is a floating panel.</p>
-  </div>
-</Floaty>
-```
-
-### With Custom Styling
-
-```tsx
-<Floaty
-  title="Settings"
-  style={{ width: '400px' }}
->
-  <form>
-    {/* Your form content */}
-  </form>
-</Floaty>
-```
-
-### With Complex Content
-
-```tsx
-<Floaty title="User Info">
-  <div>
-    <img src="avatar.jpg" alt="User" />
-    <h4>John Doe</h4>
-    <p>john@example.com</p>
-    <button>View Profile</button>
-  </div>
-</Floaty>
-```
-
-## Features in Detail
-
-### 🖱️ Dragging
-
-Click and hold the header to drag the component around. The component will stay within viewport boundaries automatically.
-
-### 📍 Pin/Unpin
-
-Click the pin icon (📍) in the header to lock the component. When pinned (📌), the component cannot be dragged but can still be collapsed/expanded.
-
-### ➖ Expand/Collapse
-
-Click the chevron icon in the top-right to toggle content visibility. The animation is smooth with spring easing.
-
-## Widget Store
-
-Manage floating widgets from a single provider. The store keeps the component type and the props captured when `open` is called.
-
-```tsx
-import { FloatyProvider, FloatyViewport, useFloaty } from 'floaty-widget';
-
-function ControlPanel() {
+function Toolbar() {
   const floaty = useFloaty();
 
   return (
-    <div>
-      <button onClick={() => floaty.expandAll()}>Expand All</button>
-      <button onClick={() => floaty.collapseAll()}>Collapse All</button>
-      <button onClick={() => floaty.pinAll()}>Pin All</button>
-      <button onClick={() => floaty.unpinAll()}>Unpin All</button>
-    </div>
+    <button
+      onClick={() =>
+        floaty.open({
+          id: 'commits',
+          title: 'Commits',
+          component: CommitsPanel,
+          props: { repo: 'floaty-widget' },
+        })
+      }
+    >
+      Open commits
+    </button>
   );
+}
+```
+
+The manager exposes a full API:
+
+```ts
+floaty.open({ id, component, props, title, position, collapsed, pinned })
+floaty.close('commits')
+floaty.closeAll()
+floaty.update('commits', { collapsed: true, props: { repo: 'other' } })
+floaty.updateProps('commits', { repo: 'other' })
+floaty.bringToFront('commits')
+
+// Bulk operations
+floaty.collapseAll()
+floaty.expandAll()
+floaty.minimizeAll()
+floaty.restoreAll()
+floaty.pinAll()
+floaty.unpinAll()
+
+// Per-widget
+floaty.collapseWidget('commits')
+floaty.minimizeWidget('commits')
+floaty.pinWidget('commits')
+```
+
+---
+
+### 3. Singleton + Provider together
+
+If you already use `FloatyProvider` but also want `openFloaty` to work in the same widget tree, add `useFloatySingleton()` once inside the Provider. The singleton will use your Provider's manager instead of creating its own.
+
+```tsx
+import { FloatyProvider, FloatyViewport, useFloatySingleton } from 'floaty-widget';
+
+function FloatyBridge() {
+  useFloatySingleton(); // connects openFloaty() to this Provider
+  return null;
 }
 
 export function App() {
   return (
     <FloatyProvider>
-      <ControlPanel />
+      <FloatyBridge />
+      <MyApp />
       <FloatyViewport />
     </FloatyProvider>
   );
 }
 ```
 
-**Features:**
-- Open app components as independent floating widgets
-- Capture props at the moment the widget is opened
-- Update props later with `updateProps(id, props)`
-- Control expand/collapse, pin/unpin, close and z-order
-- Customize tokens, labels and icons
-
-See [WIDGET_MANAGER.md](./WIDGET_MANAGER.md) for detailed documentation.
-
-## Styling
-
-Floaty uses `@gnome-ui/react` / `@gnome-ui/core` tokens by default when they are present, then exposes `--floaty-*` aliases for local overrides.
-
 ```tsx
-import '@gnome-ui/core/src/tokens.css';
-import { GnomeProvider } from '@gnome-ui/react';
-import { FloatyProvider, FloatyViewport } from 'floaty-widget';
+// Now openFloaty opens widgets inside your FloatyViewport
+import { openFloaty } from 'floaty-widget';
 
-<GnomeProvider colorScheme="system" accentColor="purple">
-  <FloatyProvider>
-    <FloatyViewport />
-  </FloatyProvider>
-</GnomeProvider>
+openFloaty({ id: 'panel', component: MyPanel, props: {} });
 ```
 
-You can also map provider theme values to GNOME tokens:
+---
+
+### 4. Standalone `<Floaty>` component
+
+Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager.
+
+```tsx
+import { Floaty } from 'floaty-widget';
+
+function App() {
+  return (
+    <>
+      <MyApp />
+      <Floaty title="Debug" initialPosition={{ x: 100, y: 100 }}>
+        <pre>{JSON.stringify(state, null, 2)}</pre>
+      </Floaty>
+    </>
+  );
+}
+```
+
+---
+
+## Floaty props
+
+All props are optional.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | `ReactNode` | `'Floaty'` | Header title |
+| `children` | `ReactNode` | `'Content'` | Body content |
+| `id` | `string` | — | Registers with `FloatyProvider` when provided |
+| `initialPosition` | `{ x, y }` | `{ x: 100, y: 100 }` | Starting position |
+| `initialSize` | `{ width?, height? }` | — | Starting size |
+| `defaultCollapsed` | `boolean` | `false` | Start collapsed |
+| `defaultMinimized` | `boolean` | `false` | Start hidden |
+| `defaultPinned` | `boolean` | `false` | Start pinned (no drag) |
+| `zIndex` | `number` | — | CSS z-index |
+| `labels` | `Partial<FloatyTexts>` | — | Override button labels |
+| `icons` | `FloatyIcons` | — | Override button icons |
+| `style` | `CSSProperties` | — | Root element styles |
+| `className` | `string` | — | Root element class |
+| `onClose` | `() => void` | — | Shows close button when provided |
+| `onFocus` | `() => void` | — | Called on pointer down |
+
+### Imperative ref
+
+```tsx
+import { useRef } from 'react';
+import { Floaty, FloatyHandle } from 'floaty-widget';
+
+const ref = useRef<FloatyHandle>(null);
+
+<Floaty ref={ref}>content</Floaty>
+
+ref.current.collapse()
+ref.current.expand()
+ref.current.toggle()
+ref.current.minimize()
+ref.current.restore()
+ref.current.pin()
+ref.current.unpin()
+```
+
+---
+
+## Duplicate strategy
+
+Control what happens when `open` is called with an existing id:
+
+```ts
+// Default: replace the widget
+floaty.open({ id: 'panel', ... })
+
+// Focus the existing one (restores if minimized)
+floaty.open({ id: 'panel', ... }, { duplicateStrategy: 'focus' })
+
+// Create a second instance with a unique id (panel-2, panel-3, ...)
+floaty.open({ id: 'panel', ... }, { duplicateStrategy: 'duplicate' })
+```
+
+---
+
+## Theming
+
+Pass a `theme` object to `FloatyProvider` (or `FloatyWidgetManager`) to customize colors, spacing, and radius:
 
 ```tsx
 <FloatyProvider
   theme={{
-    background: 'var(--gnome-card-bg-color)',
-    foreground: 'var(--gnome-card-fg-color)',
-    bodyBackground: 'var(--gnome-view-bg-color)',
-    headerBackground: 'var(--gnome-headerbar-bg-color)',
-    headerForeground: 'var(--gnome-headerbar-fg-color)',
-    pinnedHeaderBackground: 'var(--gnome-accent-bg-color)',
-    pinnedHeaderForeground: 'var(--gnome-accent-fg-color)',
-    border: 'var(--gnome-card-shade-color)',
-    pinnedBorder: 'var(--gnome-card-shade-color)',
-    radius: 'var(--gnome-radius-lg)',
-    shadow: 'var(--gnome-shadow-md)',
-    fontFamily: 'var(--gnome-font-family)',
+    background: '#1e1e2e',
+    foreground: '#cdd6f4',
+    headerBackground: '#181825',
+    headerForeground: '#cdd6f4',
+    pinnedHeaderBackground: '#89b4fa',
+    pinnedHeaderForeground: '#1e1e2e',
+    border: '#313244',
+    radius: '8px',
+    shadow: '0 4px 24px rgba(0,0,0,0.4)',
   }}
 >
   <FloatyViewport />
 </FloatyProvider>
 ```
 
-The component uses CSS variables that you can customize directly:
+Or use CSS variables directly:
 
 ```css
 :root {
-  --floaty-bg: var(--gnome-card-bg-color);
-  --floaty-fg: var(--gnome-card-fg-color);
-  --floaty-header-bg: var(--gnome-headerbar-bg-color);
-  --floaty-header-fg: var(--gnome-headerbar-fg-color);
-  --floaty-pinned-header-bg: var(--gnome-accent-bg-color);
-  --floaty-pinned-header-fg: var(--gnome-accent-fg-color);
-  --floaty-border: var(--gnome-card-shade-color);
-  --floaty-pinned-border: var(--gnome-card-shade-color);
-  --floaty-radius: var(--gnome-radius-lg);
-  --floaty-shadow: var(--gnome-shadow-md);
+  --floaty-bg: #1e1e2e;
+  --floaty-fg: #cdd6f4;
+  --floaty-header-bg: #181825;
+  --floaty-header-fg: #cdd6f4;
+  --floaty-pinned-header-bg: #89b4fa;
+  --floaty-pinned-header-fg: #1e1e2e;
+  --floaty-body-bg: #1e1e2e;
+  --floaty-border: #313244;
+  --floaty-pinned-border: #89b4fa;
+  --floaty-radius: 8px;
+  --floaty-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --floaty-font-family: inherit;
+  --floaty-header-padding-block: 8px;
+  --floaty-header-padding-inline: 12px;
+  --floaty-body-padding: 12px;
+  --floaty-button-radius: 4px;
+  --floaty-button-hover-bg: rgba(255, 255, 255, 0.1);
 }
 ```
 
-## Development
-
-### Setup
-
-```bash
-npm install
-```
-
-### Development Server
-
-```bash
-npm run dev
-```
-
-### Storybook
-
-```bash
-npm run storybook
-```
-
-Open [http://localhost:6006](http://localhost:6006) to view the component stories.
-
-### Build
-
-```bash
-npm run build
-```
-
-Generates:
-- ES module: `dist/index.es.js`
-- UMD bundle: `dist/index.umd.cjs`
-- CSS: `dist/style.css`
-
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-
-## Performance
-
-- **Optimized dragging** with global event listeners to prevent jank
-- **Tree-shaking enabled** for smaller bundle sizes
-- **CSS animations** for smooth expand/collapse transitions
-- **Viewport constraints** to prevent layout shifts
-
-## Accessibility
-
-- ♿ ARIA labels on interactive elements
-- ⌨️ Keyboard accessible buttons
-- 📱 Touch-friendly hit targets
-- 🎯 Semantic HTML structure
-
-## TypeScript Support
-
-Full TypeScript support with exported types:
+### Custom icons
 
 ```tsx
-import { Floaty, FloatyProps } from 'floaty-widget';
+import { Pin, PinFilled } from './icons';
 
-const MyComponent: React.FC<FloatyProps> = (props) => {
-  return <Floaty {...props} />;
-};
+<FloatyProvider
+  icons={{
+    pin: Pin,
+    unpin: PinFilled,
+    collapse: ChevronUp,
+    expand: ChevronDown,
+    minimize: Minus,
+    close: X,
+  }}
+>
+  <FloatyViewport />
+</FloatyProvider>
 ```
 
-## Contributing
+### Custom labels
 
-We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-## Publishing & Releases
-
-This project uses **Semantic Versioning** and **Changesets** for automated releases:
-
-- **Storybook** is automatically deployed to GitHub Pages on each release
-- **npm** publication is automated with semantic version bumping
-
-### How to Create a Release
-
-1. Create a changeset:
-   ```bash
-   npm exec changeset
-   ```
-
-2. Commit and push:
-   ```bash
-   git add .
-   git commit -m "chore: add changeset"
-   git push
-   ```
-
-3. A release PR will be created automatically
-4. Merge the release PR to trigger:
-   - npm publish with new version
-   - Storybook deployment to GitHub Pages
-
-See [GITHUB_SECRETS.md](./GITHUB_SECRETS.md) for configuration details.
-
-## License
-
-MIT © 2024
+```tsx
+<FloatyProvider
+  labels={{
+    pin: 'Fijar',
+    unpin: 'Desfijar',
+    collapse: 'Colapsar',
+    expand: 'Expandir',
+    minimize: 'Minimizar',
+    restore: 'Restaurar',
+    close: 'Cerrar',
+  }}
+>
+  <FloatyViewport />
+</FloatyProvider>
+```
 
 ---
 
-**Built with** ❤️ using React 19, TypeScript, and Vite
+## Development
+
+```bash
+npm install
+npm run dev          # dev server
+npm run storybook    # component stories at localhost:6006
+npm test             # run tests
+npm run bench        # benchmarks
+npm run build        # build library
+```
+
+## Releases
+
+This project uses [Semantic Release](https://semantic-release.gitbook.io) with [Conventional Commits](https://www.conventionalcommits.org). Push to `main` to trigger an automatic release:
+
+| Commit prefix | Version bump |
+| --- | --- |
+| `fix: ...` | patch — `0.1.0 → 0.1.1` |
+| `feat: ...` | minor — `0.1.0 → 0.2.0` |
+| `feat!: ...` or `fix!: ...` | major — `0.1.0 → 1.0.0` |
+
+## License
+
+MIT © [ElJijuna](https://github.com/ElJijuna)
