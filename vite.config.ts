@@ -1,6 +1,6 @@
-/// <reference types="vitest" />
+/// <reference types="node" />
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -19,18 +19,12 @@ export default defineConfig({
     lib: {
       entry: 'src/index.ts',
       name: 'FloatyWidget',
-      formats: ['es', 'umd'],
+      formats: ['es', 'cjs'],
       fileName: (format) =>
-        format === 'es' ? 'index.es.js' : 'index.umd.cjs',
+        format === 'es' ? 'index.es.js' : 'index.cjs',
     },
     rollupOptions: {
-      external: ['react', 'react-dom'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-        },
-      },
+      external: (id) => /^react(-dom)?(\/.*)?$/.test(id),
     },
   },
 });
