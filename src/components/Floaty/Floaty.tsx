@@ -130,7 +130,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState<FloatyPosition>(initialPosition);
     const floatyRef = useRef<HTMLDivElement>(null);
-    const dragStateRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
+    const dragStateRef = useRef({
+      isDragging: false,
+      startPointerX: 0,
+      startPointerY: 0,
+      startX: 0,
+      startY: 0,
+      baseLeft: 0,
+      baseTop: 0,
+    });
     const internalHandleRef = useRef<FloatyHandle | null>(null);
     const Pin = mergedIcons.pin;
     const Unpin = mergedIcons.unpin;
@@ -183,8 +191,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         e.currentTarget.setPointerCapture(e.pointerId);
         dragStateRef.current = {
           isDragging: true,
-          offsetX: e.clientX - rect.left,
-          offsetY: e.clientY - rect.top,
+          startPointerX: e.clientX,
+          startPointerY: e.clientY,
+          startX: position.x,
+          startY: position.y,
+          baseLeft: rect.left - position.x,
+          baseTop: rect.top - position.y,
         };
         setIsDragging(true);
       }
@@ -197,15 +209,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         const rect = floatyRef.current?.getBoundingClientRect();
         if (!rect) return;
 
-        let newX = e.clientX - dragStateRef.current.offsetX;
-        let newY = e.clientY - dragStateRef.current.offsetY;
+        const dragState = dragStateRef.current;
+        let newX = dragState.startX + e.clientX - dragState.startPointerX;
+        let newY = dragState.startY + e.clientY - dragState.startPointerY;
 
         // Constrain to viewport
-        const maxX = window.innerWidth - rect.width;
-        const maxY = window.innerHeight - rect.height;
+        const minX = -dragState.baseLeft;
+        const minY = -dragState.baseTop;
+        const maxX = window.innerWidth - rect.width - dragState.baseLeft;
+        const maxY = window.innerHeight - rect.height - dragState.baseTop;
 
-        newX = Math.max(0, Math.min(newX, maxX));
-        newY = Math.max(0, Math.min(newY, maxY));
+        newX = Math.max(minX, Math.min(newX, maxX));
+        newY = Math.max(minY, Math.min(newY, maxY));
 
         setPosition({
           x: newX,
@@ -235,9 +250,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${className ?? ''}`}
         onPointerDown={onFocus}
         style={{
+          ...style,
+          left: 0,
+          top: 0,
           transform: `translate(${position.x}px, ${position.y}px)`,
           zIndex,
-          ...style,
         }}
       >
         <header
