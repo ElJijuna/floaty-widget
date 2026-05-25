@@ -14,14 +14,24 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
     '--floaty-bg': manager.theme?.background,
     '--floaty-fg': manager.theme?.foreground,
     '--floaty-header-bg': manager.theme?.headerBackground,
-    '--floaty-header-bg-hover': manager.theme?.headerBackground,
+    '--floaty-header-bg-hover':
+      manager.theme?.headerBackgroundHover ?? manager.theme?.headerBackground,
     '--floaty-header-fg': manager.theme?.headerForeground,
     '--floaty-pinned-header-bg': manager.theme?.pinnedHeaderBackground,
-    '--floaty-pinned-header-bg-hover': manager.theme?.pinnedHeaderBackground,
+    '--floaty-pinned-header-bg-hover':
+      manager.theme?.pinnedHeaderBackgroundHover ??
+      manager.theme?.pinnedHeaderBackground,
+    '--floaty-pinned-header-fg': manager.theme?.pinnedHeaderForeground,
+    '--floaty-body-bg': manager.theme?.bodyBackground,
     '--floaty-border': manager.theme?.border,
     '--floaty-radius': manager.theme?.radius,
     '--floaty-shadow': manager.theme?.shadow,
     '--floaty-font-family': manager.theme?.fontFamily,
+    '--floaty-header-padding-block': manager.theme?.headerPaddingBlock,
+    '--floaty-header-padding-inline': manager.theme?.headerPaddingInline,
+    '--floaty-body-padding': manager.theme?.bodyPadding,
+    '--floaty-button-radius': manager.theme?.buttonRadius,
+    '--floaty-button-hover-bg': manager.theme?.buttonHoverBackground,
   } as CSSProperties;
 
   return (

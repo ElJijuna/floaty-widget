@@ -188,18 +188,55 @@ See [WIDGET_MANAGER.md](./WIDGET_MANAGER.md) for detailed documentation.
 
 ## Styling
 
-The component uses CSS variables that you can customize:
+Floaty uses `@gnome-ui/react` / `@gnome-ui/core` tokens by default when they are present, then exposes `--floaty-*` aliases for local overrides.
+
+```tsx
+import '@gnome-ui/core/src/tokens.css';
+import { GnomeProvider } from '@gnome-ui/react';
+import { FloatyProvider, FloatyViewport } from 'floaty-widget';
+
+<GnomeProvider colorScheme="system" accentColor="purple">
+  <FloatyProvider>
+    <FloatyViewport />
+  </FloatyProvider>
+</GnomeProvider>
+```
+
+You can also map provider theme values to GNOME tokens:
+
+```tsx
+<FloatyProvider
+  theme={{
+    background: 'var(--gnome-card-bg-color)',
+    foreground: 'var(--gnome-card-fg-color)',
+    bodyBackground: 'var(--gnome-view-bg-color)',
+    headerBackground: 'var(--gnome-headerbar-bg-color)',
+    headerForeground: 'var(--gnome-headerbar-fg-color)',
+    pinnedHeaderBackground: 'var(--gnome-accent-bg-color)',
+    pinnedHeaderForeground: 'var(--gnome-accent-fg-color)',
+    border: 'var(--gnome-headerbar-border-color)',
+    radius: 'var(--gnome-radius-lg)',
+    shadow: 'var(--gnome-shadow-md)',
+    fontFamily: 'var(--gnome-font-family)',
+  }}
+>
+  <FloatyViewport />
+</FloatyProvider>
+```
+
+The component uses CSS variables that you can customize directly:
 
 ```css
 :root {
-  --floaty-bg: white;
-  --floaty-fg: #374151;
-  --floaty-header-bg: #4f46e5;
-  --floaty-header-bg-hover: #4338ca;
-  --floaty-header-fg: white;
-  --floaty-border: #e5e7eb;
-  --floaty-radius: 8px;
-  --floaty-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  --floaty-bg: var(--gnome-card-bg-color);
+  --floaty-fg: var(--gnome-card-fg-color);
+  --floaty-header-bg: var(--gnome-headerbar-bg-color);
+  --floaty-header-fg: var(--gnome-headerbar-fg-color);
+  --floaty-pinned-header-bg: var(--gnome-accent-bg-color);
+  --floaty-pinned-header-fg: var(--gnome-accent-fg-color);
+  --floaty-border: var(--gnome-headerbar-border-color);
+  --floaty-radius: var(--gnome-radius-lg);
+  --floaty-shadow: var(--gnome-shadow-md);
 }
 ```
 

@@ -88,13 +88,22 @@ export type FloatyIcons = Partial<Record<FloatyIconName, FloatyIconComponent>>;
 export interface FloatyTheme {
   background?: string;
   foreground?: string;
+  bodyBackground?: string;
   headerBackground?: string;
+  headerBackgroundHover?: string;
   headerForeground?: string;
   pinnedHeaderBackground?: string;
+  pinnedHeaderBackgroundHover?: string;
+  pinnedHeaderForeground?: string;
   border?: string;
   radius?: string;
   shadow?: string;
   fontFamily?: string;
+  headerPaddingBlock?: string;
+  headerPaddingInline?: string;
+  bodyPadding?: string;
+  buttonRadius?: string;
+  buttonHoverBackground?: string;
 }
 
 export interface FloatyWidgetManagerHandle {
