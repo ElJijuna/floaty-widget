@@ -124,7 +124,8 @@ import { FloatyProvider, FloatyViewport } from 'floaty-widget';
     headerForeground: 'var(--gnome-headerbar-fg-color)',
     pinnedHeaderBackground: 'var(--gnome-accent-bg-color)',
     pinnedHeaderForeground: 'var(--gnome-accent-fg-color)',
-    border: 'var(--gnome-headerbar-border-color)',
+    border: 'var(--gnome-card-shade-color)',
+    pinnedBorder: 'var(--gnome-card-shade-color)',
     radius: 'var(--gnome-radius-lg)',
     shadow: 'var(--gnome-shadow-md)',
     fontFamily: 'var(--gnome-font-family)',
@@ -144,7 +145,8 @@ You can also override the CSS variables directly:
   --floaty-header-fg: var(--gnome-headerbar-fg-color);
   --floaty-pinned-header-bg: var(--gnome-accent-bg-color);
   --floaty-pinned-header-fg: var(--gnome-accent-fg-color);
-  --floaty-border: var(--gnome-headerbar-border-color);
+  --floaty-border: var(--gnome-card-shade-color);
+  --floaty-pinned-border: var(--gnome-card-shade-color);
   --floaty-radius: var(--gnome-radius-lg);
   --floaty-shadow: var(--gnome-shadow-md);
 }

@@ -24,6 +24,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
     '--floaty-pinned-header-fg': manager.theme?.pinnedHeaderForeground,
     '--floaty-body-bg': manager.theme?.bodyBackground,
     '--floaty-border': manager.theme?.border,
+    '--floaty-pinned-border': manager.theme?.pinnedBorder,
     '--floaty-radius': manager.theme?.radius,
     '--floaty-shadow': manager.theme?.shadow,
     '--floaty-font-family': manager.theme?.fontFamily,

@@ -4,11 +4,12 @@
   --floaty-header-bg: var(--gnome-headerbar-bg-color, #4f46e5);
   --floaty-header-bg-hover: var(--gnome-headerbar-bg-color, #4338ca);
   --floaty-header-fg: var(--gnome-headerbar-fg-color, white);
-  --floaty-pinned-header-bg: var(--gnome-accent-bg-color, #10b981);
-  --floaty-pinned-header-bg-hover: var(--gnome-accent-bg-color, #059669);
+  --floaty-pinned-header-bg: var(--gnome-accent-bg-color, #3584e4);
+  --floaty-pinned-header-bg-hover: var(--gnome-accent-bg-color, #3584e4);
   --floaty-pinned-header-fg: var(--gnome-accent-fg-color, white);
   --floaty-body-bg: var(--gnome-view-bg-color, #f9fafb);
-  --floaty-border: var(--gnome-headerbar-border-color, #e5e7eb);
+  --floaty-border: var(--gnome-card-shade-color, rgba(0, 0, 0, 0.07));
+  --floaty-pinned-border: var(--floaty-border);
   --floaty-radius: var(--gnome-radius-lg, 8px);
   --floaty-shadow: var(--gnome-shadow-md, 0 10px 25px rgba(0, 0, 0, 0.1));
   --floaty-transition: all 0.3s ease;
@@ -43,7 +44,7 @@
 
 .floaty.pinned {
   opacity: 1;
-  border-color: var(--floaty-pinned-header-bg);
+  border-color: var(--floaty-pinned-border);
 }
 
 .floaty.collapsed {

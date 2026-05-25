@@ -382,8 +382,9 @@ const ManagerDemoContent = () => {
           theme={{
             headerBackground: '#0f766e',
             headerForeground: '#ffffff',
-            pinnedHeaderBackground: '#7c3aed',
-            border: '#99f6e4',
+            pinnedHeaderBackground: 'var(--gnome-accent-bg-color)',
+            pinnedHeaderForeground: 'var(--gnome-accent-fg-color)',
+            border: 'var(--gnome-card-shade-color)',
           }}
         >
           <div style={{ display: 'grid', gap: 20, padding: '20px' }}>

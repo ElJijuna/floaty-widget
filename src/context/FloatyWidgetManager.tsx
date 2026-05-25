@@ -96,6 +96,7 @@ export interface FloatyTheme {
   pinnedHeaderBackgroundHover?: string;
   pinnedHeaderForeground?: string;
   border?: string;
+  pinnedBorder?: string;
   radius?: string;
   shadow?: string;
   fontFamily?: string;
