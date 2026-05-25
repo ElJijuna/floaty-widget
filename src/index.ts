@@ -1,6 +1,28 @@
 export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyProps } from './components/Floaty/Floaty';
+export { FloatyViewport } from './components/Floaty/FloatyViewport';
+export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
 
-export { FloatyWidgetManager, useFloatyWidgetManager, useFloatyWidget } from './context/FloatyWidgetManager';
-export type { FloatyWidgetManagerProps, FloatyWidgetState } from './context/FloatyWidgetManager';
-
+export {
+  FloatyWidgetManager,
+  FloatyWidgetManager as FloatyProvider,
+  useFloatyWidgetManager,
+  useFloatyWidgetManager as useFloaty,
+  useFloatyWidget,
+} from './context/FloatyWidgetManager';
+export type {
+  FloatyHandle,
+  FloatyIcons,
+  FloatyIconComponent,
+  FloatyOpenOptions,
+  FloatyOpenWidget,
+  FloatyPosition,
+  FloatySize,
+  FloatyTexts,
+  FloatyTheme,
+  FloatyWidget,
+  FloatyWidgetManagerHandle,
+  FloatyWidgetManagerProps,
+  FloatyWidgetPatch,
+  FloatyWidgetState,
+} from './context/FloatyWidgetManager';

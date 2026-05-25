@@ -11,20 +11,35 @@ import {
 import './Floaty.css';
 import {
   useFloatyManager,
+  type FloatyIcons,
   type FloatyHandle,
+  type FloatyPosition,
+  type FloatyTexts,
 } from '../../context/FloatyWidgetManager';
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 export interface FloatyProps {
   children?: ReactNode;
-  title?: string;
+  title?: ReactNode;
   style?: CSSProperties;
+  className?: string;
   id?: string;
+  labels?: Partial<FloatyTexts>;
+  icons?: FloatyIcons;
+  defaultCollapsed?: boolean;
+  defaultPinned?: boolean;
+  initialPosition?: FloatyPosition;
+  zIndex?: number;
+  onClose?: () => void;
+  onFocus?: () => void;
 }
+
+const defaultLabels: FloatyTexts = {
+  pin: 'Pin',
+  unpin: 'Unpin',
+  collapse: 'Collapse',
+  expand: 'Expand',
+  close: 'Close',
+};
 
 const PinIcon = ({ pinned }: { pinned: boolean }) => (
   <svg
@@ -61,6 +76,22 @@ const ChevronIcon = ({ collapsed }: { collapsed: boolean }) => (
   </svg>
 );
 
+const CloseIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </svg>
+);
+
 /**
  * Floaty - A draggable, collapsible floating component
  * @param props - Component props
@@ -76,20 +107,36 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       children = 'Content',
       title = 'Floaty',
       style = {},
+      className,
       id,
+      labels: labelsProp,
+      icons = {},
+      defaultCollapsed = false,
+      defaultPinned = false,
+      initialPosition = { x: 100, y: 100 },
+      zIndex,
+      onClose,
+      onFocus,
     }: FloatyProps,
     ref
   ) => {
     const manager = useFloatyManager();
     const registerFloaty = manager?.registerFloaty;
     const updateWidgetState = manager?.updateWidgetState;
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isPinned, setIsPinned] = useState(false);
+    const labels = { ...defaultLabels, ...manager?.labels, ...labelsProp };
+    const mergedIcons = { ...manager?.icons, ...icons };
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isPinned, setIsPinned] = useState(defaultPinned);
     const [isDragging, setIsDragging] = useState(false);
-    const [position, setPosition] = useState<Position>({ x: 100, y: 100 });
+    const [position, setPosition] = useState<FloatyPosition>(initialPosition);
     const floatyRef = useRef<HTMLDivElement>(null);
     const dragStateRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
     const internalHandleRef = useRef<FloatyHandle | null>(null);
+    const Pin = mergedIcons.pin;
+    const Unpin = mergedIcons.unpin;
+    const Collapse = mergedIcons.collapse;
+    const Expand = mergedIcons.expand;
+    const Close = mergedIcons.close;
 
     const handleMethods = useMemo<FloatyHandle>(
       () => ({
@@ -114,15 +161,17 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         return registerFloaty(id, internalHandleRef, {
           isCollapsed,
           isPinned,
+          position,
+          zIndex,
         });
       }
     }, [id, registerFloaty]);
 
     useEffect(() => {
       if (id) {
-        updateWidgetState?.(id, { isCollapsed, isPinned });
+        updateWidgetState?.(id, { isCollapsed, isPinned, position, zIndex });
       }
-    }, [id, isCollapsed, isPinned, updateWidgetState]);
+    }, [id, isCollapsed, isPinned, position, zIndex, updateWidgetState]);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
       if (isPinned) return;
@@ -130,6 +179,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
       const rect = floatyRef.current?.getBoundingClientRect();
       if (rect) {
+        onFocus?.();
         e.currentTarget.setPointerCapture(e.pointerId);
         dragStateRef.current = {
           isDragging: true,
@@ -182,9 +232,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''}`}
+        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${className ?? ''}`}
+        onPointerDown={onFocus}
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
+          zIndex,
           ...style,
         }}
       >
@@ -195,10 +247,16 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           <button
             className="floaty-button floaty-button--pin"
             onClick={() => setIsPinned((pinned) => !pinned)}
-            title={isPinned ? 'Unpin' : 'Pin'}
-            aria-label={isPinned ? 'Unpin floaty' : 'Pin floaty'}
+            title={isPinned ? labels.unpin : labels.pin}
+            aria-label={isPinned ? labels.unpin : labels.pin}
           >
-            <PinIcon pinned={isPinned} />
+            {isPinned && Unpin ? (
+              <Unpin active />
+            ) : !isPinned && Pin ? (
+              <Pin />
+            ) : (
+              <PinIcon pinned={isPinned} />
+            )}
           </button>
 
           <span className="floaty-title">{title}</span>
@@ -206,11 +264,28 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           <button
             className="floaty-button floaty-button--expand"
             onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-            title={isCollapsed ? 'Expand' : 'Collapse'}
-            aria-label={isCollapsed ? 'Expand floaty' : 'Collapse floaty'}
+            title={isCollapsed ? labels.expand : labels.collapse}
+            aria-label={isCollapsed ? labels.expand : labels.collapse}
           >
-            <ChevronIcon collapsed={isCollapsed} />
+            {isCollapsed && Expand ? (
+              <Expand active />
+            ) : !isCollapsed && Collapse ? (
+              <Collapse />
+            ) : (
+              <ChevronIcon collapsed={isCollapsed} />
+            )}
           </button>
+
+          {onClose && (
+            <button
+              className="floaty-button floaty-button--close"
+              onClick={onClose}
+              title={labels.close}
+              aria-label={labels.close}
+            >
+              {Close ? <Close /> : <CloseIcon />}
+            </button>
+          )}
         </header>
 
         {!isCollapsed && (

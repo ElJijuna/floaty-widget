@@ -21,35 +21,70 @@ npm install floaty-widget
 ## Usage
 
 ```tsx
-import { Floaty } from 'floaty-widget';
+import { FloatyProvider, FloatyViewport, useFloaty } from 'floaty-widget';
 import 'floaty-widget/dist/style.css';
+
+function Commits({ owner, repo }: { owner: string; repo: string }) {
+  return <div>{owner}/{repo}</div>;
+}
+
+function Toolbar() {
+  const floaty = useFloaty();
+
+  return (
+    <button
+      onClick={() =>
+        floaty.open({
+          id: 'commits-gnome-ui',
+          title: 'Commits',
+          component: Commits,
+          props: { owner: 'eljijuna', repo: 'gnome-ui' },
+        })
+      }
+    >
+      Open commits
+    </button>
+  );
+}
 
 export function App() {
   return (
-    <Floaty title="My Panel">
-      <p>Your content here</p>
-    </Floaty>
+    <FloatyProvider>
+      <Toolbar />
+      <FloatyViewport />
+    </FloatyProvider>
   );
 }
 ```
 
-## Props
+You can still use `Floaty` directly for a standalone draggable panel:
+
+```tsx
+import { Floaty } from 'floaty-widget';
+
+<Floaty title="My Panel">
+  <p>Your content here</p>
+</Floaty>
+```
+
+## Floaty Props
 
 All props are optional.
 
 ```tsx
 interface FloatyProps {
-  /** Content to display inside the floaty body */
   children?: ReactNode;
-
-  /** Header title text */
-  title?: string;
-
-  /** Additional inline styles */
+  title?: ReactNode;
   style?: CSSProperties;
-
-  /** Unique ID for widget manager integration */
+  className?: string;
   id?: string;
+  labels?: Partial<FloatyTexts>;
+  icons?: FloatyIcons;
+  defaultCollapsed?: boolean;
+  defaultPinned?: boolean;
+  initialPosition?: { x: number; y: number };
+  zIndex?: number;
+  onClose?: () => void;
 }
 ```
 
@@ -112,42 +147,42 @@ Click the pin icon (📍) in the header to lock the component. When pinned (📌
 
 Click the chevron icon in the top-right to toggle content visibility. The animation is smooth with spring easing.
 
-## Widget Manager
+## Widget Store
 
-Manage multiple widgets from a single control point using `FloatyWidgetManager`:
+Manage floating widgets from a single provider. The store keeps the component type and the props captured when `open` is called.
 
 ```tsx
-import { FloatyWidgetManager, Floaty, useFloatyWidgetManager } from 'floaty-widget';
+import { FloatyProvider, FloatyViewport, useFloaty } from 'floaty-widget';
 
 function ControlPanel() {
-  const manager = useFloatyWidgetManager();
+  const floaty = useFloaty();
 
   return (
     <div>
-      <button onClick={() => manager.expandAll()}>Expand All</button>
-      <button onClick={() => manager.collapseAll()}>Collapse All</button>
-      <button onClick={() => manager.pinAll()}>Pin All</button>
-      <button onClick={() => manager.unpinAll()}>Unpin All</button>
+      <button onClick={() => floaty.expandAll()}>Expand All</button>
+      <button onClick={() => floaty.collapseAll()}>Collapse All</button>
+      <button onClick={() => floaty.pinAll()}>Pin All</button>
+      <button onClick={() => floaty.unpinAll()}>Unpin All</button>
     </div>
   );
 }
 
 export function App() {
   return (
-    <FloatyWidgetManager>
+    <FloatyProvider>
       <ControlPanel />
-      <Floaty id="widget-1" title="Panel 1">Content 1</Floaty>
-      <Floaty id="widget-2" title="Panel 2">Content 2</Floaty>
-    </FloatyWidgetManager>
+      <FloatyViewport />
+    </FloatyProvider>
   );
 }
 ```
 
 **Features:**
-- 🎛️ Control expand/collapse for all widgets
-- 📌 Pin/unpin all widgets at once
-- 📊 Track all active widgets
-- 🔄 Real-time state synchronization
+- Open app components as independent floating widgets
+- Capture props at the moment the widget is opened
+- Update props later with `updateProps(id, props)`
+- Control expand/collapse, pin/unpin, close and z-order
+- Customize tokens, labels and icons
 
 See [WIDGET_MANAGER.md](./WIDGET_MANAGER.md) for detailed documentation.
 
@@ -157,11 +192,14 @@ The component uses CSS variables that you can customize:
 
 ```css
 :root {
-  --primary-color: #4f46e5;
-  --primary-hover: #4338ca;
-  --border-color: #e5e7eb;
-  --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s ease;
+  --floaty-bg: white;
+  --floaty-fg: #374151;
+  --floaty-header-bg: #4f46e5;
+  --floaty-header-bg-hover: #4338ca;
+  --floaty-header-fg: white;
+  --floaty-border: #e5e7eb;
+  --floaty-radius: 8px;
+  --floaty-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 ```
 

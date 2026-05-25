@@ -1,147 +1,144 @@
-# FloatyWidgetManager
+# Floaty Widget Store
 
-El `FloatyWidgetManager` es un Context que te permite gestionar múltiples widgets `Floaty` de forma centralizada.
+`FloatyWidgetManager` is the provider behind the widget store. It is also exported as `FloatyProvider`.
 
-## Uso Básico
+The core idea is simple: call `open()` with a React component and the props it should receive. `FloatyViewport` renders every active widget as an independent floating window.
 
-```tsx
-import { FloatyWidgetManager, Floaty, useFloatyWidgetManager } from 'floaty-widget';
-
-const App = () => {
-  return (
-    <FloatyWidgetManager>
-      <YourComponent />
-    </FloatyWidgetManager>
-  );
-};
-```
-
-## Dentro del Context
-
-Para acceder al manager desde un componente:
+## Basic Usage
 
 ```tsx
-import { useFloatyWidgetManager } from 'floaty-widget';
+import { FloatyProvider, FloatyViewport, useFloaty } from 'floaty-widget';
 
-const Component = () => {
-  const manager = useFloatyWidgetManager();
+function Commits({ owner, repo }: { owner: string; repo: string }) {
+  return <div>{owner}/{repo}</div>;
+}
+
+function Toolbar() {
+  const floaty = useFloaty();
 
   return (
-    <div>
-      <button onClick={() => manager.expandAll()}>Expand All</button>
-      <button onClick={() => manager.collapseAll()}>Collapse All</button>
-      <button onClick={() => manager.pinAll()}>Pin All</button>
-      <button onClick={() => manager.unpinAll()}>Unpin All</button>
-
-      <Floaty id="widget-1" title="Widget 1">Content 1</Floaty>
-      <Floaty id="widget-2" title="Widget 2">Content 2</Floaty>
-    </div>
-  );
-};
-```
-
-## API del Manager
-
-### Métodos Globales
-
-```tsx
-// Expandir todos los widgets
-manager.expandAll();
-
-// Colapsar todos los widgets
-manager.collapseAll();
-
-// Fijar todos los widgets
-manager.pinAll();
-
-// Desfijar todos los widgets
-manager.unpinAll();
-```
-
-### Métodos por Widget
-
-```tsx
-// Expandir un widget específico
-manager.expandWidget('widget-1');
-
-// Colapsar un widget específico
-manager.collapseWidget('widget-1');
-
-// Fijar un widget específico
-manager.pinWidget('widget-1');
-
-// Desfijar un widget específico
-manager.unpinWidget('widget-1');
-
-// Obtener estado de un widget
-const widget = manager.getWidget('widget-1');
-console.log(widget); // { id: 'widget-1', isCollapsed: false, isPinned: false }
-```
-
-## Ejemplo Completo
-
-```tsx
-import { FloatyWidgetManager, Floaty, useFloatyWidgetManager } from 'floaty-widget';
-
-function ControlPanel() {
-  const manager = useFloatyWidgetManager();
-
-  return (
-    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 999 }}>
-      <h3>Widget Controls</h3>
-      <button onClick={() => manager.expandAll()}>📖 Expand All</button>
-      <button onClick={() => manager.collapseAll()}>📕 Collapse All</button>
-      <button onClick={() => manager.pinAll()}>📌 Pin All</button>
-      <button onClick={() => manager.unpinAll()}>📍 Unpin All</button>
-
-      <div>
-        <p>Active Widgets: {manager.widgets.size}</p>
-        {Array.from(manager.widgets.entries()).map(([id, widget]) => (
-          <div key={id}>
-            • {id}: {widget.isCollapsed ? '📕' : '📖'} {widget.isPinned ? '📌' : '📍'}
-          </div>
-        ))}
-      </div>
-    </div>
+    <button
+      onClick={() =>
+        floaty.open({
+          id: 'commits-gnome-ui',
+          title: 'Commits',
+          component: Commits,
+          props: { owner: 'eljijuna', repo: 'gnome-ui' },
+          position: { x: 80, y: 80 },
+        })
+      }
+    >
+      Open commits
+    </button>
   );
 }
 
-function Dashboard() {
+export function App() {
   return (
-    <FloatyWidgetManager>
-      <ControlPanel />
-
-      <Floaty id="notifications" title="Notifications">
-        <p>Notification content</p>
-      </Floaty>
-
-      <Floaty id="settings" title="Settings">
-        <p>Settings content</p>
-      </Floaty>
-
-      <Floaty id="profile" title="Profile">
-        <p>Profile content</p>
-      </Floaty>
-    </FloatyWidgetManager>
+    <FloatyProvider>
+      <Toolbar />
+      <FloatyViewport />
+    </FloatyProvider>
   );
 }
 ```
 
-## Notas Importantes
-
-- **ID Required**: Cada `Floaty` debe tener un `id` único para ser gestionado por el manager
-- **State Sync**: El estado se sincroniza automáticamente entre el widget y el manager
-- **Opcional**: Puedes usar `Floaty` sin un ID y sin el manager - funcionará de forma independiente
-- **Context Required**: `useFloatyWidgetManager` debe usarse dentro de `FloatyWidgetManager`
-
-## TypeScript Types
+## API
 
 ```tsx
-import type { FloatyWidgetManagerProps, FloatyWidgetState } from 'floaty-widget';
+const floaty = useFloaty();
 
-interface FloatyWidgetState {
-  id: string;
-  isCollapsed: boolean;
-  isPinned: boolean;
+floaty.open({
+  id: 'commits',
+  title: 'Commits',
+  component: Commits,
+  props: { owner: 'eljijuna', repo: 'gnome-ui' },
+});
+
+floaty.updateProps('commits', {
+  owner: 'eljijuna',
+  repo: 'floaty-widget',
+});
+
+floaty.collapseWidget('commits');
+floaty.expandWidget('commits');
+floaty.pinWidget('commits');
+floaty.unpinWidget('commits');
+floaty.bringToFront('commits');
+floaty.close('commits');
+```
+
+Global actions are also available:
+
+```tsx
+floaty.expandAll();
+floaty.collapseAll();
+floaty.pinAll();
+floaty.unpinAll();
+floaty.closeAll();
+```
+
+## Duplicate IDs
+
+`open()` replaces an existing widget by default. You can change that behavior:
+
+```tsx
+floaty.open(widget, { duplicateStrategy: 'focus' });
+floaty.open(widget, { duplicateStrategy: 'duplicate' });
+floaty.open(widget, { duplicateStrategy: 'replace' });
+```
+
+## Custom Labels, Icons And Theme
+
+```tsx
+<FloatyProvider
+  labels={{
+    pin: 'Fijar',
+    unpin: 'Desfijar',
+    collapse: 'Colapsar',
+    expand: 'Expandir',
+    close: 'Cerrar',
+  }}
+  icons={{
+    close: CloseIcon,
+  }}
+  theme={{
+    background: 'var(--panel)',
+    foreground: 'var(--panel-foreground)',
+    headerBackground: 'var(--primary)',
+    headerForeground: 'var(--primary-foreground)',
+    border: 'var(--border)',
+    radius: '10px',
+  }}
+>
+  <FloatyViewport />
+</FloatyProvider>
+```
+
+You can also override the CSS variables directly:
+
+```css
+:root {
+  --floaty-bg: white;
+  --floaty-fg: #374151;
+  --floaty-header-bg: #4f46e5;
+  --floaty-header-bg-hover: #4338ca;
+  --floaty-header-fg: white;
+  --floaty-border: #e5e7eb;
+  --floaty-radius: 8px;
+  --floaty-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 ```
+
+## Types
+
+```tsx
+import type {
+  FloatyOpenWidget,
+  FloatyWidget,
+  FloatyWidgetManagerHandle,
+  FloatyWidgetState,
+} from 'floaty-widget';
+```
+
+The widget store keeps component references in memory. Persist layout state if needed, but do not try to serialize the component itself.

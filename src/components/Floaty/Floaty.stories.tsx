@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Floaty } from './Floaty';
+import { FloatyViewport } from './FloatyViewport';
 import {
   FloatyWidgetManager,
   useFloatyWidgetManager,
@@ -80,6 +81,37 @@ export const WithCustomContent: Story = {
 };
 
 // Widget Manager Story
+const buttonStyle = {
+  padding: '8px 12px',
+  background: '#4f46e5',
+  color: 'white',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  fontSize: '12px',
+  fontWeight: 500,
+};
+
+const Commits = ({ owner, repo }: { owner: string; repo: string }) => (
+  <div>
+    <h4 style={{ margin: '0 0 8px' }}>
+      {owner}/{repo}
+    </h4>
+    <ul style={{ margin: 0, paddingLeft: 18 }}>
+      <li>feat: add viewport widget store</li>
+      <li>fix: keep props captured at open time</li>
+      <li>docs: explain provider API</li>
+    </ul>
+  </div>
+);
+
+const StatusCard = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <strong>{label}</strong>
+    <p style={{ margin: '6px 0 0' }}>{value}</p>
+  </div>
+);
+
 const ManagerControls = () => {
   const manager = useFloatyWidgetManager();
 
@@ -103,46 +135,45 @@ const ManagerControls = () => {
 
       <div style={{ display: 'grid', gap: '8px' }}>
         <button
-          onClick={() => manager.expandAll()}
-          style={{
-            padding: '8px 12px',
-            background: '#4f46e5',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500,
-          }}
+          onClick={() =>
+            manager.open({
+              id: 'commits-gnome-ui',
+              title: 'Commits',
+              component: Commits,
+              props: { owner: 'eljijuna', repo: 'gnome-ui' },
+              position: { x: 80, y: 80 },
+            })
+          }
+          style={buttonStyle}
         >
-          Expand All
+          Open Commits
         </button>
         <button
-          onClick={() => manager.collapseAll()}
-          style={{
-            padding: '8px 12px',
-            background: '#4f46e5',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500,
-          }}
+          onClick={() =>
+            manager.open({
+              id: 'build-status',
+              title: 'Build Status',
+              component: StatusCard,
+              props: { label: 'Latest build', value: 'Typecheck and build passed.' },
+              position: { x: 140, y: 220 },
+              size: { width: 360 },
+            })
+          }
+          style={buttonStyle}
         >
+          Open Status
+        </button>
+        <button onClick={() => manager.expandAll()} style={buttonStyle}>
+          Expand All
+        </button>
+        <button onClick={() => manager.collapseAll()} style={buttonStyle}>
           Collapse All
         </button>
         <button
           onClick={() => manager.pinAll()}
           style={{
-            padding: '8px 12px',
+            ...buttonStyle,
             background: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500,
           }}
         >
           Pin All
@@ -150,17 +181,20 @@ const ManagerControls = () => {
         <button
           onClick={() => manager.unpinAll()}
           style={{
-            padding: '8px 12px',
+            ...buttonStyle,
             background: '#f59e0b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500,
           }}
         >
           Unpin All
+        </button>
+        <button
+          onClick={() => manager.closeAll()}
+          style={{
+            ...buttonStyle,
+            background: '#ef4444',
+          }}
+        >
+          Close All
         </button>
       </div>
 
@@ -176,21 +210,25 @@ const ManagerControls = () => {
 const ManagerDemoContent = () => {
   return (
     <div style={{ padding: '20px' }}>
-      <FloatyWidgetManager>
+      <FloatyWidgetManager
+        labels={{
+          pin: 'Pin widget',
+          unpin: 'Unpin widget',
+          collapse: 'Collapse widget',
+          expand: 'Expand widget',
+          close: 'Close widget',
+        }}
+        theme={{
+          headerBackground: '#0f766e',
+          headerForeground: '#ffffff',
+          pinnedHeaderBackground: '#7c3aed',
+          border: '#99f6e4',
+        }}
+      >
         <ManagerControls />
+        <FloatyViewport />
 
         <div>otro elemento</div>
-        <Floaty id="widget-1" title="Widget 1">
-          <p>First floating widget. Try dragging me!</p>
-        </Floaty>
-
-        <Floaty id="widget-2" title="Widget 2" style={{ top: '250px', left: '100px' }}>
-          <p>Second floating widget.</p>
-        </Floaty>
-
-        <Floaty id="widget-3" title="Widget 3" style={{ top: '400px', right: '100px' }}>
-          <p>Third floating widget. Use the control panel to manage all!</p>
-        </Floaty>
       </FloatyWidgetManager>
     </div>
   );
@@ -201,7 +239,7 @@ export const WithManager: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Use FloatyWidgetManager to control multiple widgets imperative via refs. Expand/collapse and pin/unpin all widgets from the control panel.',
+        story: 'Use FloatyWidgetManager and FloatyViewport to open application components as floating widgets with captured props.',
       },
     },
   },
