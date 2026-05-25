@@ -329,6 +329,12 @@ const ManagerControls = () => {
         <button onClick={() => manager.collapseAll()} style={buttonStyle}>
           Collapse All
         </button>
+        <button onClick={() => manager.minimizeAll()} style={buttonStyle}>
+          Minimize All
+        </button>
+        <button onClick={() => manager.restoreAll()} style={buttonStyle}>
+          Restore All
+        </button>
         <button
           onClick={() => manager.pinAll()}
           style={{
@@ -367,6 +373,68 @@ const ManagerControls = () => {
   );
 };
 
+const WidgetStatusBar = () => {
+  const manager = useFloatyWidgetManager();
+  const widgets = Array.from(manager.widgets.values());
+  const minimizedWidgets = widgets.filter((widget) => widget.isMinimized);
+  const visibleWidgets = widgets.filter((widget) => !widget.isMinimized);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        right: 20,
+        bottom: 20,
+        left: 20,
+        zIndex: 4000,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        minHeight: 48,
+        padding: '8px 12px',
+        background: 'var(--gnome-card-bg-color)',
+        border: '1px solid var(--gnome-card-shade-color)',
+        borderRadius: 'var(--gnome-radius-lg)',
+        boxShadow: 'var(--gnome-shadow-md)',
+        color: 'var(--gnome-card-fg-color)',
+        fontSize: 13,
+      }}
+    >
+      <strong style={{ whiteSpace: 'nowrap' }}>
+        Widgets {widgets.length}
+      </strong>
+      <span style={{ color: 'var(--gnome-view-fg-color)', whiteSpace: 'nowrap' }}>
+        {visibleWidgets.length} visible / {minimizedWidgets.length} minimized
+      </span>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          marginLeft: 'auto',
+          overflowX: 'auto',
+          paddingBottom: 2,
+        }}
+      >
+        {widgets.map((widget) => (
+          <Button
+            key={widget.id}
+            size="sm"
+            variant={widget.isMinimized ? 'suggested' : 'flat'}
+            onClick={() =>
+              widget.isMinimized
+                ? manager.restoreWidget(widget.id)
+                : manager.minimizeWidget(widget.id)
+            }
+          >
+            {widget.isMinimized ? 'Restore' : 'Minimize'} {widget.title ?? widget.id}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const ManagerDemoContent = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -377,6 +445,8 @@ const ManagerDemoContent = () => {
             unpin: 'Unpin widget',
             collapse: 'Collapse widget',
             expand: 'Expand widget',
+            minimize: 'Minimize widget',
+            restore: 'Restore widget',
             close: 'Close widget',
           }}
           theme={{
@@ -392,6 +462,7 @@ const ManagerDemoContent = () => {
             <GitHubRepoCard owner="eljijuna" repo="gnome-ui" />
           </div>
           <FloatyViewport />
+          <WidgetStatusBar />
         </FloatyWidgetManager>
       </GhClientProvider>
     </QueryClientProvider>

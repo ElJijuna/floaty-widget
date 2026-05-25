@@ -41,11 +41,11 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
         if (!widget.component) return null;
 
         const WidgetComponent = widget.component;
+        if (widget.isMinimized) return null;
+
         const widgetStyle: CSSProperties = {
           ...themeStyle,
           ...style,
-          width: widget.size?.width,
-          height: widget.size?.height,
         };
 
         return (
@@ -58,8 +58,10 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
             labels={manager.labels}
             icons={manager.icons}
             defaultCollapsed={widget.isCollapsed}
+            defaultMinimized={widget.isMinimized}
             defaultPinned={widget.isPinned}
             initialPosition={widget.position}
+            initialSize={widget.size}
             zIndex={widget.zIndex}
             onClose={() => manager.close(widget.id)}
             onFocus={() => manager.bringToFront(widget.id)}

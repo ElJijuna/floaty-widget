@@ -25,15 +25,19 @@ export interface FloatySize {
 export interface FloatyHandle {
   expand: () => void;
   collapse: () => void;
+  minimize: () => void;
+  restore: () => void;
   pin: () => void;
   unpin: () => void;
   toggle: () => void;
+  toggleMinimized: () => void;
 }
 
 export interface FloatyWidgetState {
   id: string;
   title?: ReactNode;
   isCollapsed: boolean;
+  isMinimized: boolean;
   isPinned: boolean;
   position?: FloatyPosition;
   size?: FloatySize;
@@ -54,6 +58,7 @@ export type FloatyOpenWidget<P> = {
   position?: FloatyPosition;
   size?: FloatySize;
   collapsed?: boolean;
+  minimized?: boolean;
   pinned?: boolean;
   className?: string;
 };
@@ -70,6 +75,7 @@ export type FloatyWidgetPatch<P = unknown> = Partial<
   component?: ComponentType<P>;
   props?: P;
   collapsed?: boolean;
+  minimized?: boolean;
   pinned?: boolean;
 };
 
@@ -78,6 +84,8 @@ export interface FloatyTexts {
   unpin: string;
   collapse: string;
   expand: string;
+  minimize: string;
+  restore: string;
   close: string;
 }
 
@@ -130,10 +138,14 @@ export interface FloatyWidgetManagerHandle {
   ) => void;
   expandAll: () => void;
   collapseAll: () => void;
+  minimizeAll: () => void;
+  restoreAll: () => void;
   pinAll: () => void;
   unpinAll: () => void;
   expandWidget: (id: string) => void;
   collapseWidget: (id: string) => void;
+  minimizeWidget: (id: string) => void;
+  restoreWidget: (id: string) => void;
   pinWidget: (id: string) => void;
   unpinWidget: (id: string) => void;
   getWidgetCount: () => number;
@@ -160,6 +172,8 @@ const defaultLabels: FloatyTexts = {
   unpin: 'Unpin',
   collapse: 'Collapse',
   expand: 'Expand',
+  minimize: 'Minimize',
+  restore: 'Restore',
   close: 'Close',
 };
 
@@ -223,6 +237,7 @@ export const FloatyWidgetManager = forwardRef<
             const next = new Map(current);
             next.set(widget.id, {
               ...current.get(widget.id)!,
+              isMinimized: false,
               zIndex: zIndexRef.current,
             });
             return next;
@@ -240,6 +255,7 @@ export const FloatyWidgetManager = forwardRef<
           size: widget.size,
           className: widget.className,
           isCollapsed: widget.collapsed ?? false,
+          isMinimized: widget.minimized ?? false,
           isPinned: widget.pinned ?? false,
           zIndex: zIndexRef.current,
         });
@@ -284,6 +300,7 @@ export const FloatyWidgetManager = forwardRef<
           ...previous,
           ...patch,
           isCollapsed: patch.collapsed ?? patch.isCollapsed ?? previous.isCollapsed,
+          isMinimized: patch.minimized ?? patch.isMinimized ?? previous.isMinimized,
           isPinned: patch.pinned ?? patch.isPinned ?? previous.isPinned,
           component: (patch.component as ComponentType<unknown> | undefined) ?? previous.component,
           props: patch.props ?? previous.props,
@@ -318,6 +335,7 @@ export const FloatyWidgetManager = forwardRef<
           position: initialState.position ?? previous?.position,
           size: initialState.size ?? previous?.size,
           isCollapsed: initialState.isCollapsed ?? false,
+          isMinimized: initialState.isMinimized ?? previous?.isMinimized ?? false,
           isPinned: initialState.isPinned ?? false,
           zIndex: previous?.zIndex ?? zIndexRef.current,
         });
@@ -352,6 +370,7 @@ export const FloatyWidgetManager = forwardRef<
         const nextWidget = { ...previous, ...state };
         if (
           nextWidget.isCollapsed === previous.isCollapsed &&
+          nextWidget.isMinimized === previous.isMinimized &&
           nextWidget.isPinned === previous.isPinned &&
           nextWidget.position === previous.position &&
           nextWidget.size === previous.size &&
@@ -394,6 +413,29 @@ export const FloatyWidgetManager = forwardRef<
     });
   }, []);
 
+  const minimizeAll = useCallback(() => {
+    widgetHandlesRef.current.forEach((ref) => {
+      ref?.current?.minimize();
+    });
+    setWidgets((current) => {
+      const next = new Map(current);
+      next.forEach((widget, id) => {
+        next.set(id, { ...widget, isMinimized: true });
+      });
+      return next;
+    });
+  }, []);
+
+  const restoreAll = useCallback(() => {
+    setWidgets((current) => {
+      const next = new Map(current);
+      next.forEach((widget, id) => {
+        next.set(id, { ...widget, isMinimized: false });
+      });
+      return next;
+    });
+  }, []);
+
   const pinAll = useCallback(() => {
     widgetHandlesRef.current.forEach((ref) => {
       ref?.current?.pin();
@@ -430,6 +472,15 @@ export const FloatyWidgetManager = forwardRef<
     updateWidgetState(id, { isCollapsed: true });
   }, [updateWidgetState]);
 
+  const minimizeWidget = useCallback((id: string) => {
+    widgetHandlesRef.current.get(id)?.current?.minimize();
+    updateWidgetState(id, { isMinimized: true });
+  }, [updateWidgetState]);
+
+  const restoreWidget = useCallback((id: string) => {
+    updateWidgetState(id, { isMinimized: false });
+  }, [updateWidgetState]);
+
   const pinWidget = useCallback((id: string) => {
     widgetHandlesRef.current.get(id)?.current?.pin();
     updateWidgetState(id, { isPinned: true });
@@ -461,10 +512,14 @@ export const FloatyWidgetManager = forwardRef<
       updateWidgetState,
       expandAll,
       collapseAll,
+      minimizeAll,
+      restoreAll,
       pinAll,
       unpinAll,
       expandWidget,
       collapseWidget,
+      minimizeWidget,
+      restoreWidget,
       pinWidget,
       unpinWidget,
       getWidgetCount,
@@ -487,10 +542,14 @@ export const FloatyWidgetManager = forwardRef<
       updateWidgetState,
       expandAll,
       collapseAll,
+      minimizeAll,
+      restoreAll,
       pinAll,
       unpinAll,
       expandWidget,
       collapseWidget,
+      minimizeWidget,
+      restoreWidget,
       pinWidget,
       unpinWidget,
       getWidgetCount,

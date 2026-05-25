@@ -14,6 +14,7 @@ import {
   type FloatyIcons,
   type FloatyHandle,
   type FloatyPosition,
+  type FloatySize,
   type FloatyTexts,
 } from '../../context/FloatyWidgetManager';
 
@@ -26,8 +27,10 @@ export interface FloatyProps {
   labels?: Partial<FloatyTexts>;
   icons?: FloatyIcons;
   defaultCollapsed?: boolean;
+  defaultMinimized?: boolean;
   defaultPinned?: boolean;
   initialPosition?: FloatyPosition;
+  initialSize?: FloatySize;
   zIndex?: number;
   onClose?: () => void;
   onFocus?: () => void;
@@ -38,6 +41,8 @@ const defaultLabels: FloatyTexts = {
   unpin: 'Unpin',
   collapse: 'Collapse',
   expand: 'Expand',
+  minimize: 'Minimize',
+  restore: 'Restore',
   close: 'Close',
 };
 
@@ -92,6 +97,21 @@ const CloseIcon = () => (
   </svg>
 );
 
+const MinusIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 12h14" />
+  </svg>
+);
+
 /**
  * Floaty - A draggable, collapsible floating component
  * @param props - Component props
@@ -112,8 +132,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       labels: labelsProp,
       icons = {},
       defaultCollapsed = false,
+      defaultMinimized = false,
       defaultPinned = false,
       initialPosition = { x: 100, y: 100 },
+      initialSize,
       zIndex,
       onClose,
       onFocus,
@@ -126,9 +148,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const labels = { ...defaultLabels, ...manager?.labels, ...labelsProp };
     const mergedIcons = { ...manager?.icons, ...icons };
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+    const [isMinimized, setIsMinimized] = useState(defaultMinimized);
     const [isPinned, setIsPinned] = useState(defaultPinned);
     const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
     const [position, setPosition] = useState<FloatyPosition>(initialPosition);
+    const [size, setSize] = useState<FloatySize>(initialSize ?? {});
     const floatyRef = useRef<HTMLDivElement>(null);
     const dragStateRef = useRef({
       isDragging: false,
@@ -139,20 +164,33 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       baseLeft: 0,
       baseTop: 0,
     });
+    const resizeStateRef = useRef({
+      isResizing: false,
+      startPointerX: 0,
+      startPointerY: 0,
+      startWidth: 0,
+      startHeight: 0,
+      baseLeft: 0,
+      baseTop: 0,
+    });
     const internalHandleRef = useRef<FloatyHandle | null>(null);
     const Pin = mergedIcons.pin;
     const Unpin = mergedIcons.unpin;
     const Collapse = mergedIcons.collapse;
     const Expand = mergedIcons.expand;
+    const Minimize = mergedIcons.minimize;
     const Close = mergedIcons.close;
 
     const handleMethods = useMemo<FloatyHandle>(
       () => ({
         expand: () => setIsCollapsed(false),
         collapse: () => setIsCollapsed(true),
+        minimize: () => setIsMinimized(true),
+        restore: () => setIsMinimized(false),
         pin: () => setIsPinned(true),
         unpin: () => setIsPinned(false),
         toggle: () => setIsCollapsed((prev) => !prev),
+        toggleMinimized: () => setIsMinimized((prev) => !prev),
       }),
       []
     );
@@ -168,8 +206,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       if (id && registerFloaty) {
         return registerFloaty(id, internalHandleRef, {
           isCollapsed,
+          isMinimized,
           isPinned,
           position,
+          size,
           zIndex,
         });
       }
@@ -177,9 +217,25 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
     useEffect(() => {
       if (id) {
-        updateWidgetState?.(id, { isCollapsed, isPinned, position, zIndex });
+        updateWidgetState?.(id, {
+          isCollapsed,
+          isMinimized,
+          isPinned,
+          position,
+          size,
+          zIndex,
+        });
       }
-    }, [id, isCollapsed, isPinned, position, zIndex, updateWidgetState]);
+    }, [
+      id,
+      isCollapsed,
+      isMinimized,
+      isPinned,
+      position,
+      size,
+      zIndex,
+      updateWidgetState,
+    ]);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
       if (isPinned) return;
@@ -199,6 +255,28 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           baseTop: rect.top - position.y,
         };
         setIsDragging(true);
+      }
+    };
+
+    const handleResizePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (isCollapsed) return;
+
+      const rect = floatyRef.current?.getBoundingClientRect();
+      if (rect) {
+        e.preventDefault();
+        e.stopPropagation();
+        onFocus?.();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        resizeStateRef.current = {
+          isResizing: true,
+          startPointerX: e.clientX,
+          startPointerY: e.clientY,
+          startWidth: rect.width,
+          startHeight: rect.height,
+          baseLeft: rect.left,
+          baseTop: rect.top,
+        };
+        setIsResizing(true);
       }
     };
 
@@ -228,31 +306,56 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         });
       };
 
+      const handleResizePointerMove = (e: PointerEvent) => {
+        if (!resizeStateRef.current.isResizing) return;
+
+        const resizeState = resizeStateRef.current;
+        const minWidth = 240;
+        const minHeight = 96;
+        const maxWidth = window.innerWidth - resizeState.baseLeft;
+        const maxHeight = window.innerHeight - resizeState.baseTop;
+        const nextWidth = resizeState.startWidth + e.clientX - resizeState.startPointerX;
+        const nextHeight = resizeState.startHeight + e.clientY - resizeState.startPointerY;
+
+        setSize({
+          width: Math.max(minWidth, Math.min(nextWidth, maxWidth)),
+          height: Math.max(minHeight, Math.min(nextHeight, maxHeight)),
+        });
+      };
+
       const handlePointerUp = () => {
         dragStateRef.current.isDragging = false;
+        resizeStateRef.current.isResizing = false;
         setIsDragging(false);
+        setIsResizing(false);
       };
 
       globalThis.addEventListener('pointermove', handlePointerMove);
+      globalThis.addEventListener('pointermove', handleResizePointerMove);
       globalThis.addEventListener('pointerup', handlePointerUp);
       globalThis.addEventListener('pointercancel', handlePointerUp);
 
       return () => {
         globalThis.removeEventListener('pointermove', handlePointerMove);
+        globalThis.removeEventListener('pointermove', handleResizePointerMove);
         globalThis.removeEventListener('pointerup', handlePointerUp);
         globalThis.removeEventListener('pointercancel', handlePointerUp);
       };
     }, []);
 
+    if (isMinimized) return null;
+
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${className ?? ''}`}
+        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${className ?? ''}`}
         onPointerDown={onFocus}
         style={{
           ...style,
           left: 0,
           top: 0,
+          width: size.width ?? style.width,
+          height: size.height ?? style.height,
           transform: `translate(${position.x}px, ${position.y}px)`,
           zIndex,
         }}
@@ -293,6 +396,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             )}
           </button>
 
+          <button
+            className="floaty-button floaty-button--minimize"
+            onClick={() => setIsMinimized(true)}
+            title={labels.minimize}
+            aria-label={labels.minimize}
+          >
+            {Minimize ? <Minimize /> : <MinusIcon />}
+          </button>
+
           {onClose && (
             <button
               className="floaty-button floaty-button--close"
@@ -309,6 +421,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           <div className="floaty-body">
             {children}
           </div>
+        )}
+
+        {!isCollapsed && (
+          <button
+            className="floaty-resize-handle"
+            onPointerDown={handleResizePointerDown}
+            title="Resize"
+            aria-label="Resize widget"
+          />
         )}
       </div>
     );
