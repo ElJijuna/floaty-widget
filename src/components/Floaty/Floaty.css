@@ -50,6 +50,7 @@
   cursor: grab;
   transition: border-radius 0.3s ease;
   user-select: none;
+  touch-action: none;
 }
 
 .floaty.collapsed .floaty-header {

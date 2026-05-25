@@ -194,8 +194,8 @@ npm run build
 ```
 
 Generates:
-- ES module: `dist/floaty-widget.js`
-- UMD bundle: `dist/floaty-widget.umd.cjs`
+- ES module: `dist/index.es.js`
+- UMD bundle: `dist/index.umd.cjs`
 - CSS: `dist/style.css`
 
 ## Browser Support

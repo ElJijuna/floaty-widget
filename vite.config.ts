@@ -9,6 +9,8 @@ export default defineConfig({
       entry: 'src/index.ts',
       name: 'FloatyWidget',
       formats: ['es', 'umd'],
+      fileName: (format) =>
+        format === 'es' ? 'index.es.js' : 'index.umd.cjs',
     },
     rollupOptions: {
       external: ['react', 'react-dom'],

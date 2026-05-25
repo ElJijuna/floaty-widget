@@ -1,6 +1,18 @@
-import { useState, useRef, useEffect, useContext, ReactNode, CSSProperties, forwardRef, useImperativeHandle } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  ReactNode,
+  CSSProperties,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import './Floaty.css';
-import { useFloatyManager, FloatyHandle } from '../../context/FloatyWidgetManager';
+import {
+  useFloatyManager,
+  type FloatyHandle,
+} from '../../context/FloatyWidgetManager';
 
 interface Position {
   x: number;
@@ -68,51 +80,68 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     }: FloatyProps,
     ref
   ) => {
-    const registerFloaty = useFloatyManager();
+    const manager = useFloatyManager();
+    const registerFloaty = manager?.registerFloaty;
+    const updateWidgetState = manager?.updateWidgetState;
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState<Position>({ x: 100, y: 100 });
     const floatyRef = useRef<HTMLDivElement>(null);
     const dragStateRef = useRef({ isDragging: false, offsetX: 0, offsetY: 0 });
-    const internalHandleRef = useRef<FloatyHandle>(null);
+    const internalHandleRef = useRef<FloatyHandle | null>(null);
 
-    // Create handle methods
-    const handleMethods: FloatyHandle = {
-      expand: () => setIsCollapsed(false),
-      collapse: () => setIsCollapsed(true),
-      pin: () => setIsPinned(true),
-      unpin: () => setIsPinned(false),
-      toggle: () => setIsCollapsed((prev) => !prev),
-    };
+    const handleMethods = useMemo<FloatyHandle>(
+      () => ({
+        expand: () => setIsCollapsed(false),
+        collapse: () => setIsCollapsed(true),
+        pin: () => setIsPinned(true),
+        unpin: () => setIsPinned(false),
+        toggle: () => setIsCollapsed((prev) => !prev),
+      }),
+      []
+    );
 
     // Keep internal ref always updated
     internalHandleRef.current = handleMethods;
 
     // Expose imperative methods via forward ref
-    useImperativeHandle(ref, () => handleMethods, []);
+    useImperativeHandle(ref, () => handleMethods, [handleMethods]);
 
     // Register with manager using internal ref that always has methods
     useEffect(() => {
-      if (id && registerFloaty && internalHandleRef) {
-        registerFloaty(id, internalHandleRef);
+      if (id && registerFloaty) {
+        return registerFloaty(id, internalHandleRef, {
+          isCollapsed,
+          isPinned,
+        });
       }
     }, [id, registerFloaty]);
 
-    const handleMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+    useEffect(() => {
+      if (id) {
+        updateWidgetState?.(id, { isCollapsed, isPinned });
+      }
+    }, [id, isCollapsed, isPinned, updateWidgetState]);
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
       if (isPinned) return;
+      if ((e.target as HTMLElement).closest('button')) return;
 
       const rect = floatyRef.current?.getBoundingClientRect();
       if (rect) {
+        e.currentTarget.setPointerCapture(e.pointerId);
         dragStateRef.current = {
           isDragging: true,
           offsetX: e.clientX - rect.left,
           offsetY: e.clientY - rect.top,
         };
+        setIsDragging(true);
       }
     };
 
     useEffect(() => {
-      const handleMouseMove = (e: MouseEvent) => {
+      const handlePointerMove = (e: PointerEvent) => {
         if (!dragStateRef.current.isDragging) return;
 
         const rect = floatyRef.current?.getBoundingClientRect();
@@ -134,23 +163,26 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         });
       };
 
-      const handleMouseUp = () => {
+      const handlePointerUp = () => {
         dragStateRef.current.isDragging = false;
+        setIsDragging(false);
       };
 
-      globalThis.addEventListener('mousemove', handleMouseMove);
-      globalThis.addEventListener('mouseup', handleMouseUp);
+      globalThis.addEventListener('pointermove', handlePointerMove);
+      globalThis.addEventListener('pointerup', handlePointerUp);
+      globalThis.addEventListener('pointercancel', handlePointerUp);
 
       return () => {
-        globalThis.removeEventListener('mousemove', handleMouseMove);
-        globalThis.removeEventListener('mouseup', handleMouseUp);
+        globalThis.removeEventListener('pointermove', handlePointerMove);
+        globalThis.removeEventListener('pointerup', handlePointerUp);
+        globalThis.removeEventListener('pointercancel', handlePointerUp);
       };
     }, []);
 
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${dragStateRef.current.isDragging ? 'dragging' : ''}`}
+        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''}`}
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
           ...style,
@@ -158,11 +190,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       >
         <header
           className={`floaty-header ${isPinned ? 'pinned' : ''}`}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
         >
           <button
             className="floaty-button floaty-button--pin"
-            onClick={() => setIsPinned(!isPinned)}
+            onClick={() => setIsPinned((pinned) => !pinned)}
             title={isPinned ? 'Unpin' : 'Pin'}
             aria-label={isPinned ? 'Unpin floaty' : 'Pin floaty'}
           >
@@ -173,7 +205,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
           <button
             className="floaty-button floaty-button--expand"
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={() => setIsCollapsed((collapsed) => !collapsed)}
             title={isCollapsed ? 'Expand' : 'Collapse'}
             aria-label={isCollapsed ? 'Expand floaty' : 'Collapse floaty'}
           >
@@ -192,4 +224,3 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 );
 
 export default Floaty;
-

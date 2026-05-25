@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "description": "A floating component with drag, collapse/expand, and pin functionality",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.umd.cjs",
   "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.es.js",
-      "require": "./dist/index.js"
+      "require": "./dist/index.umd.cjs"
     }
   },
   "files": [
@@ -18,14 +18,15 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "version-packages": "changeset version",
     "publish-packages": "npm run build && changeset publish"
   },
-  "dependencies": {
+  "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
