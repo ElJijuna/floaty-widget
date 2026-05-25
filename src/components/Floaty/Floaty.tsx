@@ -18,21 +18,40 @@ import {
   type FloatyTexts,
 } from '../../context/FloatyWidgetManager';
 
+/** Props for the `<Floaty>` component. */
 export interface FloatyProps {
+  /** Content rendered inside the widget body. */
   children?: ReactNode;
+  /** Content displayed in the widget header bar. */
   title?: ReactNode;
+  /** Inline styles applied to the widget root element. */
   style?: CSSProperties;
+  /** Additional CSS class applied to the widget root element. */
   className?: string;
+  /**
+   * Unique identifier used to register this widget with a parent `FloatyWidgetManager`.
+   * Required if you want to control the widget from outside via `useFloatyWidgetManager`.
+   */
   id?: string;
+  /** Override the default action button labels for this widget only. */
   labels?: Partial<FloatyTexts>;
+  /** Custom icon components for action buttons on this widget only. */
   icons?: FloatyIcons;
+  /** Whether the widget body is collapsed on first render. @default false */
   defaultCollapsed?: boolean;
+  /** Whether the widget is minimized (hidden) on first render. @default false */
   defaultMinimized?: boolean;
+  /** Whether the widget is pinned (non-draggable) on first render. @default false */
   defaultPinned?: boolean;
+  /** Initial screen position. @default \{ x: 100, y: 100 \} */
   initialPosition?: FloatyPosition;
+  /** Initial dimensions. */
   initialSize?: FloatySize;
+  /** CSS `z-index` for this widget. */
   zIndex?: number;
+  /** Called when the user clicks the close button. If omitted, the close button is not rendered. */
   onClose?: () => void;
+  /** Called when the user clicks or starts dragging the widget (used to bring it to front). */
   onFocus?: () => void;
 }
 
@@ -113,13 +132,19 @@ const MinusIcon = () => (
 );
 
 /**
- * Floaty - A draggable, collapsible floating component
- * @param props - Component props
- * @param props.children - Content to display in the floaty body
- * @param props.title - Header title
- * @param props.style - Additional inline styles
- * @param props.id - Unique identifier for widget manager integration
- * @param ref - Forward ref to access imperative methods
+ * A draggable, resizable, collapsible floating widget.
+ *
+ * Supports imperative control via `ref` (see `FloatyHandle`) and automatic
+ * state synchronisation when nested inside a `FloatyWidgetManager` and given an `id`.
+ *
+ * @example
+ * ```tsx
+ * const ref = useRef<FloatyHandle>(null);
+ *
+ * <Floaty ref={ref} id="my-widget" title="My Widget" onClose={() => {}}>
+ *   <p>Content</p>
+ * </Floaty>
+ * ```
  */
 export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
   (

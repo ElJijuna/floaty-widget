@@ -2,11 +2,28 @@ import { ComponentType, CSSProperties, createElement } from 'react';
 import { Floaty } from './Floaty';
 import { useFloatyWidgetManager } from '../../context/FloatyWidgetManager';
 
+/** Props for the `<FloatyViewport>` component. */
 export interface FloatyViewportProps {
+  /** Additional CSS class applied to every widget rendered by this viewport. */
   className?: string;
+  /** Inline styles applied to every widget rendered by this viewport. */
   style?: CSSProperties;
 }
 
+/**
+ * Renders all widgets currently registered in the nearest `FloatyWidgetManager`.
+ *
+ * Place this once in your app — typically at the root level, outside your main layout —
+ * so widgets float above all other content.
+ *
+ * @example
+ * ```tsx
+ * <FloatyWidgetManager>
+ *   <App />
+ *   <FloatyViewport />
+ * </FloatyWidgetManager>
+ * ```
+ */
 export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
   const manager = useFloatyWidgetManager();
 
