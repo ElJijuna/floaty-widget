@@ -1,10 +1,24 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
+import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import { Floaty } from './Floaty';
 import { FloatyViewport } from './FloatyViewport';
 import {
   FloatyWidgetManager,
   useFloatyWidgetManager,
 } from '../../context/FloatyWidgetManager';
+import '@gnome-ui/core/styles';
+import '@gnome-ui/react/styles';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      staleTime: 60_000,
+    },
+  },
+});
 
 const meta: Meta<typeof Floaty> = {
   title: 'Components/FloatyWidget',
@@ -92,18 +106,11 @@ const buttonStyle = {
   fontWeight: 500,
 };
 
-const Commits = ({ owner, repo }: { owner: string; repo: string }) => (
-  <div>
-    <h4 style={{ margin: '0 0 8px' }}>
-      {owner}/{repo}
-    </h4>
-    <ul style={{ margin: 0, paddingLeft: 18 }}>
-      <li>feat: add viewport widget store</li>
-      <li>fix: keep props captured at open time</li>
-      <li>docs: explain provider API</li>
-    </ul>
-  </div>
-);
+interface GitHubRepoCardProps {
+  owner: string;
+  repo: string;
+  showAddButton?: boolean;
+}
 
 const StatusCard = ({ label, value }: { label: string; value: string }) => (
   <div>
@@ -111,6 +118,158 @@ const StatusCard = ({ label, value }: { label: string; value: string }) => (
     <p style={{ margin: '6px 0 0' }}>{value}</p>
   </div>
 );
+
+const shortSha = (sha: string) => sha.slice(0, 7);
+
+const formatDate = (date: string) =>
+  new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(date));
+
+const GitHubRepoCard = ({
+  owner,
+  repo,
+  showAddButton = true,
+}: GitHubRepoCardProps) => {
+  const manager = useFloatyWidgetManager();
+  const repository = useGhRepo(owner, repo);
+  const commits = useGhRepoCommits(owner, repo, { per_page: 4 });
+
+  const addToWidget = () => {
+    manager.open(
+      {
+        id: `github-${owner}-${repo}`,
+        title: `${owner}/${repo}`,
+        component: GitHubRepoCard,
+        props: { owner, repo, showAddButton: false },
+        position: { x: 90, y: 90 },
+        size: { width: 420 },
+      },
+      { duplicateStrategy: 'focus' }
+    );
+  };
+
+  return (
+    <Card
+      padding="lg"
+      style={{
+        display: 'grid',
+        gap: 14,
+        width: 'min(100%, 700px)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <Badge variant="accent">GitHub</Badge>
+            {repository.data?.language && (
+              <Badge variant="neutral">{repository.data.language}</Badge>
+            )}
+          </div>
+          <h3 style={{ margin: '10px 0 4px', fontSize: 18 }}>
+            {owner}/{repo}
+          </h3>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+            {repository.isLoading
+              ? 'Loading repository details...'
+              : repository.data?.description ?? 'No description available.'}
+          </p>
+        </div>
+
+        {showAddButton && (
+          <Button variant="suggested" size="sm" onClick={addToWidget}>
+            Add to widget
+          </Button>
+        )}
+      </div>
+
+      {repository.isError && (
+        <p style={{ margin: 0, color: '#b91c1c', fontSize: 13 }}>
+          {repository.error.message}
+        </p>
+      )}
+
+      {repository.data && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 10,
+          }}
+        >
+          <Card padding="sm">
+            <strong>{repository.data.stargazers_count}</strong>
+            <div style={{ color: '#6b7280', fontSize: 12 }}>Stars</div>
+          </Card>
+          <Card padding="sm">
+            <strong>{repository.data.forks_count}</strong>
+            <div style={{ color: '#6b7280', fontSize: 12 }}>Forks</div>
+          </Card>
+          <Card padding="sm">
+            <strong>{repository.data.open_issues_count}</strong>
+            <div style={{ color: '#6b7280', fontSize: 12 }}>Issues</div>
+          </Card>
+        </div>
+      )}
+
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <strong style={{ fontSize: 13 }}>Latest commits</strong>
+          {commits.isFetching && <Spinner size="sm" />}
+        </div>
+
+        {commits.isError && (
+          <p style={{ margin: '8px 0 0', color: '#b91c1c', fontSize: 13 }}>
+            {commits.error.message}
+          </p>
+        )}
+
+        {commits.data && (
+          <ul
+            style={{
+              display: 'grid',
+              gap: 8,
+              listStyle: 'none',
+              margin: '10px 0 0',
+              padding: 0,
+            }}
+          >
+            {commits.data.values.map((commit) => (
+              <li
+                key={commit.sha}
+              >
+                <a
+                  href={commit.html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: '#2563eb',
+                    display: 'block',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textDecoration: 'none',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {commit.commit.message.split('\n')[0]}
+                </a>
+                <span style={{ color: '#6b7280', fontSize: 12 }}>
+                  {shortSha(commit.sha)} by {commit.commit.author.name} on{' '}
+                  {formatDate(commit.commit.author.date)}
+                </span>
+
+                <Separator />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 const ManagerControls = () => {
   const manager = useFloatyWidgetManager();
@@ -139,9 +298,10 @@ const ManagerControls = () => {
             manager.open({
               id: 'commits-gnome-ui',
               title: 'Commits',
-              component: Commits,
-              props: { owner: 'eljijuna', repo: 'gnome-ui' },
+              component: GitHubRepoCard,
+              props: { owner: 'eljijuna', repo: 'gnome-ui', showAddButton: false },
               position: { x: 80, y: 80 },
+              size: { width: 420 },
             })
           }
           style={buttonStyle}
@@ -209,28 +369,31 @@ const ManagerControls = () => {
 
 const ManagerDemoContent = () => {
   return (
-    <div style={{ padding: '20px' }}>
-      <FloatyWidgetManager
-        labels={{
-          pin: 'Pin widget',
-          unpin: 'Unpin widget',
-          collapse: 'Collapse widget',
-          expand: 'Expand widget',
-          close: 'Close widget',
-        }}
-        theme={{
-          headerBackground: '#0f766e',
-          headerForeground: '#ffffff',
-          pinnedHeaderBackground: '#7c3aed',
-          border: '#99f6e4',
-        }}
-      >
-        <ManagerControls />
-        <FloatyViewport />
-
-        <div>otro elemento</div>
-      </FloatyWidgetManager>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <GhClientProvider>
+        <FloatyWidgetManager
+          labels={{
+            pin: 'Pin widget',
+            unpin: 'Unpin widget',
+            collapse: 'Collapse widget',
+            expand: 'Expand widget',
+            close: 'Close widget',
+          }}
+          theme={{
+            headerBackground: '#0f766e',
+            headerForeground: '#ffffff',
+            pinnedHeaderBackground: '#7c3aed',
+            border: '#99f6e4',
+          }}
+        >
+          <div style={{ display: 'grid', gap: 20, padding: '20px' }}>
+            <ManagerControls />
+            <GitHubRepoCard owner="eljijuna" repo="gnome-ui" />
+          </div>
+          <FloatyViewport />
+        </FloatyWidgetManager>
+      </GhClientProvider>
+    </QueryClientProvider>
   );
 };
 
