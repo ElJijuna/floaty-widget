@@ -40,7 +40,7 @@
   font-family: var(--floaty-font-family);
 }
 
-.floaty:not(.dragging) {
+.floaty:not(.dragging):not(.resizing) {
   transition: var(--floaty-transition);
 }
 
@@ -51,6 +51,7 @@
 
 .floaty.resizing {
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+  transition: none;
 }
 
 .floaty.pinned {
