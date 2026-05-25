@@ -1,0 +1,30 @@
+# Source and local development
+src/
+public/
+.storybook/
+.github/
+.changeset/
+.agents/
+node_modules/
+storybook-static/
+
+# Build and debug artifacts that are not part of the package API
+debug-storybook.log
+*.log
+
+# Local environment and OS metadata
+.DS_Store
+public/.DS_Store
+.env
+.env.*
+!.env.example
+
+# Project-only docs and planning notes
+ROADMAP.md
+WIDGET_MANAGER.md
+skills-lock.json
+
+# TypeScript/Vite config
+tsconfig.json
+tsconfig.node.json
+vite.config.ts

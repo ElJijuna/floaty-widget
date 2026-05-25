@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/changelog-git",
     {
-      "repo": "."
+      "repo": "ElJijuna/floaty-widget"
     }
   ],
   "commit": true,
@@ -15,4 +15,3 @@
   "updateInternalDependencies": "patch",
   "ignore": []
 }
-

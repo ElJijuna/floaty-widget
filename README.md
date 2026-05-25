@@ -1,4 +1,14 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ElJijuna/floaty-widget/main/public/assets/floaty.png" alt="Floaty Widget" width="128" />
+</p>
+
 # Floaty Widget
+
+[![npm version](https://img.shields.io/npm/v/floaty-widget.svg)](https://www.npmjs.com/package/floaty-widget)
+[![npm downloads](https://img.shields.io/npm/dm/floaty-widget.svg)](https://www.npmjs.com/package/floaty-widget)
+[![CI](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml)
+[![Publish](https://github.com/ElJijuna/floaty-widget/actions/workflows/publish.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/publish.yml)
+[![License](https://img.shields.io/github/license/ElJijuna/floaty-widget.svg)](./LICENSE)
 
 A beautiful, draggable, and collapsible floating widget library built with React 19, TypeScript, and Vite.
 
