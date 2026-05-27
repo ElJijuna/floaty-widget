@@ -109,6 +109,35 @@ describe('Floaty', () => {
       expect(screen.queryByText('Child content')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
     });
+
+    it('moves with arrow keys when the header is focused', () => {
+      const { container } = render(
+        <Floaty initialPosition={{ x: 100, y: 100 }}>Child content</Floaty>
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+
+      fireEvent.keyDown(header, { key: 'ArrowRight' });
+      expect(root).toHaveStyle({ transform: 'translate(110px, 100px)' });
+
+      fireEvent.keyDown(header, { key: 'ArrowDown', shiftKey: true });
+      expect(root).toHaveStyle({ transform: 'translate(110px, 150px)' });
+
+      fireEvent.keyDown(header, { key: 'ArrowLeft', altKey: true });
+      expect(root).toHaveStyle({ transform: 'translate(109px, 150px)' });
+    });
+
+    it('does not move with arrow keys when pinned', () => {
+      const { container } = render(
+        <Floaty defaultPinned initialPosition={{ x: 100, y: 100 }} />
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+
+      fireEvent.keyDown(header, { key: 'ArrowRight' });
+
+      expect(root).toHaveStyle({ transform: 'translate(100px, 100px)' });
+    });
   });
 
   describe('minimize', () => {
@@ -203,13 +232,66 @@ describe('Floaty', () => {
     });
   });
 
+  describe('resize', () => {
+    it('resizes with arrow keys from the resize handle', () => {
+      const { container } = render(
+        <Floaty initialSize={{ width: 320, height: 160 }} />
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const resizeHandle = screen.getByRole('button', { name: 'Resize widget' });
+
+      fireEvent.keyDown(resizeHandle, { key: 'ArrowRight' });
+      expect(root).toHaveStyle({ width: '336px', height: '160px' });
+
+      fireEvent.keyDown(resizeHandle, { key: 'ArrowDown', shiftKey: true });
+      expect(root).toHaveStyle({ width: '336px', height: '224px' });
+
+      fireEvent.keyDown(resizeHandle, { key: 'ArrowLeft', altKey: true });
+      expect(root).toHaveStyle({ width: '335px', height: '224px' });
+    });
+  });
+
+  describe('viewport changes', () => {
+    it('re-clamps position when the viewport changes', () => {
+      const originalWidth = window.innerWidth;
+      const originalHeight = window.innerHeight;
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600 });
+
+      const { container } = render(
+        <Floaty
+          initialPosition={{ x: 480, y: 420 }}
+          initialSize={{ width: 300, height: 120 }}
+        />
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 500 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
+      fireEvent(window, new Event('resize'));
+
+      expect(root).toHaveStyle({ transform: 'translate(200px, 280px)' });
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });
+    });
+  });
+
   describe('custom labels', () => {
     it('uses custom labels for buttons', () => {
       render(
-        <Floaty labels={{ collapse: 'Ocultar', expand: 'Mostrar', minimize: 'Minimizar' }} />
+        <Floaty
+          labels={{
+            collapse: 'Ocultar',
+            expand: 'Mostrar',
+            minimize: 'Minimizar',
+            resize: 'Cambiar tamano',
+          }}
+        />
       );
       expect(screen.getByRole('button', { name: 'Ocultar' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Minimizar' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Cambiar tamano' })).toBeInTheDocument();
     });
   });
 

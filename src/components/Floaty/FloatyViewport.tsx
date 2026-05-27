@@ -37,16 +37,17 @@ interface FloatyViewportItemProps {
   isActive: boolean;
 }
 
-const DefaultLazyFallback = () => (
+const DefaultLazyFallback = ({ label }: { label: string }) => (
   <div className="floaty-loading" role="status" aria-live="polite">
     <span className="floaty-loading-spinner" />
-    <span>Loading widget...</span>
+    <span>{label}</span>
   </div>
 );
 
 interface LazyErrorBoundaryProps {
   children: ReactNode;
   onRetry: () => void;
+  labels: FloatyTexts;
 }
 
 interface LazyErrorBoundaryState {
@@ -72,10 +73,10 @@ class LazyErrorBoundary extends Component<
     if (this.state.error) {
       return (
         <div className="floaty-error" role="alert">
-          <strong>Could not load widget</strong>
+          <strong>{this.props.labels.loadError}</strong>
           <span>{this.state.error.message}</span>
           <button type="button" onClick={this.retry}>
-            Retry
+            {this.props.labels.retry}
           </button>
         </div>
       );
@@ -129,8 +130,10 @@ const FloatyViewportItem = memo(
         onFocus={() => onFocus(widget.id)}
       >
         {widget.loader ? (
-          <LazyErrorBoundary onRetry={() => onRetry(widget)}>
-            <Suspense fallback={widget.fallback ?? <DefaultLazyFallback />}>
+          <LazyErrorBoundary labels={labels} onRetry={() => onRetry(widget)}>
+            <Suspense
+              fallback={widget.fallback ?? <DefaultLazyFallback label={labels.loading} />}
+            >
               {content}
             </Suspense>
           </LazyErrorBoundary>

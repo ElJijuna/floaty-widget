@@ -66,12 +66,33 @@ const defaultLabels: FloatyTexts = {
   minimize: 'Minimize',
   restore: 'Restore',
   close: 'Close',
+  resize: 'Resize widget',
+  loading: 'Loading widget...',
+  loadError: 'Could not load widget',
+  retry: 'Retry',
 };
 
 const getNumericSize = (
   value: number | string | undefined,
   fallback: number
 ) => (typeof value === 'number' ? value : fallback);
+
+const KEYBOARD_MOVE_STEP = 10;
+const KEYBOARD_MOVE_LARGE_STEP = 50;
+const KEYBOARD_RESIZE_STEP = 16;
+const KEYBOARD_RESIZE_LARGE_STEP = 64;
+const MIN_WIDTH = 240;
+const MIN_HEIGHT = 96;
+
+const getKeyboardStep = (
+  e: React.KeyboardEvent<HTMLElement>,
+  baseStep: number,
+  largeStep: number
+) => {
+  if (e.altKey) return 1;
+  if (e.shiftKey) return largeStep;
+  return baseStep;
+};
 
 const clampPositionToViewport = (
   position: FloatyPosition,
@@ -359,8 +380,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
       if (resizeStateRef.current.isResizing) {
         const resizeState = resizeStateRef.current;
-        const minWidth = 240;
-        const minHeight = 96;
         const maxWidth = window.innerWidth - resizeState.baseLeft;
         const maxHeight = window.innerHeight - resizeState.baseTop;
         const nextWidth =
@@ -369,8 +388,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           resizeState.startHeight + e.clientY - resizeState.startPointerY;
 
         pendingSizeRef.current = {
-          width: Math.max(minWidth, Math.min(nextWidth, maxWidth)),
-          height: Math.max(minHeight, Math.min(nextHeight, maxHeight)),
+          width: Math.max(MIN_WIDTH, Math.min(nextWidth, maxWidth)),
+          height: Math.max(MIN_HEIGHT, Math.min(nextHeight, maxHeight)),
         };
         scheduleVisualUpdate();
       }
@@ -472,7 +491,68 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         setIsCollapsed((collapsed) => !collapsed);
+        return;
       }
+
+      if (
+        !isPinned &&
+        ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)
+      ) {
+        e.preventDefault();
+        onFocus?.();
+        const step = getKeyboardStep(
+          e,
+          KEYBOARD_MOVE_STEP,
+          KEYBOARD_MOVE_LARGE_STEP
+        );
+        const delta = {
+          ArrowUp: { x: 0, y: -step },
+          ArrowRight: { x: step, y: 0 },
+          ArrowDown: { x: 0, y: step },
+          ArrowLeft: { x: -step, y: 0 },
+        }[e.key]!;
+
+        setPosition((current) =>
+          clampPositionToViewport(
+            { x: current.x + delta.x, y: current.y + delta.y },
+            sizeRef.current
+          )
+        );
+      }
+    };
+
+    const handleResizeKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      onFocus?.();
+
+      const rect = floatyRef.current?.getBoundingClientRect();
+      const currentWidth = getNumericSize(sizeRef.current.width, rect?.width ?? 320);
+      const currentHeight = getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT);
+      const step = getKeyboardStep(
+        e,
+        KEYBOARD_RESIZE_STEP,
+        KEYBOARD_RESIZE_LARGE_STEP
+      );
+      const delta = {
+        ArrowUp: { width: 0, height: -step },
+        ArrowRight: { width: step, height: 0 },
+        ArrowDown: { width: 0, height: step },
+        ArrowLeft: { width: -step, height: 0 },
+      }[e.key]!;
+      const baseLeft = rect?.left ?? positionRef.current.x;
+      const baseTop = rect?.top ?? positionRef.current.y;
+      const maxWidth = Math.max(MIN_WIDTH, window.innerWidth - baseLeft);
+      const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight - baseTop);
+
+      setSize({
+        width: Math.max(MIN_WIDTH, Math.min(currentWidth + delta.width, maxWidth)),
+        height: Math.max(MIN_HEIGHT, Math.min(currentHeight + delta.height, maxHeight)),
+      });
     };
 
     const titleText = typeof title === 'string' ? title : undefined;
@@ -487,6 +567,26 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         }
       };
     }, [handlePointerMove, handlePointerUp]);
+
+    useEffect(() => {
+      const handleViewportResize = () => {
+        const rect = floatyRef.current?.getBoundingClientRect();
+        const measuredSize = {
+          width: getNumericSize(sizeRef.current.width, rect?.width ?? 320),
+          height: getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT),
+        };
+
+        setPosition((current) =>
+          clampPositionToViewport(current, measuredSize)
+        );
+      };
+
+      globalThis.addEventListener('resize', handleViewportResize);
+
+      return () => {
+        globalThis.removeEventListener('resize', handleViewportResize);
+      };
+    }, []);
 
     if (isMinimized) return null;
 
@@ -512,6 +612,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           onKeyDown={handleHeaderKeyDown}
           aria-grabbed={isDragging}
           aria-label={`${titleText ?? 'Floaty widget'} controls`}
+          aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
           tabIndex={0}
         >
           <span className="floaty-header-grip" aria-hidden="true">
@@ -588,8 +689,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           <button
             className="floaty-resize-handle"
             onPointerDown={handleResizePointerDown}
-            title="Resize"
-            aria-label="Resize widget"
+            onKeyDown={handleResizeKeyDown}
+            title={labels.resize}
+            aria-label={labels.resize}
+            aria-keyshortcuts="ArrowUp ArrowRight ArrowDown ArrowLeft"
           />
         )}
       </div>

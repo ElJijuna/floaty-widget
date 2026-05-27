@@ -156,8 +156,8 @@ export type FloatyWidgetPatch<P = unknown> = Partial<
   pinned?: boolean;
 };
 
-/** Localised labels for every action button rendered in the widget header. */
-export interface FloatyTexts {
+/** Localised labels for action buttons rendered in the widget header. */
+export interface FloatyActionTexts {
   pin: string;
   unpin: string;
   collapse: string;
@@ -167,8 +167,16 @@ export interface FloatyTexts {
   close: string;
 }
 
+/** Localised text rendered by Floaty controls and built-in loading/error states. */
+export interface FloatyTexts extends FloatyActionTexts {
+  resize: string;
+  loading: string;
+  loadError: string;
+  retry: string;
+}
+
 /** Key matching one of the action buttons in the widget header. */
-export type FloatyIconName = keyof FloatyTexts;
+export type FloatyIconName = keyof FloatyActionTexts;
 /** A React component used as a custom icon. Receives `active` when the action is currently active. */
 export type FloatyIconComponent = ComponentType<{ active?: boolean }>;
 /** Map of custom icon components, keyed by action name. Unset keys fall back to the built-in SVG icons. */
@@ -318,6 +326,10 @@ const defaultLabels: FloatyTexts = {
   minimize: 'Minimize',
   restore: 'Restore',
   close: 'Close',
+  resize: 'Resize widget',
+  loading: 'Loading widget...',
+  loadError: 'Could not load widget',
+  retry: 'Retry',
 };
 
 const createDuplicateId = (id: string, widgets: Map<string, FloatyWidget>) => {

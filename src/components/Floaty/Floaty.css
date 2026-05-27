@@ -328,6 +328,47 @@
   border-bottom: 2px solid color-mix(in srgb, var(--floaty-fg) 62%, transparent);
 }
 
+@media (hover: none), (pointer: coarse) {
+  .floaty::after {
+    opacity: 0;
+  }
+
+  .floaty-header {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .floaty-resize-handle {
+    width: 36px;
+    height: 36px;
+    opacity: 0.86;
+  }
+
+  .floaty-resize-handle::before {
+    right: 8px;
+    bottom: 8px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floaty,
+  .floaty::after,
+  .floaty-header,
+  .floaty-header-grip,
+  .floaty-button,
+  .floaty-resize-handle,
+  .chevron {
+    transition: none;
+  }
+
+  .floaty-loading-spinner {
+    animation: none;
+  }
+}
+
 .floaty-loading,
 .floaty-error {
   display: grid;

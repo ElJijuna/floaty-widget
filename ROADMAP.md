@@ -17,9 +17,9 @@
 - [x] Animaciones suaves de expand/collapse
 
 ## Fase 3: Mejoras y Publicación
-- [ ] Agregar estilos globales y temas
-- [ ] Documentación completa
-- [ ] Tests unitarios
+- [x] Agregar estilos globales y temas
+- [x] Documentación de UX, teclado, viewport y textos configurables
+- [x] Tests unitarios de interacciones UX principales
 - [ ] Build para producción
 - [ ] Publicar en npm
 
@@ -29,4 +29,5 @@
 - **Pin/Unpin**: Icono SVG que cambia estado y previene dragging
 - **Children Support**: Acepta contenido flexible dentro
 - **Animaciones**: Expand/collapse con spring easing, border-radius smooth
-
+- **Accesibilidad**: Soporte de teclado para colapsar, mover y redimensionar
+- **Responsive**: Reajuste automático al cambiar el viewport y controles touch más visibles

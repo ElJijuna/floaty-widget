@@ -215,6 +215,53 @@ describe('FloatyWidgetManager', () => {
       expect(screen.getByText('Loading widget...')).toBeInTheDocument();
     });
 
+    it('uses custom labels for built-in lazy loading and error states', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const loader = vi.fn().mockRejectedValue(new Error('fallo de chunk'));
+
+      const Opener = () => {
+        const manager = useFloatyWidgetManager();
+
+        return (
+          <button
+            onClick={() =>
+              manager.open({
+                id: 'lazy-custom-labels',
+                title: 'Lazy Widget',
+                loader,
+                props: {},
+              })
+            }
+          >
+            Open
+          </button>
+        );
+      };
+
+      render(
+        <FloatyWidgetManager
+          labels={{
+            loading: 'Cargando panel...',
+            loadError: 'No se pudo cargar el panel',
+            retry: 'Reintentar',
+          }}
+        >
+          <Opener />
+          <FloatyViewport />
+        </FloatyWidgetManager>
+      );
+
+      act(() => {
+        screen.getByRole('button', { name: 'Open' }).click();
+      });
+
+      expect(screen.getByText('Cargando panel...')).toBeInTheDocument();
+      expect(await screen.findByText('No se pudo cargar el panel')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+
+      consoleError.mockRestore();
+    });
+
     it('shows lazy load errors and can retry the loader', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
       const LazyComponent: FC<{ label: string }> = ({ label }) => <div>{label}</div>;

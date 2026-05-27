@@ -223,7 +223,7 @@ All props are optional.
 | `defaultPinned` | `boolean` | `false` | Start pinned (no drag) |
 | `zIndex` | `number` | — | CSS z-index |
 | `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header and active shadow without requiring hover |
-| `labels` | `Partial<FloatyTexts>` | — | Override button labels |
+| `labels` | `Partial<FloatyTexts>` | — | Override button, resize, loading, and error labels |
 | `icons` | `FloatyIcons` | — | Override button icons |
 | `style` | `CSSProperties` | — | Root element styles |
 | `className` | `string` | — | Root element class |
@@ -248,6 +248,16 @@ ref.current.restore()
 ref.current.pin()
 ref.current.unpin()
 ```
+
+### Keyboard and viewport behavior
+
+Floaty can be operated without a pointer:
+
+- Focus the header and press `Enter` or `Space` to collapse/expand.
+- Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
+- Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps.
+
+Widget positions are clamped into the visible viewport on initial render, during drag, and after viewport resize/orientation changes.
 
 ---
 
@@ -346,6 +356,10 @@ import { Pin, PinFilled } from './icons';
     minimize: 'Minimizar',
     restore: 'Restaurar',
     close: 'Cerrar',
+    resize: 'Cambiar tamano',
+    loading: 'Cargando panel...',
+    loadError: 'No se pudo cargar el panel',
+    retry: 'Reintentar',
   }}
 >
   <FloatyViewport />
