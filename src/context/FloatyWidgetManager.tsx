@@ -1,6 +1,7 @@
 import {
   ComponentType,
   createContext,
+  lazy,
   useContext,
   useRef,
   useState,
@@ -64,24 +65,36 @@ export interface FloatyWidgetState {
   zIndex: number;
 }
 
+/** Module shape accepted by lazy widget loaders. */
+export type FloatyLazyModule<P = unknown> =
+  | { default: ComponentType<P> }
+  | ComponentType<P>;
+
+/** Dynamic import callback used to load widget content only when it is rendered. */
+export type FloatyComponentLoader<P = unknown> = () => Promise<FloatyLazyModule<P>>;
+
 /** Full descriptor of a widget registered in `FloatyWidgetManager`, including its component and props. */
 export interface FloatyWidget<P = unknown> extends FloatyWidgetState {
   /** React component rendered inside the widget body. */
   component?: ComponentType<P>;
+  /** Dynamic import callback used to lazy-load the widget body. */
+  loader?: FloatyComponentLoader<P>;
   /** Props forwarded to `component`. */
   props?: P;
+  /** Content rendered while a lazy widget body is loading. */
+  fallback?: ReactNode;
   /** Additional CSS class applied to the widget root element. */
   className?: string;
 }
 
-/** Payload passed to `manager.open()` to create a new widget. */
-export type FloatyOpenWidget<P> = {
+/** Common payload fields used when opening a widget. */
+export type FloatyOpenWidgetBase<P> = {
   /** Unique identifier. If a widget with this id already exists, `duplicateStrategy` controls the behaviour. */
   id: string;
-  /** React component to render inside the widget body. */
-  component: ComponentType<P>;
   /** Props forwarded to `component`. */
   props: P;
+  /** Content rendered while a lazy widget body is loading. */
+  fallback?: ReactNode;
   /** Content displayed in the widget header. */
   title?: ReactNode;
   /** Initial position on screen. */
@@ -97,6 +110,21 @@ export type FloatyOpenWidget<P> = {
   /** Additional CSS class applied to the widget root element. */
   className?: string;
 };
+
+/** Payload passed to `manager.open()` to create a new widget. */
+export type FloatyOpenWidget<P> = FloatyOpenWidgetBase<P> &
+  (
+    | {
+        /** React component to render inside the widget body. */
+        component: ComponentType<P>;
+        loader?: never;
+      }
+    | {
+        /** Dynamic import callback used to lazy-load the widget body. */
+        loader: FloatyComponentLoader<P>;
+        component?: never;
+      }
+  );
 
 /**
  * Controls what happens when `open()` is called with an id that already exists.
@@ -118,9 +146,10 @@ export interface FloatyOpenOptions {
  * Supports both the camelCase state flags (`isCollapsed`) and their shorthand aliases (`collapsed`).
  */
 export type FloatyWidgetPatch<P = unknown> = Partial<
-  Omit<FloatyWidget<P>, 'id' | 'component' | 'props'>
+  Omit<FloatyWidget<P>, 'id' | 'component' | 'loader' | 'props'>
 > & {
   component?: ComponentType<P>;
+  loader?: FloatyComponentLoader<P>;
   props?: P;
   collapsed?: boolean;
   minimized?: boolean;
@@ -200,7 +229,7 @@ export interface FloatyWidgetManagerHandle {
    */
   openComponent: <P>(
     component: ComponentType<P>,
-    config: Omit<FloatyOpenWidget<P>, 'component'>
+    config: FloatyOpenWidgetBase<P>
   ) => string;
   /** Removes a widget by id. */
   close: (id: string) => void;
@@ -303,6 +332,20 @@ const createDuplicateId = (id: string, widgets: Map<string, FloatyWidget>) => {
   return nextId;
 };
 
+const normalizeLazyModule = <P,>(
+  loaded: FloatyLazyModule<P>
+): { default: ComponentType<P> } => {
+  if (typeof loaded === 'function') {
+    return { default: loaded };
+  }
+
+  return loaded;
+};
+
+const createLazyComponent = <P,>(loader: FloatyComponentLoader<P>) => {
+  return lazy(() => loader().then(normalizeLazyModule));
+};
+
 export const FloatyWidgetManager = forwardRef<
   FloatyWidgetManagerHandle,
   FloatyWidgetManagerProps
@@ -360,11 +403,17 @@ export const FloatyWidgetManager = forwardRef<
 
         zIndexRef.current += 1;
         const next = new Map(current);
+        const component =
+          widget.component ??
+          (widget.loader ? createLazyComponent(widget.loader) : undefined);
+
         next.set(widgetId, {
           id: widgetId,
           title: widget.title,
-          component: widget.component as ComponentType<unknown>,
+          component: component as ComponentType<unknown> | undefined,
+          loader: widget.loader as FloatyComponentLoader<unknown> | undefined,
           props: widget.props,
+          fallback: widget.fallback,
           position: widget.position,
           size: widget.size,
           className: widget.className,
@@ -384,7 +433,7 @@ export const FloatyWidgetManager = forwardRef<
   const openComponent = useCallback(
     <P,>(
       component: ComponentType<P>,
-      config: Omit<FloatyOpenWidget<P>, 'component'>
+      config: FloatyOpenWidgetBase<P>
     ) => open({ ...config, component }),
     [open]
   );
@@ -416,7 +465,10 @@ export const FloatyWidgetManager = forwardRef<
           isCollapsed: patch.collapsed ?? patch.isCollapsed ?? previous.isCollapsed,
           isMinimized: patch.minimized ?? patch.isMinimized ?? previous.isMinimized,
           isPinned: patch.pinned ?? patch.isPinned ?? previous.isPinned,
-          component: (patch.component as ComponentType<unknown> | undefined) ?? previous.component,
+          component: patch.loader
+            ? createLazyComponent(patch.loader) as ComponentType<unknown>
+            : (patch.component as ComponentType<unknown> | undefined) ?? previous.component,
+          loader: (patch.loader as FloatyComponentLoader<unknown> | undefined) ?? previous.loader,
           props: patch.props ?? previous.props,
         });
         return next;

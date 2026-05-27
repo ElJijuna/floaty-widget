@@ -1,4 +1,11 @@
-import { ComponentType, CSSProperties, createElement, memo, useMemo } from 'react';
+import {
+  ComponentType,
+  CSSProperties,
+  Suspense,
+  createElement,
+  memo,
+  useMemo,
+} from 'react';
 import { Floaty } from './Floaty';
 import {
   useFloatyWidgetManager,
@@ -40,6 +47,10 @@ const FloatyViewportItem = memo(
     if (!widget.component || widget.isMinimized) return null;
 
     const WidgetComponent = widget.component;
+    const content = createElement(
+      WidgetComponent as ComponentType<any>,
+      widget.props as any
+    );
     const widgetStyle: CSSProperties = {
       ...themeStyle,
       ...style,
@@ -62,7 +73,13 @@ const FloatyViewportItem = memo(
         onClose={() => onClose(widget.id)}
         onFocus={() => onFocus(widget.id)}
       >
-        {createElement(WidgetComponent as ComponentType<any>, widget.props as any)}
+        {widget.loader ? (
+          <Suspense fallback={widget.fallback ?? null}>
+            {content}
+          </Suspense>
+        ) : (
+          content
+        )}
       </Floaty>
     );
   }

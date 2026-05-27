@@ -15,8 +15,11 @@ export {
 } from './context/FloatyWidgetManager';
 export type {
   FloatyHandle,
+  FloatyComponentLoader,
   FloatyIcons,
   FloatyIconComponent,
+  FloatyLazyModule,
+  FloatyOpenWidgetBase,
   FloatyOpenOptions,
   FloatyOpenWidget,
   FloatyPosition,

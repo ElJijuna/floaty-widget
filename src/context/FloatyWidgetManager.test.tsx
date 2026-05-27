@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { render, renderHook, screen, act } from '@testing-library/react';
 import { FC, ReactNode } from 'react';
 import {
   FloatyWidgetManager,
   useFloatyWidgetManager,
 } from './FloatyWidgetManager';
+import { FloatyViewport } from '../components/Floaty/FloatyViewport';
 
 const MockComponent: FC = () => null;
 
@@ -113,6 +114,67 @@ describe('FloatyWidgetManager', () => {
       const widget = result.current.getWidget('test');
       expect(widget?.isCollapsed).toBe(true);
       expect(widget?.isPinned).toBe(true);
+    });
+
+    it('stores a lazy component without loading it immediately', () => {
+      const LazyComponent: FC<{ label: string }> = ({ label }) => <div>{label}</div>;
+      const loader = vi.fn(async () => ({ default: LazyComponent }));
+      const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
+
+      act(() => {
+        result.current.open({
+          id: 'lazy',
+          loader,
+          props: { label: 'Lazy body' },
+        });
+      });
+
+      const widget = result.current.getWidget('lazy');
+      expect(widget?.component).toBeDefined();
+      expect(widget?.loader).toBe(loader);
+      expect(loader).not.toHaveBeenCalled();
+    });
+
+    it('loads a lazy component when the viewport renders it', async () => {
+      const LazyComponent: FC<{ label: string }> = ({ label }) => <div>{label}</div>;
+      const loader = vi.fn(async () => ({ default: LazyComponent }));
+
+      const Opener = () => {
+        const manager = useFloatyWidgetManager();
+
+        return (
+          <button
+            onClick={() =>
+              manager.open({
+                id: 'lazy',
+                title: 'Lazy Widget',
+                loader,
+                props: { label: 'Lazy body' },
+                fallback: <span>Loading widget</span>,
+              })
+            }
+          >
+            Open
+          </button>
+        );
+      };
+
+      render(
+        <FloatyWidgetManager>
+          <Opener />
+          <FloatyViewport />
+        </FloatyWidgetManager>
+      );
+
+      expect(loader).not.toHaveBeenCalled();
+
+      act(() => {
+        screen.getByRole('button', { name: 'Open' }).click();
+      });
+
+      expect(screen.getByText('Loading widget')).toBeInTheDocument();
+      expect(await screen.findByText('Lazy body')).toBeInTheDocument();
+      expect(loader).toHaveBeenCalledOnce();
     });
   });
 

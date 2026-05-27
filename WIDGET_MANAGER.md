@@ -60,6 +60,14 @@ floaty.updateProps('commits', {
   repo: 'floaty-widget',
 });
 
+floaty.open({
+  id: 'heavy-commits',
+  title: 'Heavy Commits',
+  loader: () => import('./HeavyCommits'),
+  props: { owner: 'eljijuna', repo: 'floaty-widget' },
+  fallback: <span>Loading...</span>,
+});
+
 floaty.collapseWidget('commits');
 floaty.expandWidget('commits');
 floaty.pinWidget('commits');
@@ -156,6 +164,7 @@ You can also override the CSS variables directly:
 
 ```tsx
 import type {
+  FloatyComponentLoader,
   FloatyOpenWidget,
   FloatyWidget,
   FloatyWidgetManagerHandle,

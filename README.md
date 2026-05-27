@@ -102,6 +102,7 @@ The manager exposes a full API:
 
 ```ts
 floaty.open({ id, component, props, title, position, collapsed, pinned })
+floaty.open({ id, loader: () => import('./HeavyPanel'), props })
 floaty.close('commits')
 floaty.closeAll()
 floaty.update('commits', { collapsed: true, props: { repo: 'other' } })
@@ -173,6 +174,32 @@ function App() {
     </>
   );
 }
+```
+
+### Lazy widget content
+
+Use `loader` when a widget contains heavy code that should not be included in
+the initial app bundle. The import starts only when the widget is rendered.
+
+```tsx
+floaty.open({
+  id: 'heavy-panel',
+  title: 'Heavy panel',
+  loader: () => import('./HeavyPanel'),
+  props: { repo: 'floaty-widget' },
+  fallback: <span>Loading...</span>,
+});
+```
+
+The loaded module can export the component as `default`. You can also return a
+component directly from the loader.
+
+```tsx
+floaty.open({
+  id: 'named-panel',
+  loader: () => import('./panels').then((module) => module.NamedPanel),
+  props: {},
+});
 ```
 
 ---

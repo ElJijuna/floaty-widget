@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
@@ -475,6 +476,208 @@ export const WithManager: Story = {
     docs: {
       description: {
         story: 'Use FloatyWidgetManager and FloatyViewport to open application components as floating widgets with captured props.',
+      },
+    },
+  },
+};
+
+const LazyWidgetControls = () => {
+  const manager = useFloatyWidgetManager();
+  const [loadRequests, setLoadRequests] = useState(0);
+  const lazyWidget = manager.getWidget('lazy-performance');
+  const isOpen = Boolean(lazyWidget);
+  const isMinimized = lazyWidget?.isMinimized ?? false;
+
+  const loadPanel = () => {
+    window.setTimeout(() => {
+      setLoadRequests((count) => count + 1);
+    }, 0);
+
+    return new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
+      window.setTimeout(() => {
+        void import('./LazyFloatyPanel').then(resolve);
+      }, 900);
+    });
+  };
+
+  const openLazyWidget = () => {
+    manager.open(
+      {
+        id: 'lazy-performance',
+        title: 'Lazy Performance',
+        loader: loadPanel,
+        props: { metric: 'Bundle saved up front', value: '1 chunk' },
+        fallback: (
+          <div
+            style={{
+              display: 'grid',
+              gap: 12,
+              padding: 16,
+              minWidth: 280,
+              background: 'var(--gnome-card-bg-color, white)',
+              border: '1px solid var(--gnome-card-shade-color, rgba(0, 0, 0, 0.08))',
+              borderRadius: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Spinner size="sm" />
+              <strong style={{ fontSize: 13 }}>Loading widget module</strong>
+            </div>
+            <div
+              style={{
+                height: 8,
+                overflow: 'hidden',
+                borderRadius: 999,
+                background: '#e5e7eb',
+              }}
+            >
+              <div
+                style={{
+                  width: '68%',
+                  height: '100%',
+                  borderRadius: 999,
+                  background: '#3584e4',
+                }}
+              />
+            </div>
+          </div>
+        ),
+        position: { x: 96, y: 220 },
+        size: { width: 360 },
+      },
+      { duplicateStrategy: 'focus' }
+    );
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        padding: 24,
+        background: 'var(--gnome-view-bg-color, #f6f7f8)',
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(280px, 560px) minmax(240px, 360px)',
+          gap: 16,
+          alignItems: 'start',
+          maxWidth: 980,
+        }}
+      >
+        <Card
+          padding="lg"
+          style={{
+            display: 'grid',
+            gap: 16,
+          }}
+        >
+          <div>
+            <Badge variant="accent">Lazy import</Badge>
+            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>
+              Code-split widget body
+            </h3>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+              The shell opens at once; the body resolves from a delayed dynamic
+              import so the Suspense fallback is visible.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+              gap: 10,
+            }}
+          >
+            <Card padding="sm">
+              <strong>{isOpen ? 'Open' : 'Closed'}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Widget</div>
+            </Card>
+            <Card padding="sm">
+              <strong>{isMinimized ? 'Hidden' : 'Visible'}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Viewport</div>
+            </Card>
+            <Card padding="sm">
+              <strong>{loadRequests}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Loads</div>
+            </Card>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <Button variant="suggested" onClick={openLazyWidget}>
+              {isOpen ? 'Focus lazy widget' : 'Open lazy widget'}
+            </Button>
+            <Button
+              variant="flat"
+              disabled={!isOpen}
+              onClick={() =>
+                isMinimized
+                  ? manager.restoreWidget('lazy-performance')
+                  : manager.minimizeWidget('lazy-performance')
+              }
+            >
+              {isMinimized ? 'Restore' : 'Minimize'}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!isOpen}
+              onClick={() => manager.close('lazy-performance')}
+            >
+              Close
+            </Button>
+          </div>
+        </Card>
+
+        <Card
+          padding="lg"
+          style={{
+            display: 'grid',
+            gap: 12,
+          }}
+        >
+          <strong style={{ fontSize: 13 }}>Loader shape</strong>
+          <pre
+            style={{
+              margin: 0,
+              padding: 12,
+              overflowX: 'auto',
+              background: '#111827',
+              borderRadius: 6,
+              color: '#e5e7eb',
+              fontSize: 12,
+              lineHeight: 1.5,
+            }}
+          >
+{`manager.open({
+  id: 'lazy-performance',
+  loader: () => import('./LazyFloatyPanel'),
+  fallback: <Spinner />,
+  props,
+})`}
+          </pre>
+        </Card>
+      </div>
+
+      <FloatyViewport />
+    </div>
+  );
+};
+
+const LazyWidgetDemoContent = () => (
+  <FloatyWidgetManager>
+    <LazyWidgetControls />
+  </FloatyWidgetManager>
+);
+
+export const WithLazyWidget: Story = {
+  render: () => <LazyWidgetDemoContent />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Open a widget with loader: () => import("./LazyFloatyPanel"). The body is wrapped in Suspense and uses the provided fallback while the module loads.',
       },
     },
   },
