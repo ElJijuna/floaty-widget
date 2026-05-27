@@ -1,13 +1,13 @@
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import {
-  FloatyWidgetManager,
-  type FloatyWidgetManagerHandle,
-  type FloatyOpenWidget,
-  type FloatyOpenOptions,
-  type FloatyWidgetPatch,
-} from './context/FloatyWidgetManager';
+import { FloatyWidgetManager } from './context/FloatyWidgetManager';
+import type {
+  FloatyWidgetManagerHandle,
+  FloatyOpenWidget,
+  FloatyOpenOptions,
+  FloatyWidgetPatch,
+} from './types';
 import { FloatyViewport } from './components/Floaty/FloatyViewport';
 
 let getExternalManager: (() => FloatyWidgetManagerHandle) | null = null;

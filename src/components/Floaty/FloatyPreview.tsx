@@ -1,5 +1,5 @@
 import { createElement, ComponentType, CSSProperties, ReactNode, Suspense } from 'react';
-import { useFloatyManager } from '../../context/FloatyWidgetManager';
+import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 
 /** Props for the `<FloatyPreview>` component. */
 export interface FloatyPreviewProps {

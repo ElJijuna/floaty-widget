@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
 import { createElement, FC, ReactNode } from 'react';
-import {
-  FloatyWidgetManager,
-  useFloatyWidgetManager,
-} from './context/FloatyWidgetManager';
+import { FloatyWidgetManager } from './context/FloatyWidgetManager';
+import { useFloatyWidgetManager } from './hooks/useFloatyWidgetManager';
 import {
   connectFloatySingleton,
   openFloaty,

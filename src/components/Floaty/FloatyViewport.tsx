@@ -9,12 +9,8 @@ import {
   useMemo,
 } from 'react';
 import { Floaty } from './Floaty';
-import {
-  useFloatyWidgetManager,
-  type FloatyIcons,
-  type FloatyTexts,
-  type FloatyWidget,
-} from '../../context/FloatyWidgetManager';
+import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
+import type { FloatyIcons, FloatyTexts, FloatyWidget } from '../../types';
 
 /** Props for the `<FloatyViewport>` component. */
 export interface FloatyViewportProps {

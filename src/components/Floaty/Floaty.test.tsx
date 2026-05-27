@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { createRef } from 'react';
 import { Floaty } from './Floaty';
-import type { FloatyHandle } from '../../context/FloatyWidgetManager';
+import type { FloatyHandle } from '../../types';
 
 describe('Floaty', () => {
   describe('rendering', () => {

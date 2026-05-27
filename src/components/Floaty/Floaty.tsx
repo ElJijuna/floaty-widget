@@ -10,14 +10,14 @@ import {
   useImperativeHandle,
 } from 'react';
 import './Floaty.css';
-import {
-  useFloatyManager,
-  type FloatyIcons,
-  type FloatyHandle,
-  type FloatyPosition,
-  type FloatySize,
-  type FloatyTexts,
-} from '../../context/FloatyWidgetManager';
+import type {
+  FloatyIcons,
+  FloatyHandle,
+  FloatyPosition,
+  FloatySize,
+  FloatyTexts,
+} from '../../types';
+import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 
 /** Props for the `<Floaty>` component. */
 export interface FloatyProps {

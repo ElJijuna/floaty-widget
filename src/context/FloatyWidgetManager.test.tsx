@@ -1,10 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, renderHook, screen, act } from '@testing-library/react';
 import { FC, ReactNode } from 'react';
-import {
-  FloatyWidgetManager,
-  useFloatyWidgetManager,
-} from './FloatyWidgetManager';
+import { FloatyWidgetManager } from './FloatyWidgetManager';
+import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
 import { FloatyViewport } from '../components/Floaty/FloatyViewport';
 
 const MockComponent: FC = () => null;

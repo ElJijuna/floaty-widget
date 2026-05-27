@@ -1,10 +1,8 @@
 import { bench, describe } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { createElement, FC, ReactNode } from 'react';
-import {
-  FloatyWidgetManager,
-  useFloatyWidgetManager,
-} from './FloatyWidgetManager';
+import { FloatyWidgetManager } from './FloatyWidgetManager';
+import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
 
 const MockComponent: FC = () => null;
 

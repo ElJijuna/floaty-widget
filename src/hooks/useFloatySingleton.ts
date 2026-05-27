@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useFloatyWidgetManager } from '../context/FloatyWidgetManager';
+import { useFloatyWidgetManager } from './useFloatyWidgetManager';
 import { connectFloatySingleton } from '../singleton';
 
 /**

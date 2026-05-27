@@ -8,13 +8,12 @@ export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
 export { FloatyPreview } from './components/Floaty/FloatyPreview';
 export type { FloatyPreviewProps } from './components/Floaty/FloatyPreview';
 
+export { FloatyWidgetManager, FloatyWidgetManager as FloatyProvider } from './context/FloatyWidgetManager';
 export {
-  FloatyWidgetManager,
-  FloatyWidgetManager as FloatyProvider,
   useFloatyWidgetManager,
   useFloatyWidgetManager as useFloaty,
   useFloatyWidget,
-} from './context/FloatyWidgetManager';
+} from './hooks/useFloatyWidgetManager';
 export type {
   FloatyHandle,
   FloatyComponentLoader,
@@ -33,4 +32,4 @@ export type {
   FloatyWidgetManagerProps,
   FloatyWidgetPatch,
   FloatyWidgetState,
-} from './context/FloatyWidgetManager';
+} from './types';

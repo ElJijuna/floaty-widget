@@ -6,10 +6,8 @@ import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import { Floaty } from './Floaty';
 import { FloatyViewport } from './FloatyViewport';
 import { FloatyPreview } from './FloatyPreview';
-import {
-  FloatyWidgetManager,
-  useFloatyWidgetManager,
-} from '../../context/FloatyWidgetManager';
+import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
+import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
 import '@gnome-ui/core/styles';
 import '@gnome-ui/react/styles';
 
