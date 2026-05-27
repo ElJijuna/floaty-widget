@@ -207,6 +207,47 @@ floaty.open({
 
 ---
 
+## Widget preview
+
+`FloatyPreview` renders a scaled-down live thumbnail of any widget registered in a
+`FloatyWidgetManager`. Use it to build dock bars, widget pickers, thumbnail grids,
+or any UI that needs a miniaturized view of a widget's content.
+
+```tsx
+import { FloatyProvider, FloatyViewport, FloatyPreview } from 'floaty-widget';
+
+<FloatyProvider>
+  <App />
+  <FloatyViewport />
+
+  {/* Renders a 40%-scale thumbnail of the widget with id "my-widget" */}
+  <FloatyPreview
+    id="my-widget"
+    scale={0.4}
+    style={{ width: 200, height: 120, borderRadius: 8, overflow: 'hidden' }}
+    fallback={<span>Widget not open</span>}
+  />
+</FloatyProvider>
+```
+
+The component mounts a **separate instance** of the widget's component — external
+state (context, stores) is reflected live, but internal `useState` is independent
+from the real widget. Clicks and keyboard events on the thumbnail are suppressed
+(`pointerEvents: none`).
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | ID of the widget to preview |
+| `scale` | `number` | `0.4` | Scale factor (e.g. `0.4` renders content at 40% of its natural size) |
+| `fallback` | `ReactNode` | `null` | Rendered when the widget is not open or has no component |
+| `className` | `string` | — | CSS class on the preview container |
+| `style` | `CSSProperties` | — | Inline styles on the preview container (use this to set width/height) |
+
+The preview container uses `overflow: hidden` automatically. Size it via `style`
+so that `naturalWidth × scale` and `naturalHeight × scale` fit within the box.
+
+---
+
 ## Floaty props
 
 All props are optional.

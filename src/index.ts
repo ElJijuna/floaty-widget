@@ -5,6 +5,8 @@ export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyProps } from './components/Floaty/Floaty';
 export { FloatyViewport } from './components/Floaty/FloatyViewport';
 export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
+export { FloatyPreview } from './components/Floaty/FloatyPreview';
+export type { FloatyPreviewProps } from './components/Floaty/FloatyPreview';
 
 export {
   FloatyWidgetManager,

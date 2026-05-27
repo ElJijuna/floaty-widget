@@ -5,6 +5,7 @@ import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import { Floaty } from './Floaty';
 import { FloatyViewport } from './FloatyViewport';
+import { FloatyPreview } from './FloatyPreview';
 import {
   FloatyWidgetManager,
   useFloatyWidgetManager,
@@ -978,6 +979,206 @@ export const StoryUxPlayground: Story = {
       description: {
         story:
           'A focused UX test bench for the existing Floaty states: multiple widgets, minimization, restore, collapse, active focus, viewport clamping, lazy loading, and lazy error handling.',
+      },
+    },
+  },
+};
+
+// ─── WithPreview ─────────────────────────────────────────────────────────────
+
+const PREVIEW_WIDGETS = [
+  { id: 'preview-a', label: 'Analytics', color: '#3584e4' },
+  { id: 'preview-b', label: 'Notifications', color: '#e84393' },
+  { id: 'preview-c', label: 'Activity', color: '#33d17a' },
+];
+
+const PreviewWidgetContent = ({ label, color }: { label: string; color: string }) => {
+  const [count, setCount] = useState(0);
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 240 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <span style={{ fontWeight: 600, fontSize: 13 }}>{label} panel</span>
+      </div>
+      <Separator />
+      <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>
+        Internal counter: <strong>{count}</strong>
+      </p>
+      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
+        The preview below has its own independent counter — internal state diverges between the real widget and its thumbnail.
+      </p>
+      <Button size="sm" onClick={() => setCount((c) => c + 1)}>
+        Increment
+      </Button>
+    </div>
+  );
+};
+
+const PreviewDock = () => {
+  const manager = useFloatyWidgetManager();
+  const widgets = Array.from(manager.widgets.values()).filter((w) => w.component);
+
+  if (widgets.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: 8,
+        padding: '8px 12px',
+        background: 'rgba(15, 15, 15, 0.82)',
+        borderRadius: 14,
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+        zIndex: 9000,
+      }}
+    >
+      {widgets.map((widget) => (
+        <button
+          key={widget.id}
+          type="button"
+          onClick={() => {
+            manager.restoreWidget(widget.id);
+            manager.bringToFront(widget.id);
+          }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 6,
+            padding: 0,
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+          title={`Bring ${String(widget.title)} to front`}
+        >
+          <FloatyPreview
+            id={widget.id}
+            scale={0.38}
+            style={{
+              width: 148,
+              height: 90,
+              borderRadius: 8,
+              background: 'white',
+              border: '1px solid rgba(255,255,255,0.12)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            }}
+            fallback={
+              <div
+                style={{
+                  width: 148,
+                  height: 90,
+                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontSize: 11,
+                }}
+              >
+                Not open
+              </div>
+            }
+          />
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>
+            {String(widget.title)}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const PreviewStoryControls = () => {
+  const manager = useFloatyWidgetManager();
+
+  const toggle = (id: string, label: string, color: string) => {
+    const widget = manager.getWidget(id);
+    if (widget) {
+      manager.close(id);
+    } else {
+      manager.open(
+        {
+          id,
+          title: label,
+          component: PreviewWidgetContent,
+          props: { label, color },
+          position: {
+            x: 80 + PREVIEW_WIDGETS.findIndex((w) => w.id === id) * 120,
+            y: 80,
+          },
+          size: { width: 280 },
+        },
+        { duplicateStrategy: 'focus' }
+      );
+    }
+  };
+
+  return (
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <h3 style={{ margin: '0 0 4px' }}>FloatyPreview — dock thumbnail</h3>
+        <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+          Open widgets to see live scaled thumbnails in the dock bar below. Internal
+          state (counter) diverges between the real widget and its preview.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {PREVIEW_WIDGETS.map(({ id, label, color }) => {
+          const isOpen = Boolean(manager.getWidget(id));
+          return (
+            <Button
+              key={id}
+              size="sm"
+              variant={isOpen ? 'destructive' : 'suggested'}
+              onClick={() => toggle(id, label, color)}
+            >
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: color,
+                  display: 'inline-block',
+                  marginRight: 6,
+                }}
+              />
+              {isOpen ? `Close ${label}` : `Open ${label}`}
+            </Button>
+          );
+        })}
+      </div>
+
+      <Badge variant="neutral" style={{ width: 'fit-content', fontSize: 11 }}>
+        Tip — click a thumbnail in the dock to bring the widget to front
+      </Badge>
+
+      <FloatyViewport />
+      <PreviewDock />
+    </div>
+  );
+};
+
+const PreviewStoryContent = () => (
+  <FloatyWidgetManager>
+    <PreviewStoryControls />
+  </FloatyWidgetManager>
+);
+
+export const WithPreview: Story = {
+  render: () => <PreviewStoryContent />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Demonstrates `FloatyPreview` — a scaled-down live thumbnail of any registered widget. Each thumbnail in the dock bar is a `<FloatyPreview id={...} scale={0.38} />`. Clicking a thumbnail restores and focuses the widget. Internal state (the counter) is independent between the real widget and its preview.',
       },
     },
   },
