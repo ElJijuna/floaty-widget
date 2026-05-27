@@ -40,6 +40,27 @@ describe('Floaty', () => {
       const { container } = render(<Floaty className="my-class" />);
       expect(container.firstChild).toHaveClass('my-class');
     });
+
+    it('clamps the initial position inside the viewport', () => {
+      const originalWidth = window.innerWidth;
+      const originalHeight = window.innerHeight;
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 500 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
+
+      const { container } = render(
+        <Floaty
+          initialPosition={{ x: 1000, y: -20 }}
+          initialSize={{ width: 200, height: 100 }}
+        />
+      );
+
+      expect(container.firstChild).toHaveStyle({
+        transform: 'translate(300px, 0px)',
+      });
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });
+    });
   });
 
   describe('collapse / expand', () => {
@@ -63,6 +84,29 @@ describe('Floaty', () => {
 
     it('starts collapsed when defaultCollapsed is true', () => {
       render(<Floaty defaultCollapsed>Child content</Floaty>);
+      expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
+    });
+
+    it('toggles collapse when double clicking the header', () => {
+      const { container } = render(<Floaty>Child content</Floaty>);
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+
+      fireEvent.doubleClick(header);
+
+      expect(screen.queryByText('Child content')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
+    });
+
+    it('makes the header keyboard focusable and toggles collapse with Enter', () => {
+      const { container } = render(<Floaty title="Keyboard widget">Child content</Floaty>);
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+
+      expect(header).toHaveAttribute('tabindex', '0');
+      expect(header).toHaveAttribute('aria-label', 'Keyboard widget controls');
+
+      fireEvent.keyDown(header, { key: 'Enter' });
+
+      expect(screen.queryByText('Child content')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
     });
   });
@@ -144,6 +188,18 @@ describe('Floaty', () => {
 
       expect(getBoundingClientRect).toHaveBeenCalledOnce();
       expect(root).toHaveStyle({ transform: 'translate(130px, 140px)' });
+    });
+
+    it('does not start dragging from non-primary pointer buttons', () => {
+      const { container } = render(<Floaty />);
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+      const getBoundingClientRect = vi.spyOn(root, 'getBoundingClientRect');
+
+      fireEvent.pointerDown(header, { button: 2, clientX: 100, clientY: 100, pointerId: 1 });
+
+      expect(getBoundingClientRect).not.toHaveBeenCalled();
+      expect(root).not.toHaveClass('dragging');
     });
   });
 

@@ -159,7 +159,7 @@ openFloaty({ id: 'panel', component: MyPanel, props: {} });
 
 ### 4. Standalone `<Floaty>` component
 
-Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager.
+Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse.
 
 ```tsx
 import { Floaty } from 'floaty-widget';
@@ -187,9 +187,12 @@ floaty.open({
   title: 'Heavy panel',
   loader: () => import('./HeavyPanel'),
   props: { repo: 'floaty-widget' },
-  fallback: <span>Loading...</span>,
+  fallback: <span>Loading...</span>, // optional — a spinner is shown by default
 });
 ```
+
+If the loader rejects, Floaty shows an error state with a **Retry** button that
+re-triggers the loader. No extra setup needed.
 
 The loaded module can export the component as `default`. You can also return a
 component directly from the loader.
@@ -213,12 +216,13 @@ All props are optional.
 | `title` | `ReactNode` | `'Floaty'` | Header title |
 | `children` | `ReactNode` | `'Content'` | Body content |
 | `id` | `string` | — | Registers with `FloatyProvider` when provided |
-| `initialPosition` | `{ x, y }` | `{ x: 100, y: 100 }` | Starting position |
+| `initialPosition` | `{ x, y }` | `{ x: 100, y: 100 }` | Starting position — automatically clamped to viewport bounds |
 | `initialSize` | `{ width?, height? }` | — | Starting size |
 | `defaultCollapsed` | `boolean` | `false` | Start collapsed |
 | `defaultMinimized` | `boolean` | `false` | Start hidden |
 | `defaultPinned` | `boolean` | `false` | Start pinned (no drag) |
 | `zIndex` | `number` | — | CSS z-index |
+| `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header and active shadow without requiring hover |
 | `labels` | `Partial<FloatyTexts>` | — | Override button labels |
 | `icons` | `FloatyIcons` | — | Override button icons |
 | `style` | `CSSProperties` | — | Root element styles |
@@ -301,6 +305,7 @@ Or use CSS variables directly:
   --floaty-pinned-border: #89b4fa;
   --floaty-radius: 8px;
   --floaty-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --floaty-active-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
   --floaty-font-family: inherit;
   --floaty-header-padding-block: 8px;
   --floaty-header-padding-inline: 12px;

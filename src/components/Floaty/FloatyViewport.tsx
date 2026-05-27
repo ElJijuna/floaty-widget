@@ -1,6 +1,8 @@
 import {
+  Component,
   ComponentType,
   CSSProperties,
+  ReactNode,
   Suspense,
   createElement,
   memo,
@@ -31,6 +33,56 @@ interface FloatyViewportItemProps {
   icons: FloatyIcons;
   onClose: (id: string) => void;
   onFocus: (id: string) => void;
+  onRetry: (widget: FloatyWidget) => void;
+  isActive: boolean;
+}
+
+const DefaultLazyFallback = () => (
+  <div className="floaty-loading" role="status" aria-live="polite">
+    <span className="floaty-loading-spinner" />
+    <span>Loading widget...</span>
+  </div>
+);
+
+interface LazyErrorBoundaryProps {
+  children: ReactNode;
+  onRetry: () => void;
+}
+
+interface LazyErrorBoundaryState {
+  error: Error | null;
+}
+
+class LazyErrorBoundary extends Component<
+  LazyErrorBoundaryProps,
+  LazyErrorBoundaryState
+> {
+  state: LazyErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  retry = () => {
+    this.setState({ error: null });
+    this.props.onRetry();
+  };
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="floaty-error" role="alert">
+          <strong>Could not load widget</strong>
+          <span>{this.state.error.message}</span>
+          <button type="button" onClick={this.retry}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 const FloatyViewportItem = memo(
@@ -43,6 +95,8 @@ const FloatyViewportItem = memo(
     icons,
     onClose,
     onFocus,
+    onRetry,
+    isActive,
   }: FloatyViewportItemProps) => {
     if (!widget.component || widget.isMinimized) return null;
 
@@ -70,13 +124,16 @@ const FloatyViewportItem = memo(
         initialPosition={widget.position}
         initialSize={widget.size}
         zIndex={widget.zIndex}
+        isActive={isActive}
         onClose={() => onClose(widget.id)}
         onFocus={() => onFocus(widget.id)}
       >
         {widget.loader ? (
-          <Suspense fallback={widget.fallback ?? null}>
-            {content}
-          </Suspense>
+          <LazyErrorBoundary onRetry={() => onRetry(widget)}>
+            <Suspense fallback={widget.fallback ?? <DefaultLazyFallback />}>
+              {content}
+            </Suspense>
+          </LazyErrorBoundary>
         ) : (
           content
         )}
@@ -103,6 +160,13 @@ FloatyViewportItem.displayName = 'FloatyViewportItem';
  */
 export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
   const manager = useFloatyWidgetManager();
+  const widgets = Array.from(manager.widgets.values());
+  const activeZIndex = Math.max(
+    0,
+    ...widgets
+      .filter((widget) => !widget.isMinimized)
+      .map((widget) => widget.zIndex)
+  );
 
   const themeStyle = useMemo(
     () =>
@@ -135,7 +199,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
 
   return (
     <>
-      {Array.from(manager.widgets.values()).map((widget) => {
+      {widgets.map((widget) => {
         return (
           <FloatyViewportItem
             key={widget.id}
@@ -147,6 +211,12 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
             icons={manager.icons}
             onClose={manager.close}
             onFocus={manager.bringToFront}
+            onRetry={(retryWidget) => {
+              if (retryWidget.loader) {
+                manager.update(retryWidget.id, { loader: retryWidget.loader });
+              }
+            }}
+            isActive={widget.zIndex === activeZIndex}
           />
         );
       })}

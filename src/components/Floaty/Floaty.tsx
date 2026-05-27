@@ -50,6 +50,8 @@ export interface FloatyProps {
   initialSize?: FloatySize;
   /** CSS `z-index` for this widget. */
   zIndex?: number;
+  /** Whether this widget is currently the active/front-most widget. */
+  isActive?: boolean;
   /** Called when the user clicks the close button. If omitted, the close button is not rendered. */
   onClose?: () => void;
   /** Called when the user clicks or starts dragging the widget (used to bring it to front). */
@@ -64,6 +66,28 @@ const defaultLabels: FloatyTexts = {
   minimize: 'Minimize',
   restore: 'Restore',
   close: 'Close',
+};
+
+const getNumericSize = (
+  value: number | string | undefined,
+  fallback: number
+) => (typeof value === 'number' ? value : fallback);
+
+const clampPositionToViewport = (
+  position: FloatyPosition,
+  size: FloatySize | undefined
+): FloatyPosition => {
+  if (typeof window === 'undefined') return position;
+
+  const width = getNumericSize(size?.width, 320);
+  const height = getNumericSize(size?.height, 96);
+  const maxX = Math.max(0, window.innerWidth - width);
+  const maxY = Math.max(0, window.innerHeight - height);
+
+  return {
+    x: Math.max(0, Math.min(position.x, maxX)),
+    y: Math.max(0, Math.min(position.y, maxY)),
+  };
 };
 
 const PinIcon = ({ pinned }: { pinned: boolean }) => (
@@ -163,6 +187,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       initialPosition = { x: 100, y: 100 },
       initialSize,
       zIndex,
+      isActive = false,
       onClose,
       onFocus,
     }: FloatyProps,
@@ -184,7 +209,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isPinned, setIsPinned] = useState(defaultPinned);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
-    const [position, setPosition] = useState<FloatyPosition>(initialPosition);
+    const [position, setPosition] = useState<FloatyPosition>(() =>
+      clampPositionToViewport(initialPosition, initialSize)
+    );
     const [size, setSize] = useState<FloatySize>(initialSize ?? {});
     const floatyRef = useRef<HTMLDivElement>(null);
     const dragStateRef = useRef({
@@ -387,6 +414,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     }, [handlePointerMove, handlePointerUp]);
 
     const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
+      if (e.button !== 0) return;
       if (isPinned) return;
       if ((e.target as HTMLElement).closest('button')) return;
 
@@ -433,6 +461,22 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     };
 
+    const handleHeaderDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      setIsCollapsed((collapsed) => !collapsed);
+    };
+
+    const handleHeaderKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setIsCollapsed((collapsed) => !collapsed);
+      }
+    };
+
+    const titleText = typeof title === 'string' ? title : undefined;
+
     useEffect(() => {
       return () => {
         globalThis.removeEventListener('pointermove', handlePointerMove);
@@ -449,7 +493,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${className ?? ''}`}
+        className={`floaty ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${className ?? ''}`}
         onPointerDown={onFocus}
         style={{
           ...style,
@@ -464,7 +508,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         <header
           className={`floaty-header ${isPinned ? 'pinned' : ''}`}
           onPointerDown={handlePointerDown}
+          onDoubleClick={handleHeaderDoubleClick}
+          onKeyDown={handleHeaderKeyDown}
+          aria-grabbed={isDragging}
+          aria-label={`${titleText ?? 'Floaty widget'} controls`}
+          tabIndex={0}
         >
+          <span className="floaty-header-grip" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </span>
+
           <button
             className="floaty-button floaty-button--pin"
             onClick={() => setIsPinned((pinned) => !pinned)}
@@ -480,7 +538,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             )}
           </button>
 
-          <span className="floaty-title">{title}</span>
+          <span className="floaty-title" title={titleText}>
+            {title}
+          </span>
 
           <button
             className="floaty-button floaty-button--expand"

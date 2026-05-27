@@ -682,3 +682,303 @@ export const WithLazyWidget: Story = {
     },
   },
 };
+
+const UxPanel = ({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) => (
+  <div
+    style={{
+      display: 'grid',
+      gap: 10,
+      minWidth: 260,
+      padding: 16,
+      background: 'var(--gnome-card-bg-color, white)',
+      border: '1px solid var(--gnome-card-shade-color, rgba(0, 0, 0, 0.08))',
+      borderRadius: 8,
+      color: 'var(--gnome-card-fg-color, #111827)',
+    }}
+  >
+    <Badge variant="neutral">{label}</Badge>
+    <strong style={{ fontSize: 24 }}>{value}</strong>
+    <p style={{ margin: 0, color: '#6b7280', fontSize: 13, lineHeight: 1.5 }}>
+      {detail}
+    </p>
+  </div>
+);
+
+const UxWidgetList = () => {
+  const manager = useFloatyWidgetManager();
+  const widgets = Array.from(manager.widgets.values());
+
+  if (widgets.length === 0) {
+    return (
+      <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+        Open a workspace to inspect widget states here.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {widgets.map((widget) => (
+        <div
+          key={widget.id}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: 8,
+            alignItems: 'center',
+            padding: '8px 10px',
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: 6,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <strong
+              style={{
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontSize: 13,
+              }}
+            >
+              {widget.title ?? widget.id}
+            </strong>
+            <span style={{ color: '#6b7280', fontSize: 12 }}>
+              {widget.isMinimized ? 'Minimized' : 'Visible'}
+              {widget.isCollapsed ? ' / Collapsed' : ''}
+              {widget.isPinned ? ' / Pinned' : ''}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button
+              size="sm"
+              variant="flat"
+              onClick={() =>
+                widget.isMinimized
+                  ? manager.restoreWidget(widget.id)
+                  : manager.minimizeWidget(widget.id)
+              }
+            >
+              {widget.isMinimized ? 'Restore' : 'Hide'}
+            </Button>
+            <Button
+              size="sm"
+              variant="flat"
+              onClick={() => manager.bringToFront(widget.id)}
+            >
+              Focus
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const StoryUxControls = () => {
+  const manager = useFloatyWidgetManager();
+  const [lazyLoads, setLazyLoads] = useState(0);
+  const widgets = Array.from(manager.widgets.values());
+  const visible = widgets.filter((widget) => !widget.isMinimized);
+  const minimized = widgets.filter((widget) => widget.isMinimized);
+  const collapsed = widgets.filter((widget) => widget.isCollapsed);
+
+  const openWorkspace = () => {
+    manager.open({
+      id: 'ux-insights',
+      title: 'Insights',
+      component: UxPanel,
+      props: {
+        label: 'Active',
+        value: '3 signals',
+        detail: 'A normal widget for focus, collapse, resize, and drag checks.',
+      },
+      position: { x: 72, y: 210 },
+      size: { width: 330 },
+    });
+
+    manager.open({
+      id: 'ux-activity',
+      title: 'Activity',
+      component: UxPanel,
+      props: {
+        label: 'Queue',
+        value: '12 events',
+        detail: 'Use this one to test bring-to-front and active header state.',
+      },
+      position: { x: 430, y: 260 },
+      size: { width: 330 },
+    });
+
+    manager.open({
+      id: 'ux-clamped',
+      title: 'Clamped',
+      component: UxPanel,
+      props: {
+        label: 'Viewport',
+        value: 'Safe',
+        detail: 'This opens with an intentionally large position and is clamped into view.',
+      },
+      position: { x: 4000, y: -200 },
+      size: { width: 320 },
+    });
+  };
+
+  const openLazySuccess = () => {
+    manager.open(
+      {
+        id: 'ux-lazy-success',
+        title: 'Lazy Success',
+        loader: () =>
+          new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
+            window.setTimeout(() => {
+              setLazyLoads((count) => count + 1);
+              void import('./LazyFloatyPanel').then(resolve);
+            }, 750);
+          }),
+        props: { metric: 'Deferred body', value: 'Loaded' },
+        position: { x: 180, y: 420 },
+        size: { width: 360 },
+      },
+      { duplicateStrategy: 'focus' }
+    );
+  };
+
+  const openLazyError = () => {
+    manager.open(
+      {
+        id: 'ux-lazy-error',
+        title: 'Lazy Error',
+        loader: () =>
+          new Promise<typeof import('./LazyFloatyPanel')>((_, reject) => {
+            window.setTimeout(() => {
+              setLazyLoads((count) => count + 1);
+              reject(new Error('Simulated chunk failure'));
+            }, 650);
+          }),
+        props: { metric: 'Deferred body', value: 'Failed' },
+        position: { x: 560, y: 420 },
+        size: { width: 360 },
+      },
+      { duplicateStrategy: 'replace' }
+    );
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        padding: 24,
+        background: '#f3f4f6',
+        color: '#111827',
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(320px, 560px) minmax(280px, 420px)',
+          gap: 16,
+          alignItems: 'start',
+          maxWidth: 1040,
+        }}
+      >
+        <Card padding="lg" style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <Badge variant="accent">Story UX</Badge>
+            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>
+              Floaty workspace test bench
+            </h3>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+              Exercise the current UX states from one place: focus, minimize,
+              restore, collapse, viewport clamping, lazy loading, and lazy error.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: 10,
+            }}
+          >
+            <Card padding="sm">
+              <strong>{widgets.length}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Total</div>
+            </Card>
+            <Card padding="sm">
+              <strong>{visible.length}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Visible</div>
+            </Card>
+            <Card padding="sm">
+              <strong>{minimized.length}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Hidden</div>
+            </Card>
+            <Card padding="sm">
+              <strong>{collapsed.length}</strong>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Collapsed</div>
+            </Card>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <Button variant="suggested" onClick={openWorkspace}>
+              Open workspace
+            </Button>
+            <Button variant="flat" onClick={openLazySuccess}>
+              Open lazy success
+            </Button>
+            <Button variant="flat" onClick={openLazyError}>
+              Open lazy error
+            </Button>
+            <Button variant="flat" onClick={() => manager.collapseAll()}>
+              Collapse all
+            </Button>
+            <Button variant="flat" onClick={() => manager.restoreAll()}>
+              Restore hidden
+            </Button>
+            <Button variant="destructive" onClick={() => manager.closeAll()}>
+              Close all
+            </Button>
+          </div>
+        </Card>
+
+        <Card padding="lg" style={{ display: 'grid', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <strong style={{ fontSize: 13 }}>Widget state inspector</strong>
+            {lazyLoads > 0 && <Badge variant="neutral">{lazyLoads} lazy loads</Badge>}
+          </div>
+          <UxWidgetList />
+        </Card>
+      </div>
+
+      <FloatyViewport />
+    </div>
+  );
+};
+
+const StoryUxDemoContent = () => (
+  <FloatyWidgetManager>
+    <StoryUxControls />
+  </FloatyWidgetManager>
+);
+
+export const StoryUxPlayground: Story = {
+  render: () => <StoryUxDemoContent />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A focused UX test bench for the existing Floaty states: multiple widgets, minimization, restore, collapse, active focus, viewport clamping, lazy loading, and lazy error handling.',
+      },
+    },
+  },
+};

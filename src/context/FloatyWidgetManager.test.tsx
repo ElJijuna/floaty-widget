@@ -176,6 +176,95 @@ describe('FloatyWidgetManager', () => {
       expect(await screen.findByText('Lazy body')).toBeInTheDocument();
       expect(loader).toHaveBeenCalledOnce();
     });
+
+    it('shows the default fallback for lazy widgets without a fallback prop', () => {
+      const loader = vi.fn(
+        () => new Promise<{ default: FC }>(() => {})
+      );
+
+      const Opener = () => {
+        const manager = useFloatyWidgetManager();
+
+        return (
+          <button
+            onClick={() =>
+              manager.open({
+                id: 'lazy-default-fallback',
+                title: 'Lazy Widget',
+                loader,
+                props: {},
+              })
+            }
+          >
+            Open
+          </button>
+        );
+      };
+
+      render(
+        <FloatyWidgetManager>
+          <Opener />
+          <FloatyViewport />
+        </FloatyWidgetManager>
+      );
+
+      act(() => {
+        screen.getByRole('button', { name: 'Open' }).click();
+      });
+
+      expect(screen.getByText('Loading widget...')).toBeInTheDocument();
+    });
+
+    it('shows lazy load errors and can retry the loader', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const LazyComponent: FC<{ label: string }> = ({ label }) => <div>{label}</div>;
+      const loader = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('network chunk failed'))
+        .mockResolvedValueOnce({ default: LazyComponent });
+
+      const Opener = () => {
+        const manager = useFloatyWidgetManager();
+
+        return (
+          <button
+            onClick={() =>
+              manager.open({
+                id: 'lazy-error',
+                title: 'Lazy Widget',
+                loader,
+                props: { label: 'Recovered body' },
+              })
+            }
+          >
+            Open
+          </button>
+        );
+      };
+
+      render(
+        <FloatyWidgetManager>
+          <Opener />
+          <FloatyViewport />
+        </FloatyWidgetManager>
+      );
+
+      act(() => {
+        screen.getByRole('button', { name: 'Open' }).click();
+      });
+
+      expect(await screen.findByText('Could not load widget')).toBeInTheDocument();
+      expect(screen.getByText('network chunk failed')).toBeInTheDocument();
+
+      act(() => {
+        screen.getByRole('button', { name: 'Retry' }).click();
+      });
+
+      expect(await screen.findByText('Recovered body')).toBeInTheDocument();
+      expect(loader).toHaveBeenCalledTimes(2);
+
+      consoleError.mockRestore();
+    });
   });
 
   describe('close', () => {
