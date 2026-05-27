@@ -2,6 +2,7 @@ import {
   useState,
   useRef,
   useEffect,
+  useCallback,
   useMemo,
   ReactNode,
   CSSProperties,
@@ -170,8 +171,14 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const manager = useFloatyManager();
     const registerFloaty = manager?.registerFloaty;
     const updateWidgetState = manager?.updateWidgetState;
-    const labels = { ...defaultLabels, ...manager?.labels, ...labelsProp };
-    const mergedIcons = { ...manager?.icons, ...icons };
+    const labels = useMemo(
+      () => ({ ...defaultLabels, ...manager?.labels, ...labelsProp }),
+      [manager?.labels, labelsProp]
+    );
+    const mergedIcons = useMemo(
+      () => ({ ...manager?.icons, ...icons }),
+      [manager?.icons, icons]
+    );
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
     const [isMinimized, setIsMinimized] = useState(defaultMinimized);
     const [isPinned, setIsPinned] = useState(defaultPinned);
@@ -188,6 +195,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       startY: 0,
       baseLeft: 0,
       baseTop: 0,
+      width: 0,
+      height: 0,
     });
     const resizeStateRef = useRef({
       isResizing: false,
@@ -198,6 +207,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       baseLeft: 0,
       baseTop: 0,
     });
+    const positionRef = useRef(position);
+    const sizeRef = useRef(size);
+    const frameRef = useRef<number | null>(null);
+    const pendingPositionRef = useRef<FloatyPosition | null>(null);
+    const pendingSizeRef = useRef<FloatySize | null>(null);
     const internalHandleRef = useRef<FloatyHandle | null>(null);
     const Pin = mergedIcons.pin;
     const Unpin = mergedIcons.unpin;
@@ -222,6 +236,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
     // Keep internal ref always updated
     internalHandleRef.current = handleMethods;
+    positionRef.current = position;
+    sizeRef.current = size;
 
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
@@ -262,6 +278,114 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       updateWidgetState,
     ]);
 
+    const flushPendingFrame = useCallback(() => {
+      frameRef.current = null;
+
+      const element = floatyRef.current;
+      if (!element) return;
+
+      const nextPosition = pendingPositionRef.current;
+      if (nextPosition) {
+        element.style.transform = `translate(${nextPosition.x}px, ${nextPosition.y}px)`;
+      }
+
+      const nextSize = pendingSizeRef.current;
+      if (nextSize) {
+        if (nextSize.width !== undefined) {
+          element.style.width =
+            typeof nextSize.width === 'number'
+              ? `${nextSize.width}px`
+              : nextSize.width;
+        }
+
+        if (nextSize.height !== undefined) {
+          element.style.height =
+            typeof nextSize.height === 'number'
+              ? `${nextSize.height}px`
+              : nextSize.height;
+        }
+      }
+    }, []);
+
+    const scheduleVisualUpdate = useCallback(() => {
+      if (frameRef.current !== null) return;
+      frameRef.current = requestAnimationFrame(flushPendingFrame);
+    }, [flushPendingFrame]);
+
+    const handlePointerMove = useCallback((e: PointerEvent) => {
+      if (dragStateRef.current.isDragging) {
+        const dragState = dragStateRef.current;
+        let newX = dragState.startX + e.clientX - dragState.startPointerX;
+        let newY = dragState.startY + e.clientY - dragState.startPointerY;
+
+        const minX = -dragState.baseLeft;
+        const minY = -dragState.baseTop;
+        const maxX = window.innerWidth - dragState.width - dragState.baseLeft;
+        const maxY = window.innerHeight - dragState.height - dragState.baseTop;
+
+        newX = Math.max(minX, Math.min(newX, maxX));
+        newY = Math.max(minY, Math.min(newY, maxY));
+
+        pendingPositionRef.current = { x: newX, y: newY };
+        scheduleVisualUpdate();
+      }
+
+      if (resizeStateRef.current.isResizing) {
+        const resizeState = resizeStateRef.current;
+        const minWidth = 240;
+        const minHeight = 96;
+        const maxWidth = window.innerWidth - resizeState.baseLeft;
+        const maxHeight = window.innerHeight - resizeState.baseTop;
+        const nextWidth =
+          resizeState.startWidth + e.clientX - resizeState.startPointerX;
+        const nextHeight =
+          resizeState.startHeight + e.clientY - resizeState.startPointerY;
+
+        pendingSizeRef.current = {
+          width: Math.max(minWidth, Math.min(nextWidth, maxWidth)),
+          height: Math.max(minHeight, Math.min(nextHeight, maxHeight)),
+        };
+        scheduleVisualUpdate();
+      }
+    }, [scheduleVisualUpdate]);
+
+    const handlePointerUp = useCallback(() => {
+      const nextPosition = pendingPositionRef.current;
+      const nextSize = pendingSizeRef.current;
+
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+        flushPendingFrame();
+      }
+
+      dragStateRef.current.isDragging = false;
+      resizeStateRef.current.isResizing = false;
+      pendingPositionRef.current = null;
+      pendingSizeRef.current = null;
+
+      if (nextPosition) {
+        positionRef.current = nextPosition;
+        setPosition(nextPosition);
+      }
+
+      if (nextSize) {
+        sizeRef.current = nextSize;
+        setSize(nextSize);
+      }
+
+      setIsDragging(false);
+      setIsResizing(false);
+      globalThis.removeEventListener('pointermove', handlePointerMove);
+      globalThis.removeEventListener('pointerup', handlePointerUp);
+      globalThis.removeEventListener('pointercancel', handlePointerUp);
+    }, [flushPendingFrame, handlePointerMove]);
+
+    const startGlobalPointerListeners = useCallback(() => {
+      globalThis.addEventListener('pointermove', handlePointerMove);
+      globalThis.addEventListener('pointerup', handlePointerUp);
+      globalThis.addEventListener('pointercancel', handlePointerUp);
+    }, [handlePointerMove, handlePointerUp]);
+
     const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
       if (isPinned) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -274,11 +398,14 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           isDragging: true,
           startPointerX: e.clientX,
           startPointerY: e.clientY,
-          startX: position.x,
-          startY: position.y,
-          baseLeft: rect.left - position.x,
-          baseTop: rect.top - position.y,
+          startX: positionRef.current.x,
+          startY: positionRef.current.y,
+          baseLeft: rect.left - positionRef.current.x,
+          baseTop: rect.top - positionRef.current.y,
+          width: rect.width,
+          height: rect.height,
         };
+        startGlobalPointerListeners();
         setIsDragging(true);
       }
     };
@@ -301,72 +428,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           baseLeft: rect.left,
           baseTop: rect.top,
         };
+        startGlobalPointerListeners();
         setIsResizing(true);
       }
     };
 
     useEffect(() => {
-      const handlePointerMove = (e: PointerEvent) => {
-        if (!dragStateRef.current.isDragging) return;
-
-        const rect = floatyRef.current?.getBoundingClientRect();
-        if (!rect) return;
-
-        const dragState = dragStateRef.current;
-        let newX = dragState.startX + e.clientX - dragState.startPointerX;
-        let newY = dragState.startY + e.clientY - dragState.startPointerY;
-
-        // Constrain to viewport
-        const minX = -dragState.baseLeft;
-        const minY = -dragState.baseTop;
-        const maxX = window.innerWidth - rect.width - dragState.baseLeft;
-        const maxY = window.innerHeight - rect.height - dragState.baseTop;
-
-        newX = Math.max(minX, Math.min(newX, maxX));
-        newY = Math.max(minY, Math.min(newY, maxY));
-
-        setPosition({
-          x: newX,
-          y: newY,
-        });
-      };
-
-      const handleResizePointerMove = (e: PointerEvent) => {
-        if (!resizeStateRef.current.isResizing) return;
-
-        const resizeState = resizeStateRef.current;
-        const minWidth = 240;
-        const minHeight = 96;
-        const maxWidth = window.innerWidth - resizeState.baseLeft;
-        const maxHeight = window.innerHeight - resizeState.baseTop;
-        const nextWidth = resizeState.startWidth + e.clientX - resizeState.startPointerX;
-        const nextHeight = resizeState.startHeight + e.clientY - resizeState.startPointerY;
-
-        setSize({
-          width: Math.max(minWidth, Math.min(nextWidth, maxWidth)),
-          height: Math.max(minHeight, Math.min(nextHeight, maxHeight)),
-        });
-      };
-
-      const handlePointerUp = () => {
-        dragStateRef.current.isDragging = false;
-        resizeStateRef.current.isResizing = false;
-        setIsDragging(false);
-        setIsResizing(false);
-      };
-
-      globalThis.addEventListener('pointermove', handlePointerMove);
-      globalThis.addEventListener('pointermove', handleResizePointerMove);
-      globalThis.addEventListener('pointerup', handlePointerUp);
-      globalThis.addEventListener('pointercancel', handlePointerUp);
-
       return () => {
         globalThis.removeEventListener('pointermove', handlePointerMove);
-        globalThis.removeEventListener('pointermove', handleResizePointerMove);
         globalThis.removeEventListener('pointerup', handlePointerUp);
         globalThis.removeEventListener('pointercancel', handlePointerUp);
+        if (frameRef.current !== null) {
+          cancelAnimationFrame(frameRef.current);
+        }
       };
-    }, []);
+    }, [handlePointerMove, handlePointerUp]);
 
     if (isMinimized) return null;
 

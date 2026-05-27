@@ -114,6 +114,39 @@ describe('Floaty', () => {
     });
   });
 
+  describe('drag performance', () => {
+    it('measures layout once when dragging and updates visually on release', () => {
+      const { container } = render(<Floaty />);
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+      const getBoundingClientRect = vi
+        .spyOn(root, 'getBoundingClientRect')
+        .mockReturnValue({
+          x: 100,
+          y: 100,
+          top: 100,
+          right: 420,
+          bottom: 260,
+          left: 100,
+          width: 320,
+          height: 160,
+          toJSON: () => {},
+        } as DOMRect);
+
+      header.setPointerCapture = vi.fn();
+
+      const pointerTarget = globalThis as unknown as Window;
+
+      fireEvent.pointerDown(header, { clientX: 100, clientY: 100, pointerId: 1 });
+      fireEvent.pointerMove(pointerTarget, { clientX: 120, clientY: 125 });
+      fireEvent.pointerMove(pointerTarget, { clientX: 130, clientY: 140 });
+      fireEvent.pointerUp(pointerTarget);
+
+      expect(getBoundingClientRect).toHaveBeenCalledOnce();
+      expect(root).toHaveStyle({ transform: 'translate(130px, 140px)' });
+    });
+  });
+
   describe('custom labels', () => {
     it('uses custom labels for buttons', () => {
       render(
