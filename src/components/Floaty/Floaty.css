@@ -111,13 +111,13 @@
 }
 
 .floaty.active:not(.dragging):not(.resizing) .floaty-header {
-  box-shadow: var(--floaty-active-shadow);
+  box-shadow: none;
 }
 
 .floaty-header {
   position: absolute;
   right: 0;
-  bottom: calc(100% + var(--gnome-space-2, 8px));
+  bottom: calc(100% + 2px);
   left: 0;
   z-index: 2;
   display: flex;
@@ -128,7 +128,7 @@
   background: var(--floaty-header-bg);
   color: var(--floaty-header-fg);
   border: 1px solid var(--floaty-border);
-  box-shadow: var(--floaty-shadow);
+  box-shadow: none;
   font-weight: 600;
   font-size: 14px;
   border-radius: var(--floaty-radius);
