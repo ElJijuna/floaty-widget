@@ -77,6 +77,67 @@ export const WithLongContent: Story = {
   },
 };
 
+const activityItems = [
+  ['Sync completed', 'All customer records were refreshed from the remote source.'],
+  ['Review needed', 'Three pending invoices need approval before the next billing run.'],
+  ['Deploy queued', 'The preview environment is waiting for the current checks to finish.'],
+  ['Backup created', 'A fresh snapshot is available for the workspace database.'],
+  ['Usage spike', 'API traffic is 18% higher than the previous weekday average.'],
+  ['Invite sent', 'A collaborator invitation is waiting for confirmation.'],
+  ['Rule matched', 'Automation moved five leads into the follow-up segment.'],
+  ['Export ready', 'The CSV package can be downloaded from the reports area.'],
+  ['Alert muted', 'The duplicate notification was silenced for the next hour.'],
+  ['Index rebuilt', 'Search results now include the latest content updates.'],
+];
+
+export const ScrollbarAndFade: Story = {
+  render: () => (
+    <Floaty
+      title="Activity Feed"
+      initialPosition={{ x: 96, y: 128 }}
+      initialSize={{ width: 360, height: 260 }}
+      isActive
+    >
+      <div
+        style={{
+          display: 'grid',
+          gap: 10,
+          padding: 12,
+        }}
+      >
+        {activityItems.map(([title, detail], index) => (
+          <div
+            key={title}
+            style={{
+              display: 'grid',
+              gap: 4,
+              padding: '10px 12px',
+              background: 'var(--gnome-card-bg-color, white)',
+              border: '1px solid var(--gnome-card-shade-color, rgba(0, 0, 0, 0.08))',
+              borderRadius: 8,
+            }}
+          >
+            <strong style={{ fontSize: 13 }}>
+              {index + 1}. {title}
+            </strong>
+            <span style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>
+              {detail}
+            </span>
+          </div>
+        ))}
+      </div>
+    </Floaty>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Forces vertical overflow so the themed native scrollbar and body edge fade are visible.',
+      },
+    },
+  },
+};
+
 export const WithCustomContent: Story = {
   args: {
     title: 'Notifications',
