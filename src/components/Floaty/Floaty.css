@@ -15,7 +15,10 @@
   --floaty-scrollbar-thumb: color-mix(in srgb, var(--floaty-fg) 34%, transparent);
   --floaty-scrollbar-thumb-hover: color-mix(in srgb, var(--floaty-fg) 52%, transparent);
   --floaty-scrollbar-track: color-mix(in srgb, var(--floaty-body-bg) 62%, transparent);
-  --floaty-transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  --floaty-drag-blur: 0.6px;
+  --floaty-drag-opacity: 0.95;
+  --floaty-transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease,
+    -webkit-filter 0.16s ease;
   --floaty-font-family: var(--gnome-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif);
@@ -90,7 +93,14 @@
 }
 
 .floaty.dragging {
-  opacity: 0.95;
+  opacity: var(--floaty-drag-opacity);
+}
+
+@supports ((filter: blur(1px)) or (-webkit-filter: blur(1px))) {
+  .floaty.dragging {
+    -webkit-filter: blur(var(--floaty-drag-blur));
+    filter: blur(var(--floaty-drag-blur));
+  }
 }
 
 .floaty.resizing {

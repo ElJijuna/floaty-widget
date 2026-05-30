@@ -360,6 +360,8 @@ Or use CSS variables directly:
   --floaty-scrollbar-thumb: rgba(205, 214, 244, 0.34);
   --floaty-scrollbar-thumb-hover: rgba(205, 214, 244, 0.52);
   --floaty-scrollbar-track: rgba(30, 30, 46, 0.62);
+  --floaty-drag-blur: 0.6px;
+  --floaty-drag-opacity: 0.95;
   --floaty-font-family: inherit;
   --floaty-header-padding-block: 8px;
   --floaty-header-padding-inline: 12px;
