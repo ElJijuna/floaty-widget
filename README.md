@@ -263,7 +263,7 @@ All props are optional.
 | `defaultMinimized` | `boolean` | `false` | Start hidden |
 | `defaultPinned` | `boolean` | `false` | Start pinned (no drag) |
 | `zIndex` | `number` | — | CSS z-index |
-| `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header and active shadow without requiring hover |
+| `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header without requiring hover |
 | `labels` | `Partial<FloatyTexts>` | — | Override button, resize, loading, and error labels |
 | `icons` | `FloatyIcons` | — | Override button icons |
 | `style` | `CSSProperties` | — | Root element styles |
@@ -357,11 +357,9 @@ Or use CSS variables directly:
   --floaty-pinned-border: #89b4fa;
   --floaty-radius: 8px;
   --floaty-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --floaty-active-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
   --floaty-scrollbar-thumb: rgba(205, 214, 244, 0.34);
   --floaty-scrollbar-thumb-hover: rgba(205, 214, 244, 0.52);
   --floaty-scrollbar-track: rgba(30, 30, 46, 0.62);
-  --floaty-body-fade-size: 18px;
   --floaty-font-family: inherit;
   --floaty-header-padding-block: 8px;
   --floaty-header-padding-inline: 12px;
@@ -371,7 +369,7 @@ Or use CSS variables directly:
 }
 ```
 
-When widget content overflows, `.floaty-body` uses a themed thin native scrollbar and a subtle top/bottom fade. Override `--floaty-scrollbar-thumb`, `--floaty-scrollbar-thumb-hover`, `--floaty-scrollbar-track`, or `--floaty-body-fade-size` to tune that overflow treatment.
+When widget content overflows, `.floaty-body` uses a themed thin native scrollbar. Override `--floaty-scrollbar-thumb`, `--floaty-scrollbar-thumb-hover`, or `--floaty-scrollbar-track` to tune that overflow treatment.
 
 ### Custom icons
 

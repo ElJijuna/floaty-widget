@@ -12,11 +12,9 @@
   --floaty-pinned-border: var(--floaty-border);
   --floaty-radius: var(--gnome-radius-lg, 8px);
   --floaty-shadow: var(--gnome-shadow-md, 0 10px 25px rgba(0, 0, 0, 0.1));
-  --floaty-active-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
   --floaty-scrollbar-thumb: color-mix(in srgb, var(--floaty-fg) 34%, transparent);
   --floaty-scrollbar-thumb-hover: color-mix(in srgb, var(--floaty-fg) 52%, transparent);
   --floaty-scrollbar-track: color-mix(in srgb, var(--floaty-body-bg) 62%, transparent);
-  --floaty-body-fade-size: 18px;
   --floaty-transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
   --floaty-font-family: var(--gnome-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -303,20 +301,6 @@
   scrollbar-color: var(--floaty-scrollbar-thumb) var(--floaty-scrollbar-track);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black var(--floaty-body-fade-size),
-    black calc(100% - var(--floaty-body-fade-size)),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    black var(--floaty-body-fade-size),
-    black calc(100% - var(--floaty-body-fade-size)),
-    transparent
-  );
   opacity: 1;
 }
 
