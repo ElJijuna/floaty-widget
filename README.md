@@ -9,7 +9,7 @@
 [![CI](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/ElJijuna/floaty-widget.svg)](./LICENSE)
 
-Draggable, collapsible floating widgets for React 19.
+Draggable, collapsible, resizable floating widgets for React 19.
 
 ## Installation
 
@@ -159,7 +159,7 @@ openFloaty({ id: 'panel', component: MyPanel, props: {} });
 
 ### 4. Standalone `<Floaty>` component
 
-Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse.
+Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse. The resize handle is opt-in from the header resize button, keeping the widget clean until the user wants to resize it.
 
 ```tsx
 import { Floaty } from 'floaty-widget';
@@ -296,6 +296,7 @@ Floaty can be operated without a pointer:
 
 - Focus the header and press `Enter` or `Space` to collapse/expand.
 - Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
+- Press the resize button in the header to reveal the resize handle.
 - Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps.
 
 Widget positions are clamped into the visible viewport on initial render, during drag, and after viewport resize/orientation changes.
@@ -357,6 +358,10 @@ Or use CSS variables directly:
   --floaty-radius: 8px;
   --floaty-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   --floaty-active-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+  --floaty-scrollbar-thumb: rgba(205, 214, 244, 0.34);
+  --floaty-scrollbar-thumb-hover: rgba(205, 214, 244, 0.52);
+  --floaty-scrollbar-track: rgba(30, 30, 46, 0.62);
+  --floaty-body-fade-size: 18px;
   --floaty-font-family: inherit;
   --floaty-header-padding-block: 8px;
   --floaty-header-padding-inline: 12px;
@@ -365,6 +370,8 @@ Or use CSS variables directly:
   --floaty-button-hover-bg: rgba(255, 255, 255, 0.1);
 }
 ```
+
+When widget content overflows, `.floaty-body` uses a themed thin native scrollbar and a subtle top/bottom fade. Override `--floaty-scrollbar-thumb`, `--floaty-scrollbar-thumb-hover`, `--floaty-scrollbar-track`, or `--floaty-body-fade-size` to tune that overflow treatment.
 
 ### Custom icons
 
@@ -378,6 +385,7 @@ import { Pin, PinFilled } from './icons';
     collapse: ChevronUp,
     expand: ChevronDown,
     minimize: Minus,
+    resize: Maximize,
     close: X,
   }}
 >

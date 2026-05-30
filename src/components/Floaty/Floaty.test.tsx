@@ -233,12 +233,34 @@ describe('Floaty', () => {
   });
 
   describe('resize', () => {
+    it('shows the resize handle only after enabling resize mode', () => {
+      render(<Floaty />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Resize widget handle' })
+      ).not.toBeInTheDocument();
+
+      const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
+      expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(resizeToggle);
+
+      expect(resizeToggle).toHaveAttribute('aria-pressed', 'true');
+      expect(
+        screen.getByRole('button', { name: 'Resize widget handle' })
+      ).toBeInTheDocument();
+    });
+
     it('resizes with arrow keys from the resize handle', () => {
       const { container } = render(
         <Floaty initialSize={{ width: 320, height: 160 }} />
       );
       const root = container.firstElementChild as HTMLElement;
-      const resizeHandle = screen.getByRole('button', { name: 'Resize widget' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Resize widget' }));
+      const resizeHandle = screen.getByRole('button', {
+        name: 'Resize widget handle',
+      });
 
       fireEvent.keyDown(resizeHandle, { key: 'ArrowRight' });
       expect(root).toHaveStyle({ width: '336px', height: '160px' });
@@ -248,6 +270,19 @@ describe('Floaty', () => {
 
       fireEvent.keyDown(resizeHandle, { key: 'ArrowLeft', altKey: true });
       expect(root).toHaveStyle({ width: '335px', height: '224px' });
+    });
+
+    it('disables resize mode when the widget collapses', () => {
+      render(<Floaty />);
+
+      const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
+      fireEvent.click(resizeToggle);
+      expect(screen.getByRole('button', { name: 'Resize widget handle' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
+
+      expect(screen.queryByRole('button', { name: 'Resize widget handle' })).not.toBeInTheDocument();
+      expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
     });
   });
 

@@ -177,6 +177,35 @@ const MinusIcon = () => (
   </svg>
 );
 
+const ResizeIcon = ({ active }: { active?: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.25"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {active ? (
+      <>
+        <path d="M4 14v6h6" />
+        <path d="M20 10V4h-6" />
+        <path d="M14 10 20 4" />
+        <path d="M10 14 4 20" />
+      </>
+    ) : (
+      <>
+        <path d="M15 3h6v6" />
+        <path d="M21 3 14 10" />
+        <path d="M9 21H3v-6" />
+        <path d="M3 21l7-7" />
+      </>
+    )}
+  </svg>
+);
+
 /**
  * A draggable, resizable, collapsible floating widget.
  *
@@ -230,6 +259,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isPinned, setIsPinned] = useState(defaultPinned);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
+    const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const [position, setPosition] = useState<FloatyPosition>(() =>
       clampPositionToViewport(initialPosition, initialSize)
     );
@@ -267,6 +297,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const Expand = mergedIcons.expand;
     const Minimize = mergedIcons.minimize;
     const Close = mergedIcons.close;
+    const Resize = mergedIcons.resize;
 
     const handleMethods = useMemo<FloatyHandle>(
       () => ({
@@ -458,7 +489,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     };
 
     const handleResizePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-      if (isCollapsed) return;
+      if (isCollapsed || !isResizeEnabled) return;
 
       const rect = floatyRef.current?.getBoundingClientRect();
       if (rect) {
@@ -522,6 +553,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     };
 
     const handleResizeKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (!isResizeEnabled) return;
+
       if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
         return;
       }
@@ -553,6 +586,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         width: Math.max(MIN_WIDTH, Math.min(currentWidth + delta.width, maxWidth)),
         height: Math.max(MIN_HEIGHT, Math.min(currentHeight + delta.height, maxHeight)),
       });
+    };
+
+    const toggleResizeEnabled = () => {
+      if (isCollapsed) return;
+      onFocus?.();
+      setIsResizeEnabled((enabled) => !enabled);
     };
 
     const titleText = typeof title === 'string' ? title : undefined;
@@ -588,12 +627,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       };
     }, []);
 
+    useEffect(() => {
+      if (isCollapsed || isMinimized) {
+        setIsResizeEnabled(false);
+      }
+    }, [isCollapsed, isMinimized]);
+
     if (isMinimized) return null;
 
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${className ?? ''}`}
+        className={`floaty ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isResizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
         onPointerDown={onFocus}
         style={{
           ...style,
@@ -659,8 +704,22 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </button>
 
           <button
+            className="floaty-button floaty-button--resize"
+            onClick={toggleResizeEnabled}
+            title={labels.resize}
+            aria-label={labels.resize}
+            aria-pressed={isResizeEnabled}
+            disabled={isCollapsed}
+          >
+            {Resize ? <Resize active={isResizeEnabled} /> : <ResizeIcon active={isResizeEnabled} />}
+          </button>
+
+          <button
             className="floaty-button floaty-button--minimize"
-            onClick={() => setIsMinimized(true)}
+            onClick={() => {
+              setIsResizeEnabled(false);
+              setIsMinimized(true);
+            }}
             title={labels.minimize}
             aria-label={labels.minimize}
           >
@@ -685,13 +744,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </div>
         )}
 
-        {!isCollapsed && (
+        {!isCollapsed && isResizeEnabled && (
           <button
             className="floaty-resize-handle"
             onPointerDown={handleResizePointerDown}
             onKeyDown={handleResizeKeyDown}
             title={labels.resize}
-            aria-label={labels.resize}
+            aria-label={`${labels.resize} handle`}
             aria-keyshortcuts="ArrowUp ArrowRight ArrowDown ArrowLeft"
           />
         )}

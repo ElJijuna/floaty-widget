@@ -7,11 +7,11 @@ export interface FloatyActionTexts {
   minimize: string;
   restore: string;
   close: string;
+  resize: string;
 }
 
 /** Localised text rendered by Floaty controls and built-in loading/error states. */
 export interface FloatyTexts extends FloatyActionTexts {
-  resize: string;
   loading: string;
   loadError: string;
   retry: string;

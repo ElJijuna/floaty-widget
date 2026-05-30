@@ -237,6 +237,16 @@
   transform: scale(1.1);
 }
 
+.floaty-button:disabled {
+  cursor: default;
+  opacity: 0.42;
+  transform: none;
+}
+
+.floaty-button[aria-pressed='true'] {
+  background: var(--floaty-button-hover-bg);
+}
+
 .floaty-button:focus-visible,
 .floaty-resize-handle:focus-visible,
 .floaty-error button:focus-visible {
@@ -258,6 +268,10 @@
 }
 
 .floaty-button--minimize {
+  order: 2;
+}
+
+.floaty-button--resize {
   order: 2;
 }
 
@@ -363,14 +377,13 @@
   border: 0;
   background: transparent;
   cursor: nwse-resize;
-  opacity: 0.32;
+  opacity: 0.78;
   pointer-events: auto;
   touch-action: none;
   transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-.floaty:hover .floaty-resize-handle,
-.floaty:focus-within .floaty-resize-handle,
+.floaty.resize-enabled .floaty-resize-handle,
 .floaty.resizing .floaty-resize-handle {
   opacity: 1;
   transform: scale(1.04);
