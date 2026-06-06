@@ -1,28 +1,35 @@
-export { openFloaty, closeFloaty, closeAllFloaty, updateFloaty, connectFloatySingleton } from './singleton';
-export { useFloatySingleton } from './hooks/useFloatySingleton';
-
-export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyProps } from './components/Floaty/Floaty';
-export { FloatyViewport } from './components/Floaty/FloatyViewport';
-export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
-export { FloatyPreview } from './components/Floaty/FloatyPreview';
+export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyPreviewProps } from './components/Floaty/FloatyPreview';
-
-export { FloatyWidgetManager, FloatyWidgetManager as FloatyProvider } from './context/FloatyWidgetManager';
+export { FloatyPreview } from './components/Floaty/FloatyPreview';
+export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
+export { FloatyViewport } from './components/Floaty/FloatyViewport';
 export {
+  FloatyWidgetManager,
+  FloatyWidgetManager as FloatyProvider,
+} from './context/FloatyWidgetManager';
+export { useFloatySingleton } from './hooks/useFloatySingleton';
+export {
+  useFloatyWidget,
   useFloatyWidgetManager,
   useFloatyWidgetManager as useFloaty,
-  useFloatyWidget,
 } from './hooks/useFloatyWidgetManager';
+export {
+  closeAllFloaty,
+  closeFloaty,
+  connectFloatySingleton,
+  openFloaty,
+  updateFloaty,
+} from './singleton';
 export type {
-  FloatyHandle,
   FloatyComponentLoader,
-  FloatyIcons,
+  FloatyHandle,
   FloatyIconComponent,
+  FloatyIcons,
   FloatyLazyModule,
-  FloatyOpenWidgetBase,
   FloatyOpenOptions,
   FloatyOpenWidget,
+  FloatyOpenWidgetBase,
   FloatyPosition,
   FloatySize,
   FloatyTexts,

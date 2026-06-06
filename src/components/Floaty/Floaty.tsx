@@ -1,23 +1,26 @@
 import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-  ReactNode,
-  CSSProperties,
+  type CSSProperties,
   forwardRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
   useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 import './Floaty.css';
+import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 import type {
-  FloatyIcons,
   FloatyHandle,
+  FloatyIcons,
   FloatyPosition,
   FloatySize,
   FloatyTexts,
 } from '../../types';
-import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 
 /** Props for the `<Floaty>` component. */
 export interface FloatyProps {
@@ -72,10 +75,8 @@ const defaultLabels: FloatyTexts = {
   retry: 'Retry',
 };
 
-const getNumericSize = (
-  value: number | string | undefined,
-  fallback: number
-) => (typeof value === 'number' ? value : fallback);
+const getNumericSize = (value: number | string | undefined, fallback: number) =>
+  typeof value === 'number' ? value : fallback;
 
 const KEYBOARD_MOVE_STEP = 10;
 const KEYBOARD_MOVE_LARGE_STEP = 50;
@@ -85,20 +86,28 @@ const MIN_WIDTH = 240;
 const MIN_HEIGHT = 96;
 
 const getKeyboardStep = (
-  e: React.KeyboardEvent<HTMLElement>,
+  e: ReactKeyboardEvent<HTMLElement>,
   baseStep: number,
-  largeStep: number
+  largeStep: number,
 ) => {
-  if (e.altKey) return 1;
-  if (e.shiftKey) return largeStep;
+  if (e.altKey) {
+    return 1;
+  }
+
+  if (e.shiftKey) {
+    return largeStep;
+  }
+
   return baseStep;
 };
 
 const clampPositionToViewport = (
   position: FloatyPosition,
-  size: FloatySize | undefined
+  size: FloatySize | undefined,
 ): FloatyPosition => {
-  if (typeof window === 'undefined') return position;
+  if (typeof window === 'undefined') {
+    return position;
+  }
 
   const width = getNumericSize(size?.width, 320);
   const height = getNumericSize(size?.height, 96);
@@ -121,6 +130,7 @@ const PinIcon = ({ pinned }: { pinned: boolean }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     {pinned ? (
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m3-13h-2v4h-2v-4h-2v2h4v2h-4v2h6v-6" />
@@ -141,6 +151,7 @@ const ChevronIcon = ({ collapsed }: { collapsed: boolean }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     className={`chevron ${collapsed ? 'collapsed' : ''}`}
+    aria-hidden="true"
   >
     <polyline points="6 9 12 15 18 9" />
   </svg>
@@ -156,6 +167,7 @@ const CloseIcon = () => (
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M18 6 6 18" />
     <path d="m6 6 12 12" />
@@ -172,6 +184,7 @@ const MinusIcon = () => (
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     <path d="M5 12h14" />
   </svg>
@@ -187,6 +200,7 @@ const ResizeIcon = ({ active }: { active?: boolean }) => (
     strokeWidth="2.25"
     strokeLinecap="round"
     strokeLinejoin="round"
+    aria-hidden="true"
   >
     {active ? (
       <>
@@ -241,19 +255,16 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       onClose,
       onFocus,
     }: FloatyProps,
-    ref
+    ref,
   ) => {
     const manager = useFloatyManager();
     const registerFloaty = manager?.registerFloaty;
     const updateWidgetState = manager?.updateWidgetState;
     const labels = useMemo(
       () => ({ ...defaultLabels, ...manager?.labels, ...labelsProp }),
-      [manager?.labels, labelsProp]
+      [manager?.labels, labelsProp],
     );
-    const mergedIcons = useMemo(
-      () => ({ ...manager?.icons, ...icons }),
-      [manager?.icons, icons]
-    );
+    const mergedIcons = useMemo(() => ({ ...manager?.icons, ...icons }), [manager?.icons, icons]);
     const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
     const [isMinimized, setIsMinimized] = useState(defaultMinimized);
     const [isPinned, setIsPinned] = useState(defaultPinned);
@@ -261,7 +272,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isResizing, setIsResizing] = useState(false);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const [position, setPosition] = useState<FloatyPosition>(() =>
-      clampPositionToViewport(initialPosition, initialSize)
+      clampPositionToViewport(initialPosition, initialSize),
     );
     const [size, setSize] = useState<FloatySize>(initialSize ?? {});
     const floatyRef = useRef<HTMLDivElement>(null);
@@ -310,7 +321,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         toggle: () => setIsCollapsed((prev) => !prev),
         toggleMinimized: () => setIsMinimized((prev) => !prev),
       }),
-      []
+      [],
     );
 
     // Keep internal ref always updated
@@ -321,7 +332,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
 
-    // Register with manager using internal ref that always has methods
+    // Register with manager using internal ref that always has methods.
+    // Initial state values are only used for setup — internalHandleRef always reflects latest state.
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — re-registering on every state change would break the widget lifecycle
     useEffect(() => {
       if (id && registerFloaty) {
         return registerFloaty(id, internalHandleRef, {
@@ -333,6 +346,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           zIndex,
         });
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, registerFloaty]);
 
     useEffect(() => {
@@ -346,85 +360,82 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           zIndex,
         });
       }
-    }, [
-      id,
-      isCollapsed,
-      isMinimized,
-      isPinned,
-      position,
-      size,
-      zIndex,
-      updateWidgetState,
-    ]);
+    }, [id, isCollapsed, isMinimized, isPinned, position, size, zIndex, updateWidgetState]);
 
     const flushPendingFrame = useCallback(() => {
       frameRef.current = null;
 
       const element = floatyRef.current;
-      if (!element) return;
+
+      if (!element) {
+        return;
+      }
 
       const nextPosition = pendingPositionRef.current;
+
       if (nextPosition) {
         element.style.transform = `translate(${nextPosition.x}px, ${nextPosition.y}px)`;
       }
 
       const nextSize = pendingSizeRef.current;
+
       if (nextSize) {
         if (nextSize.width !== undefined) {
           element.style.width =
-            typeof nextSize.width === 'number'
-              ? `${nextSize.width}px`
-              : nextSize.width;
+            typeof nextSize.width === 'number' ? `${nextSize.width}px` : nextSize.width;
         }
 
         if (nextSize.height !== undefined) {
           element.style.height =
-            typeof nextSize.height === 'number'
-              ? `${nextSize.height}px`
-              : nextSize.height;
+            typeof nextSize.height === 'number' ? `${nextSize.height}px` : nextSize.height;
         }
       }
     }, []);
 
     const scheduleVisualUpdate = useCallback(() => {
-      if (frameRef.current !== null) return;
+      if (frameRef.current !== null) {
+        return;
+      }
+
       frameRef.current = requestAnimationFrame(flushPendingFrame);
     }, [flushPendingFrame]);
 
-    const handlePointerMove = useCallback((e: PointerEvent) => {
-      if (dragStateRef.current.isDragging) {
-        const dragState = dragStateRef.current;
-        let newX = dragState.startX + e.clientX - dragState.startPointerX;
-        let newY = dragState.startY + e.clientY - dragState.startPointerY;
+    const handlePointerMove = useCallback(
+      (e: PointerEvent) => {
+        if (dragStateRef.current.isDragging) {
+          const dragState = dragStateRef.current;
 
-        const minX = -dragState.baseLeft;
-        const minY = -dragState.baseTop;
-        const maxX = window.innerWidth - dragState.width - dragState.baseLeft;
-        const maxY = window.innerHeight - dragState.height - dragState.baseTop;
+          let newX = dragState.startX + e.clientX - dragState.startPointerX;
+          let newY = dragState.startY + e.clientY - dragState.startPointerY;
 
-        newX = Math.max(minX, Math.min(newX, maxX));
-        newY = Math.max(minY, Math.min(newY, maxY));
+          const minX = -dragState.baseLeft;
+          const minY = -dragState.baseTop;
+          const maxX = window.innerWidth - dragState.width - dragState.baseLeft;
+          const maxY = window.innerHeight - dragState.height - dragState.baseTop;
 
-        pendingPositionRef.current = { x: newX, y: newY };
-        scheduleVisualUpdate();
-      }
+          newX = Math.max(minX, Math.min(newX, maxX));
+          newY = Math.max(minY, Math.min(newY, maxY));
 
-      if (resizeStateRef.current.isResizing) {
-        const resizeState = resizeStateRef.current;
-        const maxWidth = window.innerWidth - resizeState.baseLeft;
-        const maxHeight = window.innerHeight - resizeState.baseTop;
-        const nextWidth =
-          resizeState.startWidth + e.clientX - resizeState.startPointerX;
-        const nextHeight =
-          resizeState.startHeight + e.clientY - resizeState.startPointerY;
+          pendingPositionRef.current = { x: newX, y: newY };
+          scheduleVisualUpdate();
+        }
 
-        pendingSizeRef.current = {
-          width: Math.max(MIN_WIDTH, Math.min(nextWidth, maxWidth)),
-          height: Math.max(MIN_HEIGHT, Math.min(nextHeight, maxHeight)),
-        };
-        scheduleVisualUpdate();
-      }
-    }, [scheduleVisualUpdate]);
+        if (resizeStateRef.current.isResizing) {
+          const resizeState = resizeStateRef.current;
+          const maxWidth = window.innerWidth - resizeState.baseLeft;
+          const maxHeight = window.innerHeight - resizeState.baseTop;
+          const nextWidth = resizeState.startWidth + e.clientX - resizeState.startPointerX;
+          const nextHeight = resizeState.startHeight + e.clientY - resizeState.startPointerY;
+
+          pendingSizeRef.current = {
+            width: Math.max(MIN_WIDTH, Math.min(nextWidth, maxWidth)),
+            height: Math.max(MIN_HEIGHT, Math.min(nextHeight, maxHeight)),
+          };
+          scheduleVisualUpdate();
+        }
+      },
+      [scheduleVisualUpdate],
+    );
 
     const handlePointerUp = useCallback(() => {
       const nextPosition = pendingPositionRef.current;
@@ -463,12 +474,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       globalThis.addEventListener('pointercancel', handlePointerUp);
     }, [handlePointerMove, handlePointerUp]);
 
-    const handlePointerDown = (e: React.PointerEvent<HTMLElement>) => {
-      if (e.button !== 0) return;
-      if (isPinned) return;
-      if ((e.target as HTMLElement).closest('button')) return;
+    const handlePointerDown = (e: ReactPointerEvent<HTMLElement>) => {
+      if (e.button !== 0) {
+        return;
+      }
+
+      if (isPinned) {
+        return;
+      }
+
+      if ((e.target as HTMLElement).closest('button')) {
+        return;
+      }
 
       const rect = floatyRef.current?.getBoundingClientRect();
+
       if (rect) {
         onFocus?.();
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -488,10 +508,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     };
 
-    const handleResizePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-      if (isCollapsed || !isResizeEnabled) return;
+    const handleResizePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+      if (isCollapsed || !isResizeEnabled) {
+        return;
+      }
 
       const rect = floatyRef.current?.getBoundingClientRect();
+
       if (rect) {
         e.preventDefault();
         e.stopPropagation();
@@ -511,49 +534,52 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     };
 
-    const handleHeaderDoubleClick = (e: React.MouseEvent<HTMLElement>) => {
-      if ((e.target as HTMLElement).closest('button')) return;
+    const handleHeaderDoubleClick = (e: ReactMouseEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('button')) {
+        return;
+      }
+
       setIsCollapsed((collapsed) => !collapsed);
     };
 
-    const handleHeaderKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-      if ((e.target as HTMLElement).closest('button')) return;
+    const handleHeaderKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+      if ((e.target as HTMLElement).closest('button')) {
+        return;
+      }
 
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         setIsCollapsed((collapsed) => !collapsed);
+
         return;
       }
 
-      if (
-        !isPinned &&
-        ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)
-      ) {
+      if (!isPinned && ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
         e.preventDefault();
         onFocus?.();
-        const step = getKeyboardStep(
-          e,
-          KEYBOARD_MOVE_STEP,
-          KEYBOARD_MOVE_LARGE_STEP
-        );
-        const delta = {
-          ArrowUp: { x: 0, y: -step },
-          ArrowRight: { x: step, y: 0 },
-          ArrowDown: { x: 0, y: step },
-          ArrowLeft: { x: -step, y: 0 },
-        }[e.key]!;
+        const step = getKeyboardStep(e, KEYBOARD_MOVE_STEP, KEYBOARD_MOVE_LARGE_STEP);
+        const delta = (
+          {
+            ArrowUp: { x: 0, y: -step },
+            ArrowRight: { x: step, y: 0 },
+            ArrowDown: { x: 0, y: step },
+            ArrowLeft: { x: -step, y: 0 },
+          } as Record<string, { x: number; y: number }>
+        )[e.key] ?? { x: 0, y: 0 };
 
         setPosition((current) =>
           clampPositionToViewport(
             { x: current.x + delta.x, y: current.y + delta.y },
-            sizeRef.current
-          )
+            sizeRef.current,
+          ),
         );
       }
     };
 
-    const handleResizeKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (!isResizeEnabled) return;
+    const handleResizeKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+      if (!isResizeEnabled) {
+        return;
+      }
 
       if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
         return;
@@ -566,17 +592,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       const rect = floatyRef.current?.getBoundingClientRect();
       const currentWidth = getNumericSize(sizeRef.current.width, rect?.width ?? 320);
       const currentHeight = getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT);
-      const step = getKeyboardStep(
-        e,
-        KEYBOARD_RESIZE_STEP,
-        KEYBOARD_RESIZE_LARGE_STEP
-      );
-      const delta = {
-        ArrowUp: { width: 0, height: -step },
-        ArrowRight: { width: step, height: 0 },
-        ArrowDown: { width: 0, height: step },
-        ArrowLeft: { width: -step, height: 0 },
-      }[e.key]!;
+      const step = getKeyboardStep(e, KEYBOARD_RESIZE_STEP, KEYBOARD_RESIZE_LARGE_STEP);
+      const delta = (
+        {
+          ArrowUp: { width: 0, height: -step },
+          ArrowRight: { width: step, height: 0 },
+          ArrowDown: { width: 0, height: step },
+          ArrowLeft: { width: -step, height: 0 },
+        } as Record<string, { width: number; height: number }>
+      )[e.key] ?? { width: 0, height: 0 };
       const baseLeft = rect?.left ?? positionRef.current.x;
       const baseTop = rect?.top ?? positionRef.current.y;
       const maxWidth = Math.max(MIN_WIDTH, window.innerWidth - baseLeft);
@@ -589,7 +613,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     };
 
     const toggleResizeEnabled = () => {
-      if (isCollapsed) return;
+      if (isCollapsed) {
+        return;
+      }
+
       onFocus?.();
       setIsResizeEnabled((enabled) => !enabled);
     };
@@ -615,9 +642,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           height: getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT),
         };
 
-        setPosition((current) =>
-          clampPositionToViewport(current, measuredSize)
-        );
+        setPosition((current) => clampPositionToViewport(current, measuredSize));
       };
 
       globalThis.addEventListener('resize', handleViewportResize);
@@ -633,7 +658,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     }, [isCollapsed, isMinimized]);
 
-    if (isMinimized) return null;
+    if (isMinimized) {
+      return null;
+    }
 
     return (
       <div
@@ -650,12 +677,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           zIndex,
         }}
       >
-        <header
+        <div
+          role="toolbar"
           className={`floaty-header ${isPinned ? 'pinned' : ''}`}
           onPointerDown={handlePointerDown}
           onDoubleClick={handleHeaderDoubleClick}
           onKeyDown={handleHeaderKeyDown}
-          aria-grabbed={isDragging}
           aria-label={`${titleText ?? 'Floaty widget'} controls`}
           aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
           tabIndex={0}
@@ -670,6 +697,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </span>
 
           <button
+            type="button"
             className="floaty-button floaty-button--pin"
             onClick={() => setIsPinned((pinned) => !pinned)}
             title={isPinned ? labels.unpin : labels.pin}
@@ -689,6 +717,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </span>
 
           <button
+            type="button"
             className="floaty-button floaty-button--expand"
             onClick={() => setIsCollapsed((collapsed) => !collapsed)}
             title={isCollapsed ? labels.expand : labels.collapse}
@@ -704,6 +733,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </button>
 
           <button
+            type="button"
             className="floaty-button floaty-button--resize"
             onClick={toggleResizeEnabled}
             title={labels.resize}
@@ -715,6 +745,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           </button>
 
           <button
+            type="button"
             className="floaty-button floaty-button--minimize"
             onClick={() => {
               setIsResizeEnabled(false);
@@ -728,6 +759,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
           {onClose && (
             <button
+              type="button"
               className="floaty-button floaty-button--close"
               onClick={onClose}
               title={labels.close}
@@ -736,16 +768,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
               {Close ? <Close /> : <CloseIcon />}
             </button>
           )}
-        </header>
+        </div>
 
-        {!isCollapsed && (
-          <div className="floaty-body">
-            {children}
-          </div>
-        )}
+        {!isCollapsed && <div className="floaty-body">{children}</div>}
 
         {!isCollapsed && isResizeEnabled && (
           <button
+            type="button"
             className="floaty-resize-handle"
             onPointerDown={handleResizePointerDown}
             onKeyDown={handleResizeKeyDown}
@@ -756,7 +785,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 export default Floaty;

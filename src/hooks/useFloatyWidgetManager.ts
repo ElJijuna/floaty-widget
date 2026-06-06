@@ -17,9 +17,7 @@ export const useFloatyWidgetManager = () => {
   const manager = useContext(FloatyManagerContext);
 
   if (!manager) {
-    throw new Error(
-      'useFloatyWidgetManager must be used within FloatyWidgetManager'
-    );
+    throw new Error('useFloatyWidgetManager must be used within FloatyWidgetManager');
   }
 
   return manager;
@@ -33,6 +31,7 @@ export const useFloatyWidgetManager = () => {
  */
 export const useFloatyWidget = (id: string) => {
   const manager = useFloatyWidgetManager();
+
   return manager.getWidget(id);
 };
 

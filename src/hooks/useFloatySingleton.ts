@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useFloatyWidgetManager } from './useFloatyWidgetManager';
 import { connectFloatySingleton } from '../singleton';
+import { useFloatyWidgetManager } from './useFloatyWidgetManager';
 
 /**
  * Connects the nearest `FloatyWidgetManager` to the imperative singleton API
@@ -20,10 +20,12 @@ import { connectFloatySingleton } from '../singleton';
 export function useFloatySingleton(): void {
   const manager = useFloatyWidgetManager();
   const ref = useRef(manager);
+
   ref.current = manager;
 
   useEffect(() => {
     connectFloatySingleton(() => ref.current);
+
     return () => connectFloatySingleton(null);
   }, []);
 }

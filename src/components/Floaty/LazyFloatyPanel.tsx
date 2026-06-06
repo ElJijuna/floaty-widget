@@ -31,13 +31,10 @@ const LazyFloatyPanel = ({ metric, value }: LazyFloatyPanelProps) => {
       </span>
       <div>
         <div style={{ color: '#6b7280', fontSize: 12 }}>{metric}</div>
-        <strong style={{ display: 'block', marginTop: 4, fontSize: 28 }}>
-          {value}
-        </strong>
+        <strong style={{ display: 'block', marginTop: 4, fontSize: 28 }}>{value}</strong>
       </div>
       <p style={{ margin: 0, color: '#4b5563', fontSize: 13, lineHeight: 1.5 }}>
-        This panel lives in its own module and is loaded only when the widget is
-        rendered.
+        This panel lives in its own module and is loaded only when the widget is rendered.
       </p>
     </div>
   );

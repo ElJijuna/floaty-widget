@@ -1,8 +1,8 @@
+import { act, renderHook } from '@testing-library/react';
+import { createElement, type FC, type ReactNode } from 'react';
 import { bench, describe } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { createElement, FC, ReactNode } from 'react';
-import { FloatyWidgetManager } from './FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
+import { FloatyWidgetManager } from './FloatyWidgetManager';
 
 const MockComponent: FC = () => null;
 
@@ -33,7 +33,7 @@ describe('open', () => {
       for (let i = 0; i < 30; i++) {
         result.current.open(
           { id: 'base', component: MockComponent, props: {} },
-          { duplicateStrategy: 'duplicate' }
+          { duplicateStrategy: 'duplicate' },
         );
       }
     });
@@ -70,7 +70,11 @@ describe('updateWidgetState', () => {
       result.current.open({ id: 'w', component: MockComponent, props: {} });
     });
 
-    const widget = result.current.getWidget('w')!;
+    const widget = result.current.getWidget('w');
+
+    if (!widget) {
+      return;
+    }
 
     act(() => {
       for (let i = 0; i < 100; i++) {

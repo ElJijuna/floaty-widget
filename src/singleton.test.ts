@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, cleanup } from '@testing-library/react';
-import { createElement, FC, ReactNode } from 'react';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { createElement, type FC, type ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatyWidgetManager } from './context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from './hooks/useFloatyWidgetManager';
 import {
+  closeAllFloaty,
+  closeFloaty,
   connectFloatySingleton,
   openFloaty,
-  closeFloaty,
-  closeAllFloaty,
   updateFloaty,
 } from './singleton';
 
@@ -52,6 +52,7 @@ describe('connectFloatySingleton + openFloaty', () => {
     });
 
     const widget = result.current.getWidget('w');
+
     expect(widget?.title).toBe('My Panel');
     expect(widget?.isCollapsed).toBe(true);
     expect(widget?.isPinned).toBe(true);
@@ -62,12 +63,12 @@ describe('connectFloatySingleton + openFloaty', () => {
 
     connectFloatySingleton(() => result.current);
 
-    let id: string;
+    let id = '';
     act(() => {
       id = openFloaty({ id: 'my-widget', component: MockComponent, props: {} });
     });
 
-    expect(id!).toBe('my-widget');
+    expect(id).toBe('my-widget');
   });
 
   it('passes duplicate strategy to external manager', () => {
@@ -81,7 +82,7 @@ describe('connectFloatySingleton + openFloaty', () => {
     act(() => {
       openFloaty(
         { id: 'w', component: MockComponent, props: {} },
-        { duplicateStrategy: 'duplicate' }
+        { duplicateStrategy: 'duplicate' },
       );
     });
 

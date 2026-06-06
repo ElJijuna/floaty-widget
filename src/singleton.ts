@@ -1,14 +1,14 @@
 import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import { FloatyViewport } from './components/Floaty/FloatyViewport';
 import { FloatyWidgetManager } from './context/FloatyWidgetManager';
 import type {
-  FloatyWidgetManagerHandle,
-  FloatyOpenWidget,
   FloatyOpenOptions,
+  FloatyOpenWidget,
+  FloatyWidgetManagerHandle,
   FloatyWidgetPatch,
 } from './types';
-import { FloatyViewport } from './components/Floaty/FloatyViewport';
 
 let getExternalManager: (() => FloatyWidgetManagerHandle) | null = null;
 const ownRef: { current: FloatyWidgetManagerHandle | null } = { current: null };
@@ -22,27 +22,35 @@ const ownRef: { current: FloatyWidgetManagerHandle | null } = { current: null };
  *
  * Pass `null` to disconnect (e.g. on unmount).
  */
-export function connectFloatySingleton(
-  getter: (() => FloatyWidgetManagerHandle) | null
-): void {
+export function connectFloatySingleton(getter: (() => FloatyWidgetManagerHandle) | null): void {
   getExternalManager = getter;
 }
 
 function getManager(): FloatyWidgetManagerHandle {
-  if (getExternalManager) return getExternalManager();
-  if (ownRef.current) return ownRef.current;
+  if (getExternalManager) {
+    return getExternalManager();
+  }
+
+  if (ownRef.current) {
+    return ownRef.current;
+  }
 
   const container = document.createElement('div');
+
   container.setAttribute('data-floaty-root', '');
   document.body.appendChild(container);
 
   flushSync(() => {
     createRoot(container).render(
-      createElement(FloatyWidgetManager, { ref: ownRef, children: createElement(FloatyViewport) })
+      createElement(FloatyWidgetManager, { ref: ownRef }, createElement(FloatyViewport)),
     );
   });
 
-  return ownRef.current!;
+  if (!ownRef.current) {
+    throw new Error('FloatyWidgetManager ref was not set after render');
+  }
+
+  return ownRef.current;
 }
 
 /**

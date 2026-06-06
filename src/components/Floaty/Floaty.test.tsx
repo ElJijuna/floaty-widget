@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
-import { Floaty } from './Floaty';
+import { describe, expect, it, vi } from 'vitest';
 import type { FloatyHandle } from '../../types';
+import { Floaty } from './Floaty';
 
 describe('Floaty', () => {
   describe('rendering', () => {
@@ -25,11 +25,13 @@ describe('Floaty', () => {
 
     it('returns null when defaultMinimized is true', () => {
       const { container } = render(<Floaty defaultMinimized />);
+
       expect(container.firstChild).toBeNull();
     });
 
     it('renders close button only when onClose is provided', () => {
       const { rerender } = render(<Floaty />);
+
       expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
 
       rerender(<Floaty onClose={() => {}} />);
@@ -38,20 +40,19 @@ describe('Floaty', () => {
 
     it('applies className to root element', () => {
       const { container } = render(<Floaty className="my-class" />);
+
       expect(container.firstChild).toHaveClass('my-class');
     });
 
     it('clamps the initial position inside the viewport', () => {
       const originalWidth = window.innerWidth;
       const originalHeight = window.innerHeight;
+
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: 500 });
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
 
       const { container } = render(
-        <Floaty
-          initialPosition={{ x: 1000, y: -20 }}
-          initialSize={{ width: 200, height: 100 }}
-        />
+        <Floaty initialPosition={{ x: 1000, y: -20 }} initialSize={{ width: 200, height: 100 }} />,
       );
 
       expect(container.firstChild).toHaveStyle({
@@ -112,7 +113,7 @@ describe('Floaty', () => {
 
     it('moves with arrow keys when the header is focused', () => {
       const { container } = render(
-        <Floaty initialPosition={{ x: 100, y: 100 }}>Child content</Floaty>
+        <Floaty initialPosition={{ x: 100, y: 100 }}>Child content</Floaty>,
       );
       const root = container.firstElementChild as HTMLElement;
       const header = container.querySelector('.floaty-header') as HTMLElement;
@@ -128,9 +129,7 @@ describe('Floaty', () => {
     });
 
     it('does not move with arrow keys when pinned', () => {
-      const { container } = render(
-        <Floaty defaultPinned initialPosition={{ x: 100, y: 100 }} />
-      );
+      const { container } = render(<Floaty defaultPinned initialPosition={{ x: 100, y: 100 }} />);
       const root = container.firstElementChild as HTMLElement;
       const header = container.querySelector('.floaty-header') as HTMLElement;
 
@@ -163,6 +162,7 @@ describe('Floaty', () => {
 
     it('adds pinned class when pinned', () => {
       const { container } = render(<Floaty defaultPinned />);
+
       expect(container.firstChild).toHaveClass('pinned');
     });
   });
@@ -170,6 +170,7 @@ describe('Floaty', () => {
   describe('callbacks', () => {
     it('calls onClose when close button is clicked', () => {
       const onClose = vi.fn();
+
       render(<Floaty onClose={onClose} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -181,7 +182,7 @@ describe('Floaty', () => {
       const onFocus = vi.fn();
       const { container } = render(<Floaty onFocus={onFocus} />);
 
-      fireEvent.pointerDown(container.firstChild!);
+      fireEvent.pointerDown(container.firstElementChild as Element);
 
       expect(onFocus).toHaveBeenCalled();
     });
@@ -192,19 +193,17 @@ describe('Floaty', () => {
       const { container } = render(<Floaty />);
       const root = container.firstElementChild as HTMLElement;
       const header = container.querySelector('.floaty-header') as HTMLElement;
-      const getBoundingClientRect = vi
-        .spyOn(root, 'getBoundingClientRect')
-        .mockReturnValue({
-          x: 100,
-          y: 100,
-          top: 100,
-          right: 420,
-          bottom: 260,
-          left: 100,
-          width: 320,
-          height: 160,
-          toJSON: () => {},
-        } as DOMRect);
+      const getBoundingClientRect = vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+        x: 100,
+        y: 100,
+        top: 100,
+        right: 420,
+        bottom: 260,
+        left: 100,
+        width: 320,
+        height: 160,
+        toJSON: () => {},
+      } as DOMRect);
 
       header.setPointerCapture = vi.fn();
 
@@ -237,24 +236,21 @@ describe('Floaty', () => {
       render(<Floaty />);
 
       expect(
-        screen.queryByRole('button', { name: 'Resize widget handle' })
+        screen.queryByRole('button', { name: 'Resize widget handle' }),
       ).not.toBeInTheDocument();
 
       const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
+
       expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
 
       fireEvent.click(resizeToggle);
 
       expect(resizeToggle).toHaveAttribute('aria-pressed', 'true');
-      expect(
-        screen.getByRole('button', { name: 'Resize widget handle' })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Resize widget handle' })).toBeInTheDocument();
     });
 
     it('resizes with arrow keys from the resize handle', () => {
-      const { container } = render(
-        <Floaty initialSize={{ width: 320, height: 160 }} />
-      );
+      const { container } = render(<Floaty initialSize={{ width: 320, height: 160 }} />);
       const root = container.firstElementChild as HTMLElement;
 
       fireEvent.click(screen.getByRole('button', { name: 'Resize widget' }));
@@ -276,12 +272,15 @@ describe('Floaty', () => {
       render(<Floaty />);
 
       const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
+
       fireEvent.click(resizeToggle);
       expect(screen.getByRole('button', { name: 'Resize widget handle' })).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
 
-      expect(screen.queryByRole('button', { name: 'Resize widget handle' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Resize widget handle' }),
+      ).not.toBeInTheDocument();
       expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
     });
   });
@@ -290,14 +289,12 @@ describe('Floaty', () => {
     it('re-clamps position when the viewport changes', () => {
       const originalWidth = window.innerWidth;
       const originalHeight = window.innerHeight;
+
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: 600 });
 
       const { container } = render(
-        <Floaty
-          initialPosition={{ x: 480, y: 420 }}
-          initialSize={{ width: 300, height: 120 }}
-        />
+        <Floaty initialPosition={{ x: 480, y: 420 }} initialSize={{ width: 300, height: 120 }} />,
       );
       const root = container.firstElementChild as HTMLElement;
 
@@ -322,7 +319,7 @@ describe('Floaty', () => {
             minimize: 'Minimizar',
             resize: 'Cambiar tamano',
           }}
-        />
+        />,
       );
       expect(screen.getByRole('button', { name: 'Ocultar' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Minimizar' })).toBeInTheDocument();
@@ -333,6 +330,7 @@ describe('Floaty', () => {
   describe('imperative handle', () => {
     it('exposes collapse and expand methods via ref', () => {
       const ref = createRef<FloatyHandle>();
+
       render(<Floaty ref={ref}>Child content</Floaty>);
 
       expect(screen.getByText('Child content')).toBeInTheDocument();
@@ -346,6 +344,7 @@ describe('Floaty', () => {
 
     it('exposes toggle method via ref', () => {
       const ref = createRef<FloatyHandle>();
+
       render(<Floaty ref={ref}>Child content</Floaty>);
 
       act(() => ref.current?.toggle());

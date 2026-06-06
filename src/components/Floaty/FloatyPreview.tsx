@@ -1,4 +1,10 @@
-import { createElement, ComponentType, CSSProperties, ReactNode, Suspense } from 'react';
+import {
+  type ComponentType,
+  type CSSProperties,
+  createElement,
+  type ReactNode,
+  Suspense,
+} from 'react';
 import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 
 /** Props for the `<FloatyPreview>` component. */
@@ -29,11 +35,13 @@ export const FloatyPreview = ({
   const manager = useFloatyManager();
   const widget = manager?.getWidget(id);
 
-  if (!widget?.component) return <>{fallback}</>;
+  if (!widget?.component) {
+    return <>{fallback}</>;
+  }
 
   const content = createElement(
     widget.component as ComponentType<unknown>,
-    widget.props as Record<string, unknown>
+    widget.props as Record<string, unknown>,
   );
 
   return (

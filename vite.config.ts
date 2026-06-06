@@ -18,7 +18,13 @@ export default defineConfig({
     react(),
     dts({
       include: ['src'],
-      exclude: ['src/**/*.stories.tsx', 'src/**/*.test.tsx', 'src/**/*.test.ts', 'src/**/*.bench.ts', 'src/test/**'],
+      exclude: [
+        'src/**/*.stories.tsx',
+        'src/**/*.test.tsx',
+        'src/**/*.test.ts',
+        'src/**/*.bench.ts',
+        'src/test/**',
+      ],
       rollupTypes: true,
       tsconfigPath: './tsconfig.json',
     }),
@@ -29,8 +35,7 @@ export default defineConfig({
       entry: 'src/index.ts',
       name: 'FloatyWidget',
       formats: ['es', 'cjs'],
-      fileName: (format) =>
-        format === 'es' ? 'index.es.js' : 'index.cjs',
+      fileName: (format) => (format === 'es' ? 'index.es.js' : 'index.cjs'),
     },
     rollupOptions: {
       external: (id) => /^react(-dom)?(\/.*)?$/.test(id),

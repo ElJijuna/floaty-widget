@@ -2,9 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { FloatyWidgetState } from './FloatyWidgetState';
 
 /** Module shape accepted by lazy widget loaders. */
-export type FloatyLazyModule<P = unknown> =
-  | { default: ComponentType<P> }
-  | ComponentType<P>;
+export type FloatyLazyModule<P = unknown> = { default: ComponentType<P> } | ComponentType<P>;
 
 /** Dynamic import callback used to load widget content only when it is rendered. */
 export type FloatyComponentLoader<P = unknown> = () => Promise<FloatyLazyModule<P>>;

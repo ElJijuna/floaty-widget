@@ -1,16 +1,16 @@
 import {
   Component,
-  ComponentType,
-  CSSProperties,
-  ReactNode,
-  Suspense,
+  type ComponentType,
+  type CSSProperties,
   createElement,
   memo,
+  type ReactNode,
+  Suspense,
   useMemo,
 } from 'react';
-import { Floaty } from './Floaty';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
 import type { FloatyIcons, FloatyTexts, FloatyWidget } from '../../types';
+import { Floaty } from './Floaty';
 
 /** Props for the `<FloatyViewport>` component. */
 export interface FloatyViewportProps {
@@ -50,10 +50,7 @@ interface LazyErrorBoundaryState {
   error: Error | null;
 }
 
-class LazyErrorBoundary extends Component<
-  LazyErrorBoundaryProps,
-  LazyErrorBoundaryState
-> {
+class LazyErrorBoundary extends Component<LazyErrorBoundaryProps, LazyErrorBoundaryState> {
   state: LazyErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error) {
@@ -95,12 +92,14 @@ const FloatyViewportItem = memo(
     onRetry,
     isActive,
   }: FloatyViewportItemProps) => {
-    if (!widget.component || widget.isMinimized) return null;
+    if (!widget.component || widget.isMinimized) {
+      return null;
+    }
 
     const WidgetComponent = widget.component;
     const content = createElement(
-      WidgetComponent as ComponentType<any>,
-      widget.props as any
+      WidgetComponent as ComponentType<Record<string, unknown>>,
+      widget.props as Record<string, unknown>,
     );
     const widgetStyle: CSSProperties = {
       ...themeStyle,
@@ -127,9 +126,7 @@ const FloatyViewportItem = memo(
       >
         {widget.loader ? (
           <LazyErrorBoundary labels={labels} onRetry={() => onRetry(widget)}>
-            <Suspense
-              fallback={widget.fallback ?? <DefaultLazyFallback label={labels.loading} />}
-            >
+            <Suspense fallback={widget.fallback ?? <DefaultLazyFallback label={labels.loading} />}>
               {content}
             </Suspense>
           </LazyErrorBoundary>
@@ -138,7 +135,7 @@ const FloatyViewportItem = memo(
         )}
       </Floaty>
     );
-  }
+  },
 );
 
 FloatyViewportItem.displayName = 'FloatyViewportItem';
@@ -162,9 +159,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
   const widgets = Array.from(manager.widgets.values());
   const activeZIndex = Math.max(
     0,
-    ...widgets
-      .filter((widget) => !widget.isMinimized)
-      .map((widget) => widget.zIndex)
+    ...widgets.filter((widget) => !widget.isMinimized).map((widget) => widget.zIndex),
   );
 
   const themeStyle = useMemo(
@@ -178,8 +173,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
         '--floaty-header-fg': manager.theme?.headerForeground,
         '--floaty-pinned-header-bg': manager.theme?.pinnedHeaderBackground,
         '--floaty-pinned-header-bg-hover':
-          manager.theme?.pinnedHeaderBackgroundHover ??
-          manager.theme?.pinnedHeaderBackground,
+          manager.theme?.pinnedHeaderBackgroundHover ?? manager.theme?.pinnedHeaderBackground,
         '--floaty-pinned-header-fg': manager.theme?.pinnedHeaderForeground,
         '--floaty-body-bg': manager.theme?.bodyBackground,
         '--floaty-border': manager.theme?.border,
@@ -193,7 +187,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
         '--floaty-button-radius': manager.theme?.buttonRadius,
         '--floaty-button-hover-bg': manager.theme?.buttonHoverBackground,
       }) as CSSProperties,
-    [manager.theme]
+    [manager.theme],
   );
 
   return (

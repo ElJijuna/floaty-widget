@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, renderHook, screen, act } from '@testing-library/react';
-import { FC, ReactNode } from 'react';
-import { FloatyWidgetManager } from './FloatyWidgetManager';
-import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import type { FC, ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { FloatyViewport } from '../components/Floaty/FloatyViewport';
+import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
+import { FloatyWidgetManager } from './FloatyWidgetManager';
 
 const MockComponent: FC = () => null;
 
@@ -17,11 +17,17 @@ describe('FloatyWidgetManager', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 
       act(() => {
-        result.current.open({ id: 'test', component: MockComponent, props: {}, title: 'My Widget' });
+        result.current.open({
+          id: 'test',
+          component: MockComponent,
+          props: {},
+          title: 'My Widget',
+        });
       });
 
       expect(result.current.getWidgetCount()).toBe(1);
       const widget = result.current.getWidget('test');
+
       expect(widget?.title).toBe('My Widget');
       expect(widget?.isCollapsed).toBe(false);
       expect(widget?.isMinimized).toBe(false);
@@ -55,7 +61,7 @@ describe('FloatyWidgetManager', () => {
       act(() => {
         result.current.open(
           { id: 'test', component: MockComponent, props: {} },
-          { duplicateStrategy: 'focus' }
+          { duplicateStrategy: 'focus' },
         );
       });
 
@@ -70,7 +76,10 @@ describe('FloatyWidgetManager', () => {
         result.current.open({ id: 'test', component: MockComponent, props: {} });
       });
       act(() => {
-        result.current.open({ id: 'test', component: MockComponent, props: {} }, { duplicateStrategy: 'duplicate' });
+        result.current.open(
+          { id: 'test', component: MockComponent, props: {} },
+          { duplicateStrategy: 'duplicate' },
+        );
       });
 
       expect(result.current.getWidgetCount()).toBe(2);
@@ -85,10 +94,16 @@ describe('FloatyWidgetManager', () => {
         result.current.open({ id: 'w', component: MockComponent, props: {} });
       });
       act(() => {
-        result.current.open({ id: 'w', component: MockComponent, props: {} }, { duplicateStrategy: 'duplicate' });
+        result.current.open(
+          { id: 'w', component: MockComponent, props: {} },
+          { duplicateStrategy: 'duplicate' },
+        );
       });
       act(() => {
-        result.current.open({ id: 'w', component: MockComponent, props: {} }, { duplicateStrategy: 'duplicate' });
+        result.current.open(
+          { id: 'w', component: MockComponent, props: {} },
+          { duplicateStrategy: 'duplicate' },
+        );
       });
 
       expect(result.current.getWidgetCount()).toBe(3);
@@ -110,6 +125,7 @@ describe('FloatyWidgetManager', () => {
       });
 
       const widget = result.current.getWidget('test');
+
       expect(widget?.isCollapsed).toBe(true);
       expect(widget?.isPinned).toBe(true);
     });
@@ -128,6 +144,7 @@ describe('FloatyWidgetManager', () => {
       });
 
       const widget = result.current.getWidget('lazy');
+
       expect(widget?.component).toBeDefined();
       expect(widget?.loader).toBe(loader);
       expect(loader).not.toHaveBeenCalled();
@@ -142,6 +159,7 @@ describe('FloatyWidgetManager', () => {
 
         return (
           <button
+            type="button"
             onClick={() =>
               manager.open({
                 id: 'lazy',
@@ -161,7 +179,7 @@ describe('FloatyWidgetManager', () => {
         <FloatyWidgetManager>
           <Opener />
           <FloatyViewport />
-        </FloatyWidgetManager>
+        </FloatyWidgetManager>,
       );
 
       expect(loader).not.toHaveBeenCalled();
@@ -176,15 +194,14 @@ describe('FloatyWidgetManager', () => {
     });
 
     it('shows the default fallback for lazy widgets without a fallback prop', () => {
-      const loader = vi.fn(
-        () => new Promise<{ default: FC }>(() => {})
-      );
+      const loader = vi.fn(() => new Promise<{ default: FC }>(() => {}));
 
       const Opener = () => {
         const manager = useFloatyWidgetManager();
 
         return (
           <button
+            type="button"
             onClick={() =>
               manager.open({
                 id: 'lazy-default-fallback',
@@ -203,7 +220,7 @@ describe('FloatyWidgetManager', () => {
         <FloatyWidgetManager>
           <Opener />
           <FloatyViewport />
-        </FloatyWidgetManager>
+        </FloatyWidgetManager>,
       );
 
       act(() => {
@@ -222,6 +239,7 @@ describe('FloatyWidgetManager', () => {
 
         return (
           <button
+            type="button"
             onClick={() =>
               manager.open({
                 id: 'lazy-custom-labels',
@@ -246,7 +264,7 @@ describe('FloatyWidgetManager', () => {
         >
           <Opener />
           <FloatyViewport />
-        </FloatyWidgetManager>
+        </FloatyWidgetManager>,
       );
 
       act(() => {
@@ -273,6 +291,7 @@ describe('FloatyWidgetManager', () => {
 
         return (
           <button
+            type="button"
             onClick={() =>
               manager.open({
                 id: 'lazy-error',
@@ -291,7 +310,7 @@ describe('FloatyWidgetManager', () => {
         <FloatyWidgetManager>
           <Opener />
           <FloatyViewport />
-        </FloatyWidgetManager>
+        </FloatyWidgetManager>,
       );
 
       act(() => {
@@ -366,6 +385,7 @@ describe('FloatyWidgetManager', () => {
       });
 
       const widget = result.current.getWidget('test');
+
       expect(widget?.isCollapsed).toBe(true);
       expect(widget?.isPinned).toBe(true);
     });
@@ -410,6 +430,7 @@ describe('FloatyWidgetManager', () => {
       });
 
       const zIndexA = result.current.getWidget('a')?.zIndex ?? 0;
+
       expect(zIndexA).toBeGreaterThan(zIndexB);
     });
   });

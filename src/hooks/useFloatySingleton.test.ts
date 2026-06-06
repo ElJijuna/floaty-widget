@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { createElement, FC, ReactNode } from 'react';
+import { act, renderHook } from '@testing-library/react';
+import { createElement, type FC, type ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import { FloatyWidgetManager } from '../context/FloatyWidgetManager';
-import { useFloatyWidgetManager } from './useFloatyWidgetManager';
-import { openFloaty, connectFloatySingleton } from '../singleton';
+import { connectFloatySingleton, openFloaty } from '../singleton';
 import { useFloatySingleton } from './useFloatySingleton';
+import { useFloatyWidgetManager } from './useFloatyWidgetManager';
 
 const MockComponent: FC = () => null;
 
@@ -15,7 +15,7 @@ describe('useFloatySingleton', () => {
   it('connects openFloaty to the Provider manager while mounted', () => {
     const { result } = renderHook(
       () => ({ manager: useFloatyWidgetManager(), _: useFloatySingleton() }),
-      { wrapper }
+      { wrapper },
     );
 
     act(() => {
@@ -30,14 +30,17 @@ describe('useFloatySingleton', () => {
   it('routes duplicate strategy through Provider manager', () => {
     const { result } = renderHook(
       () => ({ manager: useFloatyWidgetManager(), _: useFloatySingleton() }),
-      { wrapper }
+      { wrapper },
     );
 
     act(() => {
       openFloaty({ id: 'w', component: MockComponent, props: {} });
     });
     act(() => {
-      openFloaty({ id: 'w', component: MockComponent, props: {} }, { duplicateStrategy: 'duplicate' });
+      openFloaty(
+        { id: 'w', component: MockComponent, props: {} },
+        { duplicateStrategy: 'duplicate' },
+      );
     });
 
     expect(result.current.manager.getWidgetCount()).toBe(2);
@@ -53,6 +56,7 @@ describe('useFloatySingleton', () => {
     // After unmount the singleton has no getter. We verify by connecting a spy
     // and confirming it has not been called by residual state.
     const spy = vi.fn();
+
     connectFloatySingleton(spy);
     expect(spy).not.toHaveBeenCalled();
 

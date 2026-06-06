@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { FloatyWidget, FloatyComponentLoader } from './FloatyWidget';
+import type { FloatyComponentLoader, FloatyWidget } from './FloatyWidget';
 
 /**
  * Partial update applied to an existing widget via `manager.update()`.

@@ -1,12 +1,12 @@
 import type { ComponentType, RefObject } from 'react';
 import type { FloatyHandle } from './FloatyHandle';
-import type { FloatyWidget } from './FloatyWidget';
-import type { FloatyWidgetState } from './FloatyWidgetState';
-import type { FloatyOpenWidget, FloatyOpenWidgetBase, FloatyOpenOptions } from './FloatyOpenWidget';
-import type { FloatyWidgetPatch } from './FloatyWidgetPatch';
-import type { FloatyTexts } from './FloatyTexts';
 import type { FloatyIcons } from './FloatyIcons';
+import type { FloatyOpenOptions, FloatyOpenWidget, FloatyOpenWidgetBase } from './FloatyOpenWidget';
+import type { FloatyTexts } from './FloatyTexts';
 import type { FloatyTheme } from './FloatyTheme';
+import type { FloatyWidget } from './FloatyWidget';
+import type { FloatyWidgetPatch } from './FloatyWidgetPatch';
+import type { FloatyWidgetState } from './FloatyWidgetState';
 
 /** Full API surface returned by `useFloatyWidgetManager()` and exposed via the `FloatyWidgetManager` ref. */
 export interface FloatyWidgetManagerHandle {
@@ -19,10 +19,7 @@ export interface FloatyWidgetManagerHandle {
    * Shorthand for `open` — pass the component separately from the rest of the config.
    * @returns The id of the opened widget.
    */
-  openComponent: <P>(
-    component: ComponentType<P>,
-    config: FloatyOpenWidgetBase<P>
-  ) => string;
+  openComponent: <P>(component: ComponentType<P>, config: FloatyOpenWidgetBase<P>) => string;
   /** Removes a widget by id. */
   close: (id: string) => void;
   /** Removes all widgets. */
@@ -40,15 +37,12 @@ export interface FloatyWidgetManagerHandle {
   registerFloaty: (
     id: string,
     ref: RefObject<FloatyHandle | null>,
-    initialState?: Partial<Omit<FloatyWidgetState, 'id'>>
+    initialState?: Partial<Omit<FloatyWidgetState, 'id'>>,
   ) => () => void;
   /** Internal — removes the imperative ref from the registry without destroying the widget entry. */
   unregisterFloaty: (id: string) => void;
   /** Internal — syncs state changes from `<Floaty>` back into the manager's widget map. */
-  updateWidgetState: (
-    id: string,
-    state: Partial<Omit<FloatyWidgetState, 'id'>>
-  ) => void;
+  updateWidgetState: (id: string, state: Partial<Omit<FloatyWidgetState, 'id'>>) => void;
   /** Expands all widgets. */
   expandAll: () => void;
   /** Collapses all widgets. */

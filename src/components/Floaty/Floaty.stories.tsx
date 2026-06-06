@@ -1,13 +1,13 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
-import { Floaty } from './Floaty';
-import { FloatyViewport } from './FloatyViewport';
-import { FloatyPreview } from './FloatyPreview';
+import type { Meta, StoryObj } from '@storybook/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
+import { Floaty } from './Floaty';
+import { FloatyPreview } from './FloatyPreview';
+import { FloatyViewport } from './FloatyViewport';
 import '@gnome-ui/core/styles';
 import '@gnome-ui/react/styles';
 
@@ -120,9 +120,7 @@ export const ScrollbarAndFade: Story = {
             <strong style={{ fontSize: 13 }}>
               {index + 1}. {title}
             </strong>
-            <span style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>
-              {detail}
-            </span>
+            <span style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>{detail}</span>
           </div>
         ))}
       </div>
@@ -188,11 +186,7 @@ const formatDate = (date: string) =>
     day: 'numeric',
   }).format(new Date(date));
 
-const GitHubRepoCard = ({
-  owner,
-  repo,
-  showAddButton = true,
-}: GitHubRepoCardProps) => {
+const GitHubRepoCard = ({ owner, repo, showAddButton = true }: GitHubRepoCardProps) => {
   const manager = useFloatyWidgetManager();
   const repository = useGhRepo(owner, repo);
   const commits = useGhRepoCommits(owner, repo, { per_page: 4 });
@@ -207,7 +201,7 @@ const GitHubRepoCard = ({
         position: { x: 90, y: 90 },
         size: { width: 420 },
       },
-      { duplicateStrategy: 'focus' }
+      { duplicateStrategy: 'focus' },
     );
   };
 
@@ -234,7 +228,7 @@ const GitHubRepoCard = ({
           <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
             {repository.isLoading
               ? 'Loading repository details...'
-              : repository.data?.description ?? 'No description available.'}
+              : (repository.data?.description ?? 'No description available.')}
           </p>
         </div>
 
@@ -246,9 +240,7 @@ const GitHubRepoCard = ({
       </div>
 
       {repository.isError && (
-        <p style={{ margin: 0, color: '#b91c1c', fontSize: 13 }}>
-          {repository.error.message}
-        </p>
+        <p style={{ margin: 0, color: '#b91c1c', fontSize: 13 }}>{repository.error.message}</p>
       )}
 
       {repository.data && (
@@ -297,9 +289,7 @@ const GitHubRepoCard = ({
             }}
           >
             {commits.data.values.map((commit) => (
-              <li
-                key={commit.sha}
-              >
+              <li key={commit.sha}>
                 <a
                   href={commit.html_url}
                   target="_blank"
@@ -355,6 +345,7 @@ const ManagerControls = () => {
 
       <div style={{ display: 'grid', gap: '8px' }}>
         <button
+          type="button"
           onClick={() =>
             manager.open({
               id: 'commits-gnome-ui',
@@ -370,6 +361,7 @@ const ManagerControls = () => {
           Open Commits
         </button>
         <button
+          type="button"
           onClick={() =>
             manager.open({
               id: 'build-status',
@@ -384,19 +376,20 @@ const ManagerControls = () => {
         >
           Open Status
         </button>
-        <button onClick={() => manager.expandAll()} style={buttonStyle}>
+        <button type="button" onClick={() => manager.expandAll()} style={buttonStyle}>
           Expand All
         </button>
-        <button onClick={() => manager.collapseAll()} style={buttonStyle}>
+        <button type="button" onClick={() => manager.collapseAll()} style={buttonStyle}>
           Collapse All
         </button>
-        <button onClick={() => manager.minimizeAll()} style={buttonStyle}>
+        <button type="button" onClick={() => manager.minimizeAll()} style={buttonStyle}>
           Minimize All
         </button>
-        <button onClick={() => manager.restoreAll()} style={buttonStyle}>
+        <button type="button" onClick={() => manager.restoreAll()} style={buttonStyle}>
           Restore All
         </button>
         <button
+          type="button"
           onClick={() => manager.pinAll()}
           style={{
             ...buttonStyle,
@@ -406,6 +399,7 @@ const ManagerControls = () => {
           Pin All
         </button>
         <button
+          type="button"
           onClick={() => manager.unpinAll()}
           style={{
             ...buttonStyle,
@@ -415,6 +409,7 @@ const ManagerControls = () => {
           Unpin All
         </button>
         <button
+          type="button"
           onClick={() => manager.closeAll()}
           style={{
             ...buttonStyle,
@@ -461,9 +456,7 @@ const WidgetStatusBar = () => {
         fontSize: 13,
       }}
     >
-      <strong style={{ whiteSpace: 'nowrap' }}>
-        Widgets {widgets.length}
-      </strong>
+      <strong style={{ whiteSpace: 'nowrap' }}>Widgets {widgets.length}</strong>
       <span style={{ color: 'var(--gnome-view-fg-color)', whiteSpace: 'nowrap' }}>
         {visibleWidgets.length} visible / {minimizedWidgets.length} minimized
       </span>
@@ -535,7 +528,8 @@ export const WithManager: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Use FloatyWidgetManager and FloatyViewport to open application components as floating widgets with captured props.',
+        story:
+          'Use FloatyWidgetManager and FloatyViewport to open application components as floating widgets with captured props.',
       },
     },
   },
@@ -553,6 +547,7 @@ const LazyWidgetControls = () => {
       setLoadRequests((count) => count + 1);
     }, 0);
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
     return new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
       window.setTimeout(() => {
         void import('./LazyFloatyPanel').then(resolve);
@@ -605,7 +600,7 @@ const LazyWidgetControls = () => {
         position: { x: 96, y: 220 },
         size: { width: 360 },
       },
-      { duplicateStrategy: 'focus' }
+      { duplicateStrategy: 'focus' },
     );
   };
 
@@ -635,12 +630,10 @@ const LazyWidgetControls = () => {
         >
           <div>
             <Badge variant="accent">Lazy import</Badge>
-            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>
-              Code-split widget body
-            </h3>
+            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>Code-split widget body</h3>
             <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
-              The shell opens at once; the body resolves from a delayed dynamic
-              import so the Suspense fallback is visible.
+              The shell opens at once; the body resolves from a delayed dynamic import so the
+              Suspense fallback is visible.
             </p>
           </div>
 
@@ -710,7 +703,7 @@ const LazyWidgetControls = () => {
               lineHeight: 1.5,
             }}
           >
-{`manager.open({
+            {`manager.open({
   id: 'lazy-performance',
   loader: () => import('./LazyFloatyPanel'),
   fallback: <Spinner />,
@@ -743,15 +736,7 @@ export const WithLazyWidget: Story = {
   },
 };
 
-const UxPanel = ({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) => (
+const UxPanel = ({ label, value, detail }: { label: string; value: string; detail: string }) => (
   <div
     style={{
       display: 'grid',
@@ -766,9 +751,7 @@ const UxPanel = ({
   >
     <Badge variant="neutral">{label}</Badge>
     <strong style={{ fontSize: 24 }}>{value}</strong>
-    <p style={{ margin: 0, color: '#6b7280', fontSize: 13, lineHeight: 1.5 }}>
-      {detail}
-    </p>
+    <p style={{ margin: 0, color: '#6b7280', fontSize: 13, lineHeight: 1.5 }}>{detail}</p>
   </div>
 );
 
@@ -831,11 +814,7 @@ const UxWidgetList = () => {
             >
               {widget.isMinimized ? 'Restore' : 'Hide'}
             </Button>
-            <Button
-              size="sm"
-              variant="flat"
-              onClick={() => manager.bringToFront(widget.id)}
-            >
+            <Button size="sm" variant="flat" onClick={() => manager.bringToFront(widget.id)}>
               Focus
             </Button>
           </div>
@@ -900,6 +879,7 @@ const StoryUxControls = () => {
         id: 'ux-lazy-success',
         title: 'Lazy Success',
         loader: () =>
+          // eslint-disable-next-line @typescript-eslint/consistent-type-imports
           new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
             window.setTimeout(() => {
               setLazyLoads((count) => count + 1);
@@ -910,7 +890,7 @@ const StoryUxControls = () => {
         position: { x: 180, y: 420 },
         size: { width: 360 },
       },
-      { duplicateStrategy: 'focus' }
+      { duplicateStrategy: 'focus' },
     );
   };
 
@@ -920,6 +900,7 @@ const StoryUxControls = () => {
         id: 'ux-lazy-error',
         title: 'Lazy Error',
         loader: () =>
+          // eslint-disable-next-line @typescript-eslint/consistent-type-imports
           new Promise<typeof import('./LazyFloatyPanel')>((_, reject) => {
             window.setTimeout(() => {
               setLazyLoads((count) => count + 1);
@@ -930,7 +911,7 @@ const StoryUxControls = () => {
         position: { x: 560, y: 420 },
         size: { width: 360 },
       },
-      { duplicateStrategy: 'replace' }
+      { duplicateStrategy: 'replace' },
     );
   };
 
@@ -955,12 +936,10 @@ const StoryUxControls = () => {
         <Card padding="lg" style={{ display: 'grid', gap: 16 }}>
           <div>
             <Badge variant="accent">Story UX</Badge>
-            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>
-              Floaty workspace test bench
-            </h3>
+            <h3 style={{ margin: '12px 0 4px', fontSize: 18 }}>Floaty workspace test bench</h3>
             <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
-              Exercise the current UX states from one place: focus, minimize,
-              restore, collapse, viewport clamping, lazy loading, and lazy error.
+              Exercise the current UX states from one place: focus, minimize, restore, collapse,
+              viewport clamping, lazy loading, and lazy error.
             </p>
           </div>
 
@@ -1053,10 +1032,13 @@ const PREVIEW_WIDGETS = [
 
 const PreviewWidgetContent = ({ label, color }: { label: string; color: string }) => {
   const [count, setCount] = useState(0);
+
   return (
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 240 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <div
+          style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}
+        />
         <span style={{ fontWeight: 600, fontSize: 13 }}>{label} panel</span>
       </div>
       <Separator />
@@ -1064,7 +1046,8 @@ const PreviewWidgetContent = ({ label, color }: { label: string; color: string }
         Internal counter: <strong>{count}</strong>
       </p>
       <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
-        The preview below has its own independent counter — internal state diverges between the real widget and its thumbnail.
+        The preview below has its own independent counter — internal state diverges between the real
+        widget and its thumbnail.
       </p>
       <Button size="sm" onClick={() => setCount((c) => c + 1)}>
         Increment
@@ -1077,7 +1060,9 @@ const PreviewDock = () => {
   const manager = useFloatyWidgetManager();
   const widgets = Array.from(manager.widgets.values()).filter((w) => w.component);
 
-  if (widgets.length === 0) return null;
+  if (widgets.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -1159,6 +1144,7 @@ const PreviewStoryControls = () => {
 
   const toggle = (id: string, label: string, color: string) => {
     const widget = manager.getWidget(id);
+
     if (widget) {
       manager.close(id);
     } else {
@@ -1174,7 +1160,7 @@ const PreviewStoryControls = () => {
           },
           size: { width: 280 },
         },
-        { duplicateStrategy: 'focus' }
+        { duplicateStrategy: 'focus' },
       );
     }
   };
@@ -1184,14 +1170,15 @@ const PreviewStoryControls = () => {
       <div>
         <h3 style={{ margin: '0 0 4px' }}>FloatyPreview — dock thumbnail</h3>
         <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
-          Open widgets to see live scaled thumbnails in the dock bar below. Internal
-          state (counter) diverges between the real widget and its preview.
+          Open widgets to see live scaled thumbnails in the dock bar below. Internal state (counter)
+          diverges between the real widget and its preview.
         </p>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {PREVIEW_WIDGETS.map(({ id, label, color }) => {
           const isOpen = Boolean(manager.getWidget(id));
+
           return (
             <Button
               key={id}
