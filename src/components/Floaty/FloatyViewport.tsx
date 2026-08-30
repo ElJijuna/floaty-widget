@@ -118,10 +118,12 @@ const FloatyViewportItem = memo(
         defaultCollapsed={widget.isCollapsed}
         defaultMinimized={widget.isMinimized}
         defaultPinned={widget.isPinned}
+        defaultMaximized={widget.isMaximized}
         initialPosition={widget.position}
         initialSize={widget.size}
         zIndex={widget.zIndex}
         isActive={isActive}
+        persistenceKey={widget.persistenceKey}
         onClose={() => onClose(widget.id)}
         onFocus={() => onFocus(widget.id)}
       >

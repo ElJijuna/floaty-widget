@@ -299,6 +299,10 @@
   order: 2;
 }
 
+.floaty-button--maximize {
+  order: 2;
+}
+
 .floaty-button--close {
   order: 3;
 }
@@ -395,13 +399,81 @@
     transform 0.16s ease;
 }
 
+.floaty-resize-handle--n,
+.floaty-resize-handle--s {
+  right: 10px;
+  left: 10px;
+  width: auto;
+  height: 8px;
+}
+
+.floaty-resize-handle--n {
+  top: 0;
+  bottom: auto;
+  cursor: ns-resize;
+}
+
+.floaty-resize-handle--s {
+  bottom: 0;
+  cursor: ns-resize;
+}
+
+.floaty-resize-handle--e,
+.floaty-resize-handle--w {
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+  height: auto;
+}
+
+.floaty-resize-handle--e {
+  right: 0;
+  cursor: ew-resize;
+}
+
+.floaty-resize-handle--w {
+  right: auto;
+  left: 0;
+  cursor: ew-resize;
+}
+
+.floaty-resize-handle--ne,
+.floaty-resize-handle--nw,
+.floaty-resize-handle--se,
+.floaty-resize-handle--sw {
+  width: 14px;
+  height: 14px;
+}
+
+.floaty-resize-handle--ne {
+  top: 0;
+  right: 0;
+  bottom: auto;
+  cursor: nesw-resize;
+}
+
+.floaty-resize-handle--nw {
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.floaty-resize-handle--sw {
+  right: auto;
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
 .floaty.resize-enabled .floaty-resize-handle,
 .floaty.resizing .floaty-resize-handle {
   opacity: 1;
   transform: scale(1.04);
 }
 
-.floaty-resize-handle::before {
+.floaty-resize-handle--se::before {
   position: absolute;
   right: 5px;
   bottom: 5px;
@@ -555,4 +627,120 @@
 
 .floaty--window.collapsed {
   min-height: 0;
+}
+
+.floaty--window.maximized {
+  border-radius: 0;
+}
+
+.floaty--window.maximized .floaty-header,
+.floaty--window.snapped .floaty-header {
+  cursor: default;
+}
+
+.floaty-snap-preview {
+  position: fixed;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--floaty-header-bg, #4f46e5) 20%, transparent);
+  border: 2px solid color-mix(in srgb, var(--floaty-header-bg, #4f46e5) 68%, white);
+  border-radius: var(--floaty-radius, 8px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 38%, transparent);
+  pointer-events: none;
+  animation: floaty-snap-preview-in 120ms ease-out;
+}
+
+@keyframes floaty-snap-preview-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.floaty-taskbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px;
+  overflow-x: auto;
+  background: color-mix(in srgb, var(--floaty-bg, white) 88%, transparent);
+  border: 1px solid var(--floaty-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--floaty-radius, 8px);
+  box-shadow: var(--floaty-shadow, 0 10px 25px rgba(0, 0, 0, 0.1));
+  font-family: var(--floaty-font-family, sans-serif);
+}
+
+.floaty-task {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--floaty-button-radius, 4px);
+}
+
+.floaty-task.active {
+  border-color: color-mix(in srgb, var(--floaty-header-bg, #4f46e5) 60%, transparent);
+}
+
+.floaty-task-button,
+.floaty-task-close {
+  color: var(--floaty-fg, #374151);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.floaty-task-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 110px;
+  max-width: 220px;
+  padding: 7px 9px;
+}
+
+.floaty-task-close {
+  width: 30px;
+  font-size: 18px;
+}
+
+.floaty-task-button:hover,
+.floaty-task-close:hover {
+  background: color-mix(in srgb, var(--floaty-fg, #374151) 9%, transparent);
+}
+
+.floaty-task-button:focus-visible,
+.floaty-task-close:focus-visible {
+  outline: 2px solid var(--floaty-header-bg, #4f46e5);
+  outline-offset: -2px;
+}
+
+.floaty-task-status {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--floaty-fg, #374151) 42%, transparent);
+  border-radius: 999px;
+}
+
+.floaty-task.active .floaty-task-status {
+  background: var(--floaty-header-bg, #4f46e5);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--floaty-header-bg, #4f46e5) 18%, transparent);
+}
+
+.floaty-task.minimized .floaty-task-status {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+.floaty-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floaty-snap-preview {
+    animation: none;
+  }
 }

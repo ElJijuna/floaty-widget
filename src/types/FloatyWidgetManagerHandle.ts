@@ -67,6 +67,10 @@ export interface FloatyWidgetManagerHandle {
   pinWidget: (id: string) => void;
   /** Unpins a single widget by id. */
   unpinWidget: (id: string) => void;
+  /** Maximizes a single widget by id. */
+  maximizeWidget: (id: string) => void;
+  /** Restores a maximized or snapped widget by id. */
+  unmaximizeWidget: (id: string) => void;
   /** Returns the total number of registered widgets. */
   getWidgetCount: () => number;
   /** Returns the current state of a widget, or `undefined` if it does not exist. */

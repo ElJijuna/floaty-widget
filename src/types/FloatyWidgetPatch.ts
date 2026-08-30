@@ -14,4 +14,5 @@ export type FloatyWidgetPatch<P = unknown> = Partial<
   collapsed?: boolean;
   minimized?: boolean;
   pinned?: boolean;
+  maximized?: boolean;
 };

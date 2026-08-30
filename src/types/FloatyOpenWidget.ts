@@ -25,6 +25,10 @@ export type FloatyOpenWidgetBase<P> = {
   minimized?: boolean;
   /** Open the widget already pinned. */
   pinned?: boolean;
+  /** Open the widget maximized. */
+  maximized?: boolean;
+  /** Persist window layout under this localStorage key. */
+  persistenceKey?: string;
   /** Additional CSS class applied to the widget root element. */
   className?: string;
 };

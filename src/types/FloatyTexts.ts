@@ -8,6 +8,8 @@ export interface FloatyActionTexts {
   restore: string;
   close: string;
   resize: string;
+  maximize: string;
+  unmaximize: string;
 }
 
 /** Localised text rendered by Floaty controls and built-in loading/error states. */

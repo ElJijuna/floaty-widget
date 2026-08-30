@@ -7,3 +7,9 @@ dist/
 .env.local
 .env.*.local
 storybook-static/
+coverage/
+.agents
+skills-lock.json
+playwright-report/
+test-results/
+blob-report/

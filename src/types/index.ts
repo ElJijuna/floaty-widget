@@ -15,3 +15,10 @@ export type { FloatyWidgetManagerHandle } from './FloatyWidgetManagerHandle';
 export type { FloatyWidgetManagerProps } from './FloatyWidgetManagerProps';
 export type { FloatyWidgetPatch } from './FloatyWidgetPatch';
 export type { FloatyWidgetState } from './FloatyWidgetState';
+export type {
+  FloatyGeometry,
+  FloatyPersistedState,
+  FloatyResizeDirection,
+  FloatySizeConstraints,
+  FloatySnapZone,
+} from './FloatyWindow';

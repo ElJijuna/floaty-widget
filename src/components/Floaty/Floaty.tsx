@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import './Floaty.css';
 import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 import type {
@@ -19,9 +20,23 @@ import type {
   FloatyIcons,
   FloatyMode,
   FloatyPosition,
+  FloatyResizeDirection,
   FloatySize,
+  FloatySizeConstraints,
+  FloatySnapZone,
   FloatyTexts,
 } from '../../types';
+import {
+  clampPosition,
+  constrainSize,
+  DEFAULT_MIN_HEIGHT,
+  DEFAULT_SNAP_THRESHOLD,
+  getSnapGeometry,
+  getSnapZone,
+  numericSize,
+  readPersistedState,
+  writePersistedState,
+} from '../../utils/windowGeometry';
 
 /** Props for the `<Floaty>` component. */
 export interface FloatyProps {
@@ -50,10 +65,20 @@ export interface FloatyProps {
   defaultMinimized?: boolean;
   /** Whether the widget is pinned (non-draggable) on first render. @default false */
   defaultPinned?: boolean;
+  /** Whether the widget fills the viewport on first render. @default false */
+  defaultMaximized?: boolean;
   /** Initial screen position. @default \{ x: 100, y: 100 \} */
   initialPosition?: FloatyPosition;
   /** Initial dimensions. */
   initialSize?: FloatySize;
+  /** Pixel constraints respected by pointer, keyboard and imperative resizing. */
+  sizeConstraints?: FloatySizeConstraints;
+  /** Enables edge and corner snapping while dragging window mode. @default true */
+  snap?: boolean;
+  /** Distance from a viewport edge that activates snap preview. @default 28 */
+  snapThreshold?: number;
+  /** localStorage key used to persist geometry and window state. */
+  persistenceKey?: string;
   /** CSS `z-index` for this widget. */
   zIndex?: number;
   /** Whether this widget is currently the active/front-most widget. */
@@ -62,6 +87,18 @@ export interface FloatyProps {
   onClose?: () => void;
   /** Called when the user clicks or starts dragging the widget (used to bring it to front). */
   onFocus?: () => void;
+  /** Called when this widget gains or loses front-most focus. */
+  onFocusChange?: (focused: boolean) => void;
+  /** Called when a pointer resize starts. */
+  onResizeStart?: (size: FloatySize) => void;
+  /** Called whenever the committed size changes. */
+  onResize?: (size: FloatySize) => void;
+  /** Called when a pointer resize ends. */
+  onResizeEnd?: (size: FloatySize) => void;
+  /** Called whenever the committed position changes. */
+  onPositionChange?: (position: FloatyPosition) => void;
+  /** Called when maximized state changes. */
+  onMaximizeChange?: (maximized: boolean) => void;
 }
 
 const defaultLabels: FloatyTexts = {
@@ -73,20 +110,18 @@ const defaultLabels: FloatyTexts = {
   restore: 'Restore',
   close: 'Close',
   resize: 'Resize widget',
+  maximize: 'Maximize',
+  unmaximize: 'Restore window',
   loading: 'Loading widget...',
   loadError: 'Could not load widget',
   retry: 'Retry',
 };
 
-const getNumericSize = (value: number | string | undefined, fallback: number) =>
-  typeof value === 'number' ? value : fallback;
-
 const KEYBOARD_MOVE_STEP = 10;
 const KEYBOARD_MOVE_LARGE_STEP = 50;
 const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
-const MIN_WIDTH = 240;
-const MIN_HEIGHT = 96;
+const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 
 const getKeyboardStep = (
   e: ReactKeyboardEvent<HTMLElement>,
@@ -102,25 +137,6 @@ const getKeyboardStep = (
   }
 
   return baseStep;
-};
-
-const clampPositionToViewport = (
-  position: FloatyPosition,
-  size: FloatySize | undefined,
-): FloatyPosition => {
-  if (typeof window === 'undefined') {
-    return position;
-  }
-
-  const width = getNumericSize(size?.width, 320);
-  const height = getNumericSize(size?.height, 96);
-  const maxX = Math.max(0, window.innerWidth - width);
-  const maxY = Math.max(0, window.innerHeight - height);
-
-  return {
-    x: Math.max(0, Math.min(position.x, maxX)),
-    y: Math.max(0, Math.min(position.y, maxY)),
-  };
 };
 
 const PinIcon = ({ pinned }: { pinned: boolean }) => (
@@ -223,6 +239,27 @@ const ResizeIcon = ({ active }: { active?: boolean }) => (
   </svg>
 );
 
+const MaximizeIcon = ({ maximized }: { maximized: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    aria-hidden="true"
+  >
+    {maximized ? (
+      <>
+        <rect x="4" y="8" width="12" height="12" rx="1" />
+        <path d="M8 8V4h12v12h-4" />
+      </>
+    ) : (
+      <rect x="4" y="4" width="16" height="16" rx="1" />
+    )}
+  </svg>
+);
+
 /**
  * A draggable, resizable, collapsible floating widget.
  *
@@ -252,12 +289,23 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       defaultCollapsed = false,
       defaultMinimized = false,
       defaultPinned = false,
+      defaultMaximized = false,
       initialPosition = { x: 100, y: 100 },
       initialSize,
+      sizeConstraints = {},
+      snap = true,
+      snapThreshold = DEFAULT_SNAP_THRESHOLD,
+      persistenceKey,
       zIndex,
       isActive = false,
       onClose,
       onFocus,
+      onFocusChange,
+      onResizeStart,
+      onResize,
+      onResizeEnd,
+      onPositionChange,
+      onMaximizeChange,
     }: FloatyProps,
     ref,
   ) => {
@@ -269,17 +317,26 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       [manager?.labels, labelsProp],
     );
     const mergedIcons = useMemo(() => ({ ...manager?.icons, ...icons }), [manager?.icons, icons]);
-    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-    const [isMinimized, setIsMinimized] = useState(defaultMinimized);
-    const [isPinned, setIsPinned] = useState(defaultPinned);
+    const [persistedState] = useState(() => readPersistedState(persistenceKey));
+    const [isCollapsed, setIsCollapsed] = useState(persistedState?.isCollapsed ?? defaultCollapsed);
+    const [isMinimized, setIsMinimized] = useState(persistedState?.isMinimized ?? defaultMinimized);
+    const [isPinned, setIsPinned] = useState(persistedState?.isPinned ?? defaultPinned);
+    const [isMaximized, setIsMaximized] = useState(persistedState?.isMaximized ?? defaultMaximized);
+    const [snapZone, setSnapZone] = useState<FloatySnapZone | null>(
+      persistedState?.snapZone ?? null,
+    );
+    const [snapPreview, setSnapPreview] = useState<FloatySnapZone | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const [position, setPosition] = useState<FloatyPosition>(() =>
-      clampPositionToViewport(initialPosition, initialSize),
+      clampPosition(
+        persistedState?.position ?? initialPosition,
+        persistedState?.size ?? initialSize,
+      ),
     );
-    const [size, setSize] = useState<FloatySize>(initialSize ?? {});
-    const floatyRef = useRef<HTMLDivElement>(null);
+    const [size, setSize] = useState<FloatySize>(persistedState?.size ?? initialSize ?? {});
+    const floatyRef = useRef<HTMLElement>(null);
     const dragStateRef = useRef({
       isDragging: false,
       startPointerX: 0,
@@ -299,6 +356,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       startHeight: 0,
       baseLeft: 0,
       baseTop: 0,
+      direction: 'se' as FloatyResizeDirection,
+      startX: 0,
+      startY: 0,
     });
     const positionRef = useRef(position);
     const sizeRef = useRef(size);
@@ -306,6 +366,14 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const pendingPositionRef = useRef<FloatyPosition | null>(null);
     const pendingSizeRef = useRef<FloatySize | null>(null);
     const internalHandleRef = useRef<FloatyHandle | null>(null);
+    const restoreGeometryRef = useRef({
+      position: persistedState?.restoreGeometry?.position ?? initialPosition,
+      size: persistedState?.restoreGeometry?.size ?? initialSize ?? {},
+    });
+    const isMaximizedRef = useRef(isMaximized);
+    const snapZoneRef = useRef(snapZone);
+    const snapPreviewRef = useRef<FloatySnapZone | null>(null);
+    const sizeConstraintsRef = useRef(sizeConstraints);
     const Pin = mergedIcons.pin;
     const Unpin = mergedIcons.unpin;
     const Collapse = mergedIcons.collapse;
@@ -313,6 +381,67 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const Minimize = mergedIcons.minimize;
     const Close = mergedIcons.close;
     const Resize = mergedIcons.resize;
+    const Maximize = mergedIcons.maximize;
+    const Unmaximize = mergedIcons.unmaximize;
+
+    sizeConstraintsRef.current = sizeConstraints;
+
+    const commitGeometry = useCallback(
+      (geometry: { position: FloatyPosition; size: FloatySize }) => {
+        positionRef.current = geometry.position;
+        sizeRef.current = geometry.size;
+        setPosition(geometry.position);
+        setSize(geometry.size);
+      },
+      [],
+    );
+
+    const captureRestoreGeometry = useCallback(() => {
+      if (isMaximizedRef.current || snapZoneRef.current) {
+        return;
+      }
+
+      const rect = floatyRef.current?.getBoundingClientRect();
+      restoreGeometryRef.current = {
+        position: positionRef.current,
+        size: {
+          width: numericSize(sizeRef.current.width, rect?.width ?? 320),
+          height: numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT),
+        },
+      };
+    }, []);
+
+    const maximizeWindow = useCallback(() => {
+      captureRestoreGeometry();
+      commitGeometry(getSnapGeometry('top'));
+      snapZoneRef.current = null;
+      isMaximizedRef.current = true;
+      setSnapZone(null);
+      setIsMaximized(true);
+      setIsCollapsed(false);
+    }, [captureRestoreGeometry, commitGeometry]);
+
+    const unmaximizeWindow = useCallback(() => {
+      commitGeometry(restoreGeometryRef.current);
+      snapZoneRef.current = null;
+      isMaximizedRef.current = false;
+      setSnapZone(null);
+      setIsMaximized(false);
+    }, [commitGeometry]);
+
+    const snapWindow = useCallback(
+      (zone: FloatySnapZone) => {
+        captureRestoreGeometry();
+        commitGeometry(getSnapGeometry(zone));
+        const maximized = zone === 'top';
+        snapZoneRef.current = maximized ? null : zone;
+        isMaximizedRef.current = maximized;
+        setSnapZone(maximized ? null : zone);
+        setIsMaximized(maximized);
+        setIsCollapsed(false);
+      },
+      [captureRestoreGeometry, commitGeometry],
+    );
 
     const handleMethods = useMemo<FloatyHandle>(
       () => ({
@@ -325,30 +454,58 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         toggle: () => setIsCollapsed((prev) => !prev),
         toggleMinimized: () => setIsMinimized((prev) => !prev),
         moveTo: (nextPosition) => {
-          const clampedPosition = clampPositionToViewport(nextPosition, sizeRef.current);
+          const clampedPosition = clampPosition(nextPosition, sizeRef.current);
 
           positionRef.current = clampedPosition;
           setPosition(clampedPosition);
+          snapZoneRef.current = null;
+          isMaximizedRef.current = false;
+          setSnapZone(null);
+          setIsMaximized(false);
         },
         resizeTo: (nextSize) => {
-          sizeRef.current = nextSize;
-          setSize(nextSize);
+          const constrained = constrainSize(
+            {
+              width: nextSize.width ?? sizeRef.current.width ?? 320,
+              height: nextSize.height ?? sizeRef.current.height ?? DEFAULT_MIN_HEIGHT,
+            },
+            sizeConstraintsRef.current,
+            {
+              width: window.innerWidth - positionRef.current.x,
+              height: window.innerHeight - positionRef.current.y,
+            },
+          );
+
+          sizeRef.current = constrained;
+          setSize(constrained);
           setPosition((current) => {
-            const clampedPosition = clampPositionToViewport(current, nextSize);
+            const clampedPosition = clampPosition(current, constrained);
 
             positionRef.current = clampedPosition;
 
             return clampedPosition;
           });
         },
+        maximize: maximizeWindow,
+        unmaximize: unmaximizeWindow,
+        toggleMaximized: () => {
+          if (isMaximizedRef.current || snapZoneRef.current) {
+            unmaximizeWindow();
+          } else {
+            maximizeWindow();
+          }
+        },
+        snapTo: snapWindow,
       }),
-      [],
+      [maximizeWindow, snapWindow, unmaximizeWindow],
     );
 
     // Keep internal ref always updated
     internalHandleRef.current = handleMethods;
     positionRef.current = position;
     sizeRef.current = size;
+    isMaximizedRef.current = isMaximized;
+    snapZoneRef.current = snapZone;
 
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
@@ -362,10 +519,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           isCollapsed,
           isMinimized,
           isPinned,
+          isMaximized,
+          snapZone,
           position,
           size,
           mode,
           zIndex,
+          persistenceKey,
         });
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -377,13 +537,63 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           isCollapsed,
           isMinimized,
           isPinned,
+          isMaximized,
+          snapZone,
           position,
           size,
           mode,
           zIndex,
+          persistenceKey,
         });
       }
-    }, [id, isCollapsed, isMinimized, isPinned, mode, position, size, zIndex, updateWidgetState]);
+    }, [
+      id,
+      isCollapsed,
+      isMaximized,
+      isMinimized,
+      isPinned,
+      mode,
+      persistenceKey,
+      position,
+      size,
+      snapZone,
+      updateWidgetState,
+      zIndex,
+    ]);
+
+    useEffect(() => {
+      onFocusChange?.(isActive);
+    }, [isActive, onFocusChange]);
+
+    useEffect(() => {
+      onPositionChange?.(position);
+    }, [onPositionChange, position]);
+
+    useEffect(() => {
+      onResize?.(size);
+    }, [onResize, size]);
+
+    useEffect(() => {
+      onMaximizeChange?.(isMaximized);
+    }, [isMaximized, onMaximizeChange]);
+
+    useEffect(() => {
+      if (!persistenceKey) {
+        return;
+      }
+
+      writePersistedState(persistenceKey, {
+        version: 1,
+        position,
+        size,
+        isCollapsed,
+        isMinimized,
+        isPinned,
+        isMaximized,
+        snapZone,
+        restoreGeometry: restoreGeometryRef.current,
+      });
+    }, [isCollapsed, isMaximized, isMinimized, isPinned, persistenceKey, position, size, snapZone]);
 
     const flushPendingFrame = useCallback(() => {
       frameRef.current = null;
@@ -441,28 +651,77 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
           pendingPositionRef.current = { x: newX, y: newY };
           scheduleVisualUpdate();
+
+          if (mode === 'window' && snap) {
+            const nextSnapZone = getSnapZone(
+              { x: e.clientX, y: e.clientY },
+              window.innerWidth,
+              window.innerHeight,
+              snapThreshold,
+            );
+
+            if (nextSnapZone !== snapPreviewRef.current) {
+              snapPreviewRef.current = nextSnapZone;
+              setSnapPreview(nextSnapZone);
+            }
+          }
         }
 
         if (resizeStateRef.current.isResizing) {
           const resizeState = resizeStateRef.current;
-          const maxWidth = window.innerWidth - resizeState.baseLeft;
-          const maxHeight = window.innerHeight - resizeState.baseTop;
-          const nextWidth = resizeState.startWidth + e.clientX - resizeState.startPointerX;
-          const nextHeight = resizeState.startHeight + e.clientY - resizeState.startPointerY;
+          const dx = e.clientX - resizeState.startPointerX;
+          const dy = e.clientY - resizeState.startPointerY;
+          const fromWest = resizeState.direction.includes('w');
+          const fromNorth = resizeState.direction.includes('n');
+          const changesWidth = fromWest || resizeState.direction.includes('e');
+          const changesHeight = fromNorth || resizeState.direction.includes('s');
+          const requestedWidth = changesWidth
+            ? resizeState.startWidth + (fromWest ? -dx : dx)
+            : resizeState.startWidth;
+          const requestedHeight = changesHeight
+            ? resizeState.startHeight + (fromNorth ? -dy : dy)
+            : resizeState.startHeight;
+          const constrained = constrainSize(
+            { width: requestedWidth, height: requestedHeight },
+            sizeConstraintsRef.current,
+            {
+              width: fromWest
+                ? resizeState.startX + resizeState.startWidth
+                : window.innerWidth - resizeState.startX,
+              height: fromNorth
+                ? resizeState.startY + resizeState.startHeight
+                : window.innerHeight - resizeState.startY,
+            },
+          );
 
           pendingSizeRef.current = {
-            width: Math.max(MIN_WIDTH, Math.min(nextWidth, maxWidth)),
-            height: Math.max(MIN_HEIGHT, Math.min(nextHeight, maxHeight)),
+            width: constrained.width,
+            height: constrained.height,
           };
+
+          if (fromWest || fromNorth) {
+            pendingPositionRef.current = {
+              x: fromWest
+                ? resizeState.startX + resizeState.startWidth - constrained.width
+                : resizeState.startX,
+              y: fromNorth
+                ? resizeState.startY + resizeState.startHeight - constrained.height
+                : resizeState.startY,
+            };
+          }
+
           scheduleVisualUpdate();
         }
       },
-      [scheduleVisualUpdate],
+      [mode, scheduleVisualUpdate, snap, snapThreshold],
     );
 
     const handlePointerUp = useCallback(() => {
       const nextPosition = pendingPositionRef.current;
       const nextSize = pendingSizeRef.current;
+      const nextSnapZone = snapPreviewRef.current;
+      const endedDrag = dragStateRef.current.isDragging;
+      const endedResize = resizeStateRef.current.isResizing;
 
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
@@ -473,15 +732,24 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       resizeStateRef.current.isResizing = false;
       pendingPositionRef.current = null;
       pendingSizeRef.current = null;
+      snapPreviewRef.current = null;
+      setSnapPreview(null);
 
-      if (nextPosition) {
+      if (nextSnapZone && endedDrag) {
+        snapWindow(nextSnapZone);
+      } else if (nextPosition) {
         positionRef.current = nextPosition;
         setPosition(nextPosition);
+        snapZoneRef.current = null;
+        setSnapZone(null);
       }
 
       if (nextSize) {
         sizeRef.current = nextSize;
         setSize(nextSize);
+        if (endedResize) {
+          onResizeEnd?.(nextSize);
+        }
       }
 
       setIsDragging(false);
@@ -489,7 +757,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       globalThis.removeEventListener('pointermove', handlePointerMove);
       globalThis.removeEventListener('pointerup', handlePointerUp);
       globalThis.removeEventListener('pointercancel', handlePointerUp);
-    }, [flushPendingFrame, handlePointerMove]);
+    }, [flushPendingFrame, handlePointerMove, onResizeEnd, snapWindow]);
 
     const startGlobalPointerListeners = useCallback(() => {
       globalThis.addEventListener('pointermove', handlePointerMove);
@@ -503,6 +771,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
 
       if (isPinned) {
+        return;
+      }
+
+      if (isMaximized || snapZone) {
         return;
       }
 
@@ -531,8 +803,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     };
 
-    const handleResizePointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
-      if (isCollapsed || !isResizeEnabled) {
+    const handleResizePointerDown = (
+      e: ReactPointerEvent<HTMLElement>,
+      direction: FloatyResizeDirection,
+    ) => {
+      const resizeEnabled = mode === 'window' || isResizeEnabled;
+
+      if (isCollapsed || !resizeEnabled || isMaximized) {
         return;
       }
 
@@ -551,7 +828,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           startHeight: rect.height,
           baseLeft: rect.left,
           baseTop: rect.top,
+          startX: positionRef.current.x,
+          startY: positionRef.current.y,
+          direction,
         };
+        onResizeStart?.({ width: rect.width, height: rect.height });
         startGlobalPointerListeners();
         setIsResizing(true);
       }
@@ -562,7 +843,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         return;
       }
 
-      setIsCollapsed((collapsed) => !collapsed);
+      if (mode === 'window') {
+        handleMethods.toggleMaximized();
+      } else {
+        setIsCollapsed((collapsed) => !collapsed);
+      }
     };
 
     const handleHeaderKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
@@ -572,12 +857,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        setIsCollapsed((collapsed) => !collapsed);
+        if (mode === 'window') {
+          handleMethods.toggleMaximized();
+        } else {
+          setIsCollapsed((collapsed) => !collapsed);
+        }
 
         return;
       }
 
-      if (!isPinned && ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
+      if (
+        !isPinned &&
+        !isMaximized &&
+        !snapZone &&
+        ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)
+      ) {
         e.preventDefault();
         onFocus?.();
         const step = getKeyboardStep(e, KEYBOARD_MOVE_STEP, KEYBOARD_MOVE_LARGE_STEP);
@@ -591,16 +885,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         )[e.key] ?? { x: 0, y: 0 };
 
         setPosition((current) =>
-          clampPositionToViewport(
-            { x: current.x + delta.x, y: current.y + delta.y },
-            sizeRef.current,
-          ),
+          clampPosition({ x: current.x + delta.x, y: current.y + delta.y }, sizeRef.current),
         );
       }
     };
 
     const handleResizeKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
-      if (!isResizeEnabled) {
+      if ((mode !== 'window' && !isResizeEnabled) || isMaximized) {
         return;
       }
 
@@ -613,8 +904,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       onFocus?.();
 
       const rect = floatyRef.current?.getBoundingClientRect();
-      const currentWidth = getNumericSize(sizeRef.current.width, rect?.width ?? 320);
-      const currentHeight = getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT);
+      const currentWidth = numericSize(sizeRef.current.width, rect?.width ?? 320);
+      const currentHeight = numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT);
       const step = getKeyboardStep(e, KEYBOARD_RESIZE_STEP, KEYBOARD_RESIZE_LARGE_STEP);
       const delta = (
         {
@@ -626,13 +917,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       )[e.key] ?? { width: 0, height: 0 };
       const baseLeft = rect?.left ?? positionRef.current.x;
       const baseTop = rect?.top ?? positionRef.current.y;
-      const maxWidth = Math.max(MIN_WIDTH, window.innerWidth - baseLeft);
-      const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight - baseTop);
-
-      setSize({
-        width: Math.max(MIN_WIDTH, Math.min(currentWidth + delta.width, maxWidth)),
-        height: Math.max(MIN_HEIGHT, Math.min(currentHeight + delta.height, maxHeight)),
-      });
+      setSize(
+        constrainSize(
+          { width: currentWidth + delta.width, height: currentHeight + delta.height },
+          sizeConstraintsRef.current,
+          { width: window.innerWidth - baseLeft, height: window.innerHeight - baseTop },
+        ),
+      );
     };
 
     const toggleResizeEnabled = () => {
@@ -659,21 +950,33 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
     useEffect(() => {
       const handleViewportResize = () => {
+        if (isMaximizedRef.current) {
+          commitGeometry(getSnapGeometry('top'));
+          return;
+        }
+
+        if (snapZoneRef.current) {
+          commitGeometry(getSnapGeometry(snapZoneRef.current));
+          return;
+        }
+
         const rect = floatyRef.current?.getBoundingClientRect();
         const measuredSize = {
-          width: getNumericSize(sizeRef.current.width, rect?.width ?? 320),
-          height: getNumericSize(sizeRef.current.height, rect?.height ?? MIN_HEIGHT),
+          width: numericSize(sizeRef.current.width, rect?.width ?? 320),
+          height: numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT),
         };
 
-        setPosition((current) => clampPositionToViewport(current, measuredSize));
+        setPosition((current) => clampPosition(current, measuredSize));
       };
+
+      handleViewportResize();
 
       globalThis.addEventListener('resize', handleViewportResize);
 
       return () => {
         globalThis.removeEventListener('resize', handleViewportResize);
       };
-    }, []);
+    }, [commitGeometry]);
 
     useEffect(() => {
       if (isCollapsed || isMinimized) {
@@ -685,128 +988,196 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       return null;
     }
 
+    const resizeEnabled = mode === 'window' || isResizeEnabled;
+    const previewGeometry = snapPreview ? getSnapGeometry(snapPreview) : null;
+    const isDocked = isMaximized || Boolean(snapZone);
+
     return (
-      <div
-        ref={floatyRef}
-        className={`floaty floaty--${mode} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isResizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
-        onPointerDown={onFocus}
-        style={{
-          ...style,
-          left: 0,
-          top: 0,
-          width: size.width ?? style.width,
-          height: mode === 'window' && isCollapsed ? undefined : (size.height ?? style.height),
-          transform: `translate(${position.x}px, ${position.y}px)`,
-          zIndex,
-        }}
-      >
-        <div
-          role="toolbar"
-          className={`floaty-header ${isPinned ? 'pinned' : ''}`}
-          onPointerDown={handlePointerDown}
-          onDoubleClick={handleHeaderDoubleClick}
-          onKeyDown={handleHeaderKeyDown}
-          aria-label={`${titleText ?? 'Floaty widget'} controls`}
-          aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
-          tabIndex={0}
+      <>
+        <section
+          ref={floatyRef}
+          aria-label={titleText ?? 'Floaty widget'}
+          data-active={isActive || undefined}
+          data-maximized={isMaximized || undefined}
+          data-snap-zone={snapZone ?? undefined}
+          className={`floaty floaty--${mode} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+          onPointerDown={onFocus}
+          style={{
+            ...style,
+            left: 0,
+            top: 0,
+            width: size.width ?? style.width,
+            height: mode === 'window' && isCollapsed ? undefined : (size.height ?? style.height),
+            minWidth: isDocked ? 0 : (sizeConstraints.minWidth ?? style.minWidth),
+            minHeight: isDocked ? 0 : (sizeConstraints.minHeight ?? style.minHeight),
+            maxWidth: isDocked ? 'none' : (sizeConstraints.maxWidth ?? style.maxWidth),
+            maxHeight: isDocked ? 'none' : (sizeConstraints.maxHeight ?? style.maxHeight),
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            zIndex,
+          }}
         >
-          <span className="floaty-header-grip" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-          </span>
-
-          <button
-            type="button"
-            className="floaty-button floaty-button--pin"
-            onClick={() => setIsPinned((pinned) => !pinned)}
-            title={isPinned ? labels.unpin : labels.pin}
-            aria-label={isPinned ? labels.unpin : labels.pin}
+          <div
+            role="toolbar"
+            className={`floaty-header ${isPinned ? 'pinned' : ''}`}
+            onPointerDown={handlePointerDown}
+            onDoubleClick={handleHeaderDoubleClick}
+            onKeyDown={handleHeaderKeyDown}
+            aria-label={`${titleText ?? 'Floaty widget'} controls`}
+            aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
+            tabIndex={0}
           >
-            {isPinned && Unpin ? (
-              <Unpin active />
-            ) : !isPinned && Pin ? (
-              <Pin />
-            ) : (
-              <PinIcon pinned={isPinned} />
-            )}
-          </button>
+            <span className="floaty-header-grip" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </span>
 
-          <span className="floaty-title" title={titleText}>
-            {title}
-          </span>
-
-          <button
-            type="button"
-            className="floaty-button floaty-button--expand"
-            onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-            title={isCollapsed ? labels.expand : labels.collapse}
-            aria-label={isCollapsed ? labels.expand : labels.collapse}
-          >
-            {isCollapsed && Expand ? (
-              <Expand active />
-            ) : !isCollapsed && Collapse ? (
-              <Collapse />
-            ) : (
-              <ChevronIcon collapsed={isCollapsed} />
-            )}
-          </button>
-
-          <button
-            type="button"
-            className="floaty-button floaty-button--resize"
-            onClick={toggleResizeEnabled}
-            title={labels.resize}
-            aria-label={labels.resize}
-            aria-pressed={isResizeEnabled}
-            disabled={isCollapsed}
-          >
-            {Resize ? <Resize active={isResizeEnabled} /> : <ResizeIcon active={isResizeEnabled} />}
-          </button>
-
-          <button
-            type="button"
-            className="floaty-button floaty-button--minimize"
-            onClick={() => {
-              setIsResizeEnabled(false);
-              setIsMinimized(true);
-            }}
-            title={labels.minimize}
-            aria-label={labels.minimize}
-          >
-            {Minimize ? <Minimize /> : <MinusIcon />}
-          </button>
-
-          {onClose && (
             <button
               type="button"
-              className="floaty-button floaty-button--close"
-              onClick={onClose}
-              title={labels.close}
-              aria-label={labels.close}
+              className="floaty-button floaty-button--pin"
+              onClick={() => setIsPinned((pinned) => !pinned)}
+              title={isPinned ? labels.unpin : labels.pin}
+              aria-label={isPinned ? labels.unpin : labels.pin}
             >
-              {Close ? <Close /> : <CloseIcon />}
+              {isPinned && Unpin ? (
+                <Unpin active />
+              ) : !isPinned && Pin ? (
+                <Pin />
+              ) : (
+                <PinIcon pinned={isPinned} />
+              )}
             </button>
+
+            {mode === 'window' && (
+              <button
+                type="button"
+                className="floaty-button floaty-button--maximize"
+                onClick={handleMethods.toggleMaximized}
+                title={isMaximized || snapZone ? labels.unmaximize : labels.maximize}
+                aria-label={isMaximized || snapZone ? labels.unmaximize : labels.maximize}
+                aria-pressed={isMaximized}
+              >
+                {isMaximized && Unmaximize ? (
+                  <Unmaximize active />
+                ) : !isMaximized && Maximize ? (
+                  <Maximize />
+                ) : (
+                  <MaximizeIcon maximized={isMaximized || Boolean(snapZone)} />
+                )}
+              </button>
+            )}
+
+            <span className="floaty-title" title={titleText}>
+              {title}
+            </span>
+
+            <button
+              type="button"
+              className="floaty-button floaty-button--expand"
+              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+              title={isCollapsed ? labels.expand : labels.collapse}
+              aria-label={isCollapsed ? labels.expand : labels.collapse}
+            >
+              {isCollapsed && Expand ? (
+                <Expand active />
+              ) : !isCollapsed && Collapse ? (
+                <Collapse />
+              ) : (
+                <ChevronIcon collapsed={isCollapsed} />
+              )}
+            </button>
+
+            {mode === 'floating' && (
+              <button
+                type="button"
+                className="floaty-button floaty-button--resize"
+                onClick={toggleResizeEnabled}
+                title={labels.resize}
+                aria-label={labels.resize}
+                aria-pressed={isResizeEnabled}
+                disabled={isCollapsed}
+              >
+                {Resize ? (
+                  <Resize active={isResizeEnabled} />
+                ) : (
+                  <ResizeIcon active={isResizeEnabled} />
+                )}
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="floaty-button floaty-button--minimize"
+              onClick={() => {
+                setIsResizeEnabled(false);
+                setIsMinimized(true);
+              }}
+              title={labels.minimize}
+              aria-label={labels.minimize}
+            >
+              {Minimize ? <Minimize /> : <MinusIcon />}
+            </button>
+
+            {onClose && (
+              <button
+                type="button"
+                className="floaty-button floaty-button--close"
+                onClick={onClose}
+                title={labels.close}
+                aria-label={labels.close}
+              >
+                {Close ? <Close /> : <CloseIcon />}
+              </button>
+            )}
+          </div>
+
+          {!isCollapsed && <div className="floaty-body">{children}</div>}
+
+          {!isCollapsed &&
+            resizeEnabled &&
+            !isMaximized &&
+            RESIZE_DIRECTIONS.map((direction) =>
+              direction === 'se' ? (
+                <button
+                  key={direction}
+                  type="button"
+                  className={`floaty-resize-handle floaty-resize-handle--${direction}`}
+                  onPointerDown={(event) => handleResizePointerDown(event, direction)}
+                  onKeyDown={handleResizeKeyDown}
+                  title={labels.resize}
+                  aria-label={`${labels.resize} handle`}
+                  aria-keyshortcuts="ArrowUp ArrowRight ArrowDown ArrowLeft"
+                />
+              ) : (
+                <span
+                  key={direction}
+                  aria-hidden="true"
+                  className={`floaty-resize-handle floaty-resize-handle--${direction}`}
+                  onPointerDown={(event) => handleResizePointerDown(event, direction)}
+                />
+              ),
+            )}
+        </section>
+
+        {previewGeometry &&
+          createPortal(
+            <div
+              className="floaty-snap-preview"
+              data-snap-zone={snapPreview ?? undefined}
+              style={{
+                left: previewGeometry.position.x,
+                top: previewGeometry.position.y,
+                width: previewGeometry.size.width,
+                height: previewGeometry.size.height,
+                zIndex: (zIndex ?? 1000) + 1,
+              }}
+            />,
+            document.body,
           )}
-        </div>
-
-        {!isCollapsed && <div className="floaty-body">{children}</div>}
-
-        {!isCollapsed && isResizeEnabled && (
-          <button
-            type="button"
-            className="floaty-resize-handle"
-            onPointerDown={handleResizePointerDown}
-            onKeyDown={handleResizeKeyDown}
-            title={labels.resize}
-            aria-label={`${labels.resize} handle`}
-            aria-keyshortcuts="ArrowUp ArrowRight ArrowDown ArrowLeft"
-          />
-        )}
-      </div>
+      </>
     );
   },
 );

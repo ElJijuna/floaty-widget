@@ -263,6 +263,11 @@ All props are optional.
 | `defaultCollapsed` | `boolean` | `false` | Start collapsed |
 | `defaultMinimized` | `boolean` | `false` | Start hidden |
 | `defaultPinned` | `boolean` | `false` | Start pinned (no drag) |
+| `defaultMaximized` | `boolean` | `false` | Start maximized in the viewport |
+| `sizeConstraints` | `{ minWidth?, minHeight?, maxWidth?, maxHeight? }` | — | Pixel resize constraints |
+| `snap` | `boolean` | `true` | Enable edge and corner snap in window mode |
+| `snapThreshold` | `number` | `28` | Distance in pixels that activates snap |
+| `persistenceKey` | `string` | — | Persist geometry and window state in localStorage |
 | `zIndex` | `number` | — | CSS z-index |
 | `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header without requiring hover |
 | `labels` | `Partial<FloatyTexts>` | — | Override button, resize, loading, and error labels |
@@ -271,16 +276,43 @@ All props are optional.
 | `className` | `string` | — | Root element class |
 | `onClose` | `() => void` | — | Shows close button when provided |
 | `onFocus` | `() => void` | — | Called on pointer down |
+| `onFocusChange` | `(focused) => void` | — | Reports front-most focus changes |
+| `onPositionChange` | `(position) => void` | — | Reports committed movement |
+| `onResizeStart` / `onResize` / `onResizeEnd` | `(size) => void` | — | Interactive resize lifecycle |
+| `onMaximizeChange` | `(maximized) => void` | — | Reports maximize/restore changes |
 
 Use window mode when the controls should remain attached and visible like a desktop window:
 
 ```tsx
-<Floaty mode="window" title="Settings" onClose={closeSettings}>
+<Floaty
+  mode="window"
+  title="Settings"
+  persistenceKey="workspace:settings"
+  sizeConstraints={{ minWidth: 320, minHeight: 180 }}
+  onClose={closeSettings}
+>
   <Settings />
 </Floaty>
 ```
 
-The same option is accepted by `openFloaty()` and `manager.open()`.
+Window mode supports eight resize zones, maximize/restore, and snap to halves, quarters, or the
+full viewport. The same window and persistence options are accepted by `openFloaty()` and
+`manager.open()`.
+
+### Desktop taskbar
+
+`FloatyTaskbar` reads the nearest manager and provides accessible focus, restore, and close
+controls for every managed widget:
+
+```tsx
+import { FloatyProvider, FloatyTaskbar, FloatyViewport } from 'floaty-widget';
+
+<FloatyProvider>
+  <App />
+  <FloatyViewport />
+  <FloatyTaskbar />
+</FloatyProvider>
+```
 
 ### Imperative ref
 
@@ -299,16 +331,22 @@ ref.current.minimize()
 ref.current.restore()
 ref.current.pin()
 ref.current.unpin()
+ref.current.maximize()
+ref.current.unmaximize()
+ref.current.toggleMaximized()
+ref.current.snapTo('left')
 ```
 
 ### Keyboard and viewport behavior
 
 Floaty can be operated without a pointer:
 
-- Focus the header and press `Enter` or `Space` to collapse/expand.
+- In floating mode, focus the header and press `Enter` or `Space` to collapse/expand.
+- In window mode, `Enter`, `Space`, or a header double-click maximizes/restores the window.
 - Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
-- Press the resize button in the header to reveal the resize handle.
+- In floating mode, press the resize button in the header to reveal the resize handle; window mode keeps edge handles available.
 - Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps.
+- Drag a window header to a viewport edge or corner to preview and apply snap geometry.
 
 Widget positions are clamped into the visible viewport on initial render, during drag, and after viewport resize/orientation changes.
 

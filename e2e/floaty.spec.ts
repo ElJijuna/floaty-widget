@@ -68,19 +68,56 @@ test.describe('Floaty window mode', () => {
     await expect(toolbar).toHaveCSS('position', 'relative');
     await expect(toolbar).toHaveCSS('opacity', '1');
     await expect(page.getByRole('button', { name: 'Minimize' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Maximize' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Open windows' })).toBeVisible();
 
     await toolbar.press('ArrowRight');
     await expect
       .poll(() => widget.evaluate((element) => element.style.transform))
       .not.toBe(initialTransform);
 
+    const toolbarBox = await toolbar.boundingBox();
+    if (!toolbarBox) {
+      throw new Error('Window toolbar is not visible');
+    }
+    const viewportHeight = page.viewportSize()?.height ?? 600;
+    await page.mouse.move(
+      toolbarBox.x + toolbarBox.width / 2,
+      toolbarBox.y + toolbarBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(2, viewportHeight / 2, { steps: 5 });
+    await page.mouse.up();
+
+    await expect(widget).toHaveAttribute('data-snap-zone', 'left');
+    await widget.locator('.floaty-button--maximize').click();
+    await expect(widget).not.toHaveAttribute('data-snap-zone');
+
+    await page.getByRole('button', { name: 'Maximize' }).click();
+    await expect(widget).toHaveAttribute('data-maximized', 'true');
+    await widget.locator('.floaty-button--maximize').click();
+    await expect(widget).not.toHaveAttribute('data-maximized');
+
+    const resizeHandle = page.getByRole('button', { name: 'Resize widget handle' });
+    const widthBefore = await widget.evaluate((element) => element.getBoundingClientRect().width);
+    await resizeHandle.press('ArrowRight');
+    await expect
+      .poll(() => widget.evaluate((element) => element.getBoundingClientRect().width))
+      .toBeGreaterThan(widthBefore);
+
     await page.getByRole('button', { name: 'Minimize' }).click();
     await expect(widget).toHaveCount(0);
-    await page.getByRole('button', { name: 'Restore window' }).click();
+    await page
+      .getByRole('toolbar', { name: 'Open windows' })
+      .getByRole('button', {
+        name: 'Integrated window',
+        exact: true,
+      })
+      .click();
     await expect(widget).toBeVisible();
 
-    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(widget).toHaveCount(0);
     await page.getByRole('button', { name: 'Open window' }).click();
     await expect(widget).toBeVisible();

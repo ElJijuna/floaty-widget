@@ -2,12 +2,12 @@ import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
-import type { FloatyHandle } from '../../types';
 import { Floaty } from './Floaty';
 import { FloatyPreview } from './FloatyPreview';
+import { FloatyTaskbar } from './FloatyTaskbar';
 import { FloatyViewport } from './FloatyViewport';
 import '@gnome-ui/core/styles';
 import '@gnome-ui/react/styles';
@@ -56,9 +56,32 @@ export const Default: Story = {
   },
 };
 
-const WindowModeDemo = () => {
-  const floatyRef = useRef<FloatyHandle>(null);
-  const [isOpen, setIsOpen] = useState(true);
+const IntegratedWindowContent = () => (
+  <div>
+    Drag to an edge to snap, use every border to resize, or double-click the header to maximize. The
+    taskbar restores minimized windows and the layout survives a reload.
+  </div>
+);
+
+const WindowModeWorkspace = () => {
+  const manager = useFloatyWidgetManager();
+  const { open } = manager;
+  const openWindow = useCallback(() => {
+    open({
+      id: 'integrated-window',
+      mode: 'window',
+      title: 'Integrated window',
+      component: IntegratedWindowContent,
+      props: {},
+      position: { x: 80, y: 80 },
+      size: { width: 460, height: 280 },
+      persistenceKey: 'floaty-story:integrated-window',
+    });
+  }, [open]);
+
+  useEffect(() => {
+    openWindow();
+  }, [openWindow]);
 
   return (
     <div style={{ minHeight: '100vh', padding: 24 }}>
@@ -66,7 +89,7 @@ const WindowModeDemo = () => {
         style={{
           position: 'fixed',
           right: 20,
-          bottom: 20,
+          top: 64,
           zIndex: 2000,
           display: 'flex',
           gap: 8,
@@ -75,29 +98,33 @@ const WindowModeDemo = () => {
           borderRadius: 10,
         }}
       >
-        <button type="button" disabled={isOpen} onClick={() => setIsOpen(true)}>
+        <button
+          type="button"
+          disabled={manager.widgets.has('integrated-window')}
+          onClick={openWindow}
+        >
           Open window
         </button>
-        <button type="button" disabled={!isOpen} onClick={() => floatyRef.current?.restore()}>
+        <button
+          type="button"
+          disabled={!manager.widgets.get('integrated-window')?.isMinimized}
+          onClick={() => manager.restoreWidget('integrated-window')}
+        >
           Restore window
         </button>
       </div>
 
-      {isOpen ? (
-        <Floaty
-          ref={floatyRef}
-          mode="window"
-          title="Integrated window"
-          initialPosition={{ x: 80, y: 80 }}
-          initialSize={{ width: 420, height: 260 }}
-          onClose={() => setIsOpen(false)}
-        >
-          The header is integrated into the window and remains visible without hover.
-        </Floaty>
-      ) : null}
+      <FloatyViewport />
+      <FloatyTaskbar style={{ position: 'fixed', right: 20, bottom: 20, left: 20, zIndex: 3000 }} />
     </div>
   );
 };
+
+const WindowModeDemo = () => (
+  <FloatyWidgetManager>
+    <WindowModeWorkspace />
+  </FloatyWidgetManager>
+);
 
 export const WindowMode: Story = {
   render: () => <WindowModeDemo />,
@@ -105,7 +132,7 @@ export const WindowMode: Story = {
     docs: {
       description: {
         story:
-          'Uses `mode="window"` for an integrated, always-visible header. The demo taskbar can restore a minimized window or reopen it after closing.',
+          'A desktop-style workspace with eight resize zones, maximize/restore, edge snap, persisted layout, focus management, and a manager-connected taskbar.',
       },
     },
   },

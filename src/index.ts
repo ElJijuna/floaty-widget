@@ -2,6 +2,8 @@ export type { FloatyProps } from './components/Floaty/Floaty';
 export { Floaty } from './components/Floaty/Floaty';
 export type { FloatyPreviewProps } from './components/Floaty/FloatyPreview';
 export { FloatyPreview } from './components/Floaty/FloatyPreview';
+export type { FloatyTaskbarProps } from './components/Floaty/FloatyTaskbar';
+export { FloatyTaskbar } from './components/Floaty/FloatyTaskbar';
 export type { FloatyViewportProps } from './components/Floaty/FloatyViewport';
 export { FloatyViewport } from './components/Floaty/FloatyViewport';
 export {
@@ -23,6 +25,7 @@ export {
 } from './singleton';
 export type {
   FloatyComponentLoader,
+  FloatyGeometry,
   FloatyHandle,
   FloatyIconComponent,
   FloatyIcons,
@@ -31,8 +34,12 @@ export type {
   FloatyOpenOptions,
   FloatyOpenWidget,
   FloatyOpenWidgetBase,
+  FloatyPersistedState,
   FloatyPosition,
+  FloatyResizeDirection,
   FloatySize,
+  FloatySizeConstraints,
+  FloatySnapZone,
   FloatyTexts,
   FloatyTheme,
   FloatyWidget,

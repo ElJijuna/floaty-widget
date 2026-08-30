@@ -25,6 +25,7 @@ import type {
   FloatyWidgetPatch,
   FloatyWidgetState,
 } from '../types';
+import { readPersistedState, writePersistedState } from '../utils/windowGeometry';
 
 export const FloatyManagerContext = createContext<FloatyWidgetManagerHandle | null>(null);
 
@@ -37,6 +38,8 @@ const defaultLabels: FloatyTexts = {
   restore: 'Restore',
   close: 'Close',
   resize: 'Resize widget',
+  maximize: 'Maximize',
+  unmaximize: 'Restore window',
   loading: 'Loading widget...',
   loadError: 'Could not load widget',
   retry: 'Retry',
@@ -119,6 +122,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           widgetExists && duplicateStrategy === 'duplicate'
             ? createDuplicateId(widget.id, current)
             : widget.id;
+        const persisted = readPersistedState(widget.persistenceKey);
 
         updateWidgets((currentWidgets) => {
           if (widgetExists) {
@@ -155,12 +159,15 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             loader: widget.loader as FloatyComponentLoader<unknown> | undefined,
             props: widget.props,
             fallback: widget.fallback,
-            position: widget.position,
-            size: widget.size,
+            position: persisted?.position ?? widget.position,
+            size: persisted?.size ?? widget.size,
             className: widget.className,
-            isCollapsed: widget.collapsed ?? false,
-            isMinimized: widget.minimized ?? false,
-            isPinned: widget.pinned ?? false,
+            isCollapsed: persisted?.isCollapsed ?? widget.collapsed ?? false,
+            isMinimized: persisted?.isMinimized ?? widget.minimized ?? false,
+            isPinned: persisted?.isPinned ?? widget.pinned ?? false,
+            isMaximized: persisted?.isMaximized ?? widget.maximized ?? false,
+            snapZone: persisted?.snapZone ?? null,
+            persistenceKey: widget.persistenceKey,
             zIndex: zIndexRef.current,
           });
 
@@ -207,6 +214,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         const collapsed = patch.collapsed ?? patch.isCollapsed;
         const minimized = patch.minimized ?? patch.isMinimized;
         const pinned = patch.pinned ?? patch.isPinned;
+        const maximized = patch.maximized ?? patch.isMaximized;
 
         if (collapsed !== undefined) {
           handle?.[collapsed ? 'collapse' : 'expand']();
@@ -218,6 +226,10 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         if (pinned !== undefined) {
           handle?.[pinned ? 'pin' : 'unpin']();
+        }
+
+        if (maximized !== undefined) {
+          handle?.[maximized ? 'maximize' : 'unmaximize']();
         }
 
         if (patch.size) {
@@ -243,6 +255,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             isCollapsed: patch.collapsed ?? patch.isCollapsed ?? previous.isCollapsed,
             isMinimized: patch.minimized ?? patch.isMinimized ?? previous.isMinimized,
             isPinned: patch.pinned ?? patch.isPinned ?? previous.isPinned,
+            isMaximized: patch.maximized ?? patch.isMaximized ?? previous.isMaximized,
             component: patch.loader
               ? (createLazyComponent(patch.loader) as ComponentType<unknown>)
               : ((patch.component as ComponentType<unknown> | undefined) ?? previous.component),
@@ -284,6 +297,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             isCollapsed: initialState.isCollapsed ?? previous?.isCollapsed ?? false,
             isMinimized: initialState.isMinimized ?? previous?.isMinimized ?? false,
             isPinned: initialState.isPinned ?? previous?.isPinned ?? false,
+            isMaximized: initialState.isMaximized ?? previous?.isMaximized ?? false,
+            snapZone: initialState.snapZone ?? previous?.snapZone ?? null,
+            persistenceKey: initialState.persistenceKey ?? previous?.persistenceKey,
             zIndex: previous?.zIndex ?? zIndexRef.current,
           });
 
@@ -329,6 +345,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             nextWidget.isCollapsed === previous.isCollapsed &&
             nextWidget.isMinimized === previous.isMinimized &&
             nextWidget.isPinned === previous.isPinned &&
+            nextWidget.isMaximized === previous.isMaximized &&
+            nextWidget.snapZone === previous.snapZone &&
             nextWidget.position === previous.position &&
             nextWidget.size === previous.size &&
             nextWidget.mode === previous.mode &&
@@ -398,6 +416,10 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         next.forEach((widget, id) => {
           next.set(id, { ...widget, isMinimized: false });
+          const persisted = readPersistedState(widget.persistenceKey);
+          if (widget.persistenceKey && persisted) {
+            writePersistedState(widget.persistenceKey, { ...persisted, isMinimized: false });
+          }
         });
 
         return next;
@@ -460,6 +482,11 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
     const restoreWidget = useCallback(
       (id: string) => {
+        const widget = widgetsRef.current.get(id);
+        const persisted = readPersistedState(widget?.persistenceKey);
+        if (widget?.persistenceKey && persisted) {
+          writePersistedState(widget.persistenceKey, { ...persisted, isMinimized: false });
+        }
         updateWidgetState(id, { isMinimized: false });
       },
       [updateWidgetState],
@@ -477,6 +504,47 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       (id: string) => {
         widgetHandlesRef.current.get(id)?.current?.unpin();
         updateWidgetState(id, { isPinned: false });
+      },
+      [updateWidgetState],
+    );
+
+    const maximizeWidget = useCallback(
+      (id: string) => {
+        const widget = widgetsRef.current.get(id);
+        const persisted = readPersistedState(widget?.persistenceKey);
+        if (widget?.persistenceKey && persisted) {
+          writePersistedState(widget.persistenceKey, {
+            ...persisted,
+            isMaximized: true,
+            snapZone: null,
+          });
+        }
+        widgetHandlesRef.current.get(id)?.current?.maximize();
+        updateWidgetState(id, { isMaximized: true, snapZone: null });
+      },
+      [updateWidgetState],
+    );
+
+    const unmaximizeWidget = useCallback(
+      (id: string) => {
+        const widget = widgetsRef.current.get(id);
+        const persisted = readPersistedState(widget?.persistenceKey);
+        const restoredGeometry = persisted?.restoreGeometry;
+        if (widget?.persistenceKey && persisted) {
+          writePersistedState(widget.persistenceKey, {
+            ...persisted,
+            ...(restoredGeometry ?? {}),
+            isMaximized: false,
+            snapZone: null,
+          });
+        }
+        widgetHandlesRef.current.get(id)?.current?.unmaximize();
+        updateWidgetState(id, {
+          isMaximized: false,
+          snapZone: null,
+          position: restoredGeometry?.position ?? widget?.position,
+          size: restoredGeometry?.size ?? widget?.size,
+        });
       },
       [updateWidgetState],
     );
@@ -509,6 +577,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         restoreWidget,
         pinWidget,
         unpinWidget,
+        maximizeWidget,
+        unmaximizeWidget,
         getWidgetCount,
         getWidget,
         widgets,
@@ -539,6 +609,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         restoreWidget,
         pinWidget,
         unpinWidget,
+        maximizeWidget,
+        unmaximizeWidget,
         getWidgetCount,
         getWidget,
         widgets,

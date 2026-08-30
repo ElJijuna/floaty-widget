@@ -607,6 +607,20 @@ describe('FloatyWidgetManager', () => {
       act(() => result.current.unpinWidget('test'));
       expect(result.current.getWidget('test')?.isPinned).toBe(false);
     });
+
+    it('maximizeWidget / unmaximizeWidget', () => {
+      const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
+
+      act(() => {
+        result.current.open({ id: 'test', component: MockComponent, props: {} });
+      });
+
+      act(() => result.current.maximizeWidget('test'));
+      expect(result.current.getWidget('test')?.isMaximized).toBe(true);
+
+      act(() => result.current.unmaximizeWidget('test'));
+      expect(result.current.getWidget('test')?.isMaximized).toBe(false);
+    });
   });
 
   describe('hooks', () => {

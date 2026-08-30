@@ -293,6 +293,122 @@ describe('Floaty', () => {
       ).not.toBeInTheDocument();
       expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
     });
+
+    it('resizes from the west edge and emits lifecycle callbacks', () => {
+      const onResizeStart = vi.fn();
+      const onResizeEnd = vi.fn();
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialPosition={{ x: 100, y: 100 }}
+          initialSize={{ width: 320, height: 200 }}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const westHandle = container.querySelector('.floaty-resize-handle--w') as HTMLElement;
+
+      vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+        x: 100,
+        y: 100,
+        top: 100,
+        right: 420,
+        bottom: 300,
+        left: 100,
+        width: 320,
+        height: 200,
+        toJSON: () => {},
+      } as DOMRect);
+      westHandle.setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(westHandle, { clientX: 100, clientY: 180, pointerId: 1 });
+      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 80, clientY: 180 });
+      fireEvent.pointerUp(globalThis as unknown as Window);
+
+      expect(root).toHaveStyle({ transform: 'translate(80px, 100px)', width: '340px' });
+      expect(onResizeStart).toHaveBeenCalledWith({ width: 320, height: 200 });
+      expect(onResizeEnd).toHaveBeenCalledWith({ width: 340, height: 200 });
+    });
+  });
+
+  describe('window management', () => {
+    it('maximizes and restores the previous geometry', () => {
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+
+      expect(root).toHaveAttribute('data-maximized', 'true');
+      expect(root).toHaveStyle({
+        transform: 'translate(0px, 0px)',
+        width: `${window.innerWidth}px`,
+        height: `${window.innerHeight}px`,
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Restore window' }));
+
+      expect(root).not.toHaveAttribute('data-maximized');
+      expect(root).toHaveStyle({ transform: 'translate(40px, 50px)', width: '320px' });
+    });
+
+    it('snaps imperatively and restores free geometry', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.snapTo('left'));
+      expect(root).toHaveAttribute('data-snap-zone', 'left');
+      expect(root).toHaveStyle({ transform: 'translate(0px, 0px)' });
+
+      act(() => ref.current?.unmaximize());
+      expect(root).not.toHaveAttribute('data-snap-zone');
+      expect(root).toHaveStyle({ transform: 'translate(40px, 50px)', width: '320px' });
+    });
+
+    it('hydrates and updates a versioned persisted layout', () => {
+      const key = 'floaty-test:persisted-window';
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 1,
+          position: { x: 24, y: 32 },
+          size: { width: 480, height: 260 },
+          isCollapsed: false,
+          isMinimized: false,
+          isPinned: true,
+          isMaximized: false,
+          snapZone: null,
+        }),
+      );
+
+      const { container } = render(<Floaty mode="window" persistenceKey={key} />);
+      const root = container.firstElementChild as HTMLElement;
+
+      expect(root).toHaveClass('pinned');
+      expect(root).toHaveStyle({ transform: 'translate(24px, 32px)', width: '480px' });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Unpin' }));
+      expect(JSON.parse(window.localStorage.getItem(key) ?? '{}')).toMatchObject({
+        version: 1,
+        isPinned: false,
+      });
+
+      window.localStorage.removeItem(key);
+    });
   });
 
   describe('viewport changes', () => {

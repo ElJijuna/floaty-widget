@@ -1,4 +1,5 @@
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
+import type { FloatySnapZone } from './FloatyWindow';
 
 /** Imperative handle exposed via `ref` on a `<Floaty>` component. */
 export interface FloatyHandle {
@@ -22,4 +23,12 @@ export interface FloatyHandle {
   moveTo: (position: FloatyPosition) => void;
   /** Resizes the widget and keeps it inside the visible viewport. */
   resizeTo: (size: FloatySize) => void;
+  /** Fills the available viewport while remembering the previous geometry. */
+  maximize: () => void;
+  /** Restores the geometry used before maximize or snap. */
+  unmaximize: () => void;
+  /** Toggles between maximized and restored geometry. */
+  toggleMaximized: () => void;
+  /** Places the widget in a viewport snap zone. */
+  snapTo: (zone: FloatySnapZone) => void;
 }
