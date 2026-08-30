@@ -44,7 +44,7 @@ body {
 }
 
 /* Ensure content is visible */
-#storybook-root > * {
+#storybook-root > :not(.floaty) {
   position: relative;
 }
 

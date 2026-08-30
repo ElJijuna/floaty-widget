@@ -424,9 +424,13 @@ npm install
 npm run dev          # dev server
 npm run storybook    # component stories at localhost:6006
 npm test             # run tests
+npm run test:e2e     # run Playwright E2E tests against Storybook
+npm run test:e2e:ui  # open Playwright's interactive test runner
 npm run bench        # benchmarks
 npm run build        # build library
 ```
+
+Install the E2E browser once on a new machine with `npx playwright install chromium`.
 
 ## Releases
 
