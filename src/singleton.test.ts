@@ -151,7 +151,9 @@ describe('openFloaty auto-mount', () => {
   it('creates a data-floaty-root container in body on first call', async () => {
     const { openFloaty: open } = await import('./singleton');
 
-    open({ id: 'w', component: MockComponent, props: {} });
+    act(() => {
+      open({ id: 'w', component: MockComponent, props: {} });
+    });
 
     expect(document.querySelector('[data-floaty-root]')).not.toBeNull();
   });
@@ -159,8 +161,10 @@ describe('openFloaty auto-mount', () => {
   it('reuses the same root on subsequent calls', async () => {
     const { openFloaty: open } = await import('./singleton');
 
-    open({ id: 'a', component: MockComponent, props: {} });
-    open({ id: 'b', component: MockComponent, props: {} });
+    act(() => {
+      open({ id: 'a', component: MockComponent, props: {} });
+      open({ id: 'b', component: MockComponent, props: {} });
+    });
 
     expect(document.querySelectorAll('[data-floaty-root]')).toHaveLength(1);
   });

@@ -63,7 +63,7 @@ const normalizeLazyModule = <P,>(loaded: FloatyLazyModule<P>): { default: Compon
 };
 
 const createLazyComponent = <P,>(loader: FloatyComponentLoader<P>) => {
-  return lazy(() => loader().then(normalizeLazyModule));
+  return lazy(async () => normalizeLazyModule(await loader()));
 };
 
 export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyWidgetManagerProps>(
@@ -71,46 +71,66 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     const widgetHandlesRef = useRef<Map<string, RefObject<FloatyHandle | null>>>(new Map());
     const zIndexRef = useRef(1000);
     const [widgets, setWidgets] = useState<Map<string, FloatyWidget>>(() => new Map());
+    const widgetsRef = useRef(widgets);
+
+    const updateWidgets = useCallback(
+      (updater: (current: Map<string, FloatyWidget>) => Map<string, FloatyWidget>) => {
+        const { current } = widgetsRef;
+        const next = updater(current);
+
+        if (next !== current) {
+          widgetsRef.current = next;
+          setWidgets(next);
+        }
+
+        return next;
+      },
+      [],
+    );
 
     const labels = useMemo(() => ({ ...defaultLabels, ...labelsProp }), [labelsProp]);
 
-    const bringToFront = useCallback((id: string) => {
-      setWidgets((current) => {
-        const previous = current.get(id);
+    const bringToFront = useCallback(
+      (id: string) => {
+        updateWidgets((current) => {
+          const previous = current.get(id);
 
-        if (!previous) {
-          return current;
-        }
+          if (!previous) {
+            return current;
+          }
 
-        zIndexRef.current += 1;
-        const next = new Map(current);
+          zIndexRef.current += 1;
+          const next = new Map(current);
 
-        next.set(id, { ...previous, zIndex: zIndexRef.current });
+          next.set(id, { ...previous, zIndex: zIndexRef.current });
 
-        return next;
-      });
-    }, []);
+          return next;
+        });
+      },
+      [updateWidgets],
+    );
 
     const open = useCallback(
       <P,>(widget: FloatyOpenWidget<P>, options: FloatyOpenOptions = {}) => {
         const duplicateStrategy: FloatyDuplicateStrategy = options.duplicateStrategy ?? 'replace';
-        const widgetExists = widgets.has(widget.id);
+        const { current } = widgetsRef;
+        const widgetExists = current.has(widget.id);
         const widgetId =
           widgetExists && duplicateStrategy === 'duplicate'
-            ? createDuplicateId(widget.id, widgets)
+            ? createDuplicateId(widget.id, current)
             : widget.id;
 
-        setWidgets((current) => {
+        updateWidgets((currentWidgets) => {
           if (widgetExists) {
-            if (duplicateStrategy === 'focus' && current.has(widget.id)) {
-              const existing = current.get(widget.id);
+            if (duplicateStrategy === 'focus' && currentWidgets.has(widget.id)) {
+              const existing = currentWidgets.get(widget.id);
 
               if (!existing) {
-                return current;
+                return currentWidgets;
               }
 
               zIndexRef.current += 1;
-              const next = new Map(current);
+              const next = new Map(currentWidgets);
 
               next.set(widget.id, {
                 ...existing,
@@ -123,7 +143,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           }
 
           zIndexRef.current += 1;
-          const next = new Map(current);
+          const next = new Map(currentWidgets);
           const component =
             widget.component ?? (widget.loader ? createLazyComponent(widget.loader) : undefined);
 
@@ -148,7 +168,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return widgetId;
       },
-      [widgets],
+      [updateWidgets],
     );
 
     const openComponent = useCallback(
@@ -157,48 +177,83 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       [open],
     );
 
-    const close = useCallback((id: string) => {
-      widgetHandlesRef.current.delete(id);
-      setWidgets((current) => {
-        const next = new Map(current);
+    const close = useCallback(
+      (id: string) => {
+        widgetHandlesRef.current.delete(id);
+        updateWidgets((current) => {
+          if (!current.has(id)) {
+            return current;
+          }
 
-        next.delete(id);
+          const next = new Map(current);
 
-        return next;
-      });
-    }, []);
+          next.delete(id);
+
+          return next;
+        });
+      },
+      [updateWidgets],
+    );
 
     const closeAll = useCallback(() => {
       widgetHandlesRef.current.clear();
-      setWidgets(new Map());
-    }, []);
+      updateWidgets((current) => (current.size === 0 ? current : new Map()));
+    }, [updateWidgets]);
 
-    const update = useCallback(<P,>(id: string, patch: FloatyWidgetPatch<P>) => {
-      setWidgets((current) => {
-        const previous = current.get(id);
+    const update = useCallback(
+      <P,>(id: string, patch: FloatyWidgetPatch<P>) => {
+        const handle = widgetHandlesRef.current.get(id)?.current;
+        const collapsed = patch.collapsed ?? patch.isCollapsed;
+        const minimized = patch.minimized ?? patch.isMinimized;
+        const pinned = patch.pinned ?? patch.isPinned;
 
-        if (!previous) {
-          return current;
+        if (collapsed !== undefined) {
+          handle?.[collapsed ? 'collapse' : 'expand']();
         }
 
-        const next = new Map(current);
+        if (minimized !== undefined) {
+          handle?.[minimized ? 'minimize' : 'restore']();
+        }
 
-        next.set(id, {
-          ...previous,
-          ...patch,
-          isCollapsed: patch.collapsed ?? patch.isCollapsed ?? previous.isCollapsed,
-          isMinimized: patch.minimized ?? patch.isMinimized ?? previous.isMinimized,
-          isPinned: patch.pinned ?? patch.isPinned ?? previous.isPinned,
-          component: patch.loader
-            ? (createLazyComponent(patch.loader) as ComponentType<unknown>)
-            : ((patch.component as ComponentType<unknown> | undefined) ?? previous.component),
-          loader: (patch.loader as FloatyComponentLoader<unknown> | undefined) ?? previous.loader,
-          props: patch.props ?? previous.props,
+        if (pinned !== undefined) {
+          handle?.[pinned ? 'pin' : 'unpin']();
+        }
+
+        if (patch.size) {
+          handle?.resizeTo(patch.size);
+        }
+
+        if (patch.position) {
+          handle?.moveTo(patch.position);
+        }
+
+        updateWidgets((current) => {
+          const previous = current.get(id);
+
+          if (!previous) {
+            return current;
+          }
+
+          const next = new Map(current);
+
+          next.set(id, {
+            ...previous,
+            ...patch,
+            isCollapsed: patch.collapsed ?? patch.isCollapsed ?? previous.isCollapsed,
+            isMinimized: patch.minimized ?? patch.isMinimized ?? previous.isMinimized,
+            isPinned: patch.pinned ?? patch.isPinned ?? previous.isPinned,
+            component: patch.loader
+              ? (createLazyComponent(patch.loader) as ComponentType<unknown>)
+              : ((patch.component as ComponentType<unknown> | undefined) ?? previous.component),
+            loader: (patch.loader as FloatyComponentLoader<unknown> | undefined) ?? previous.loader,
+            props: patch.props ?? previous.props,
+          });
+
+          return next;
         });
-
-        return next;
-      });
-    }, []);
+      },
+      [updateWidgets],
+    );
 
     const updateProps = useCallback(
       <P,>(id: string, props: P) => {
@@ -214,7 +269,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         initialState: Partial<Omit<FloatyWidgetState, 'id'>> = {},
       ) => {
         widgetHandlesRef.current.set(id, floatyRef);
-        setWidgets((current) => {
+        updateWidgets((current) => {
           const previous = current.get(id);
           const next = new Map(current);
 
@@ -224,9 +279,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             title: initialState.title ?? previous?.title,
             position: initialState.position ?? previous?.position,
             size: initialState.size ?? previous?.size,
-            isCollapsed: initialState.isCollapsed ?? false,
+            isCollapsed: initialState.isCollapsed ?? previous?.isCollapsed ?? false,
             isMinimized: initialState.isMinimized ?? previous?.isMinimized ?? false,
-            isPinned: initialState.isPinned ?? false,
+            isPinned: initialState.isPinned ?? previous?.isPinned ?? false,
             zIndex: previous?.zIndex ?? zIndexRef.current,
           });
 
@@ -235,7 +290,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return () => {
           widgetHandlesRef.current.delete(id);
-          setWidgets((current) => {
+          updateWidgets((current) => {
             const widget = current.get(id);
 
             if (widget?.component) {
@@ -250,7 +305,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           });
         };
       },
-      [],
+      [updateWidgets],
     );
 
     const unregisterFloaty = useCallback((id: string) => {
@@ -259,7 +314,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
     const updateWidgetState = useCallback(
       (id: string, state: Partial<Omit<FloatyWidgetState, 'id'>>) => {
-        setWidgets((current) => {
+        updateWidgets((current) => {
           const previous = current.get(id);
 
           if (!previous) {
@@ -286,14 +341,14 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           return next;
         });
       },
-      [],
+      [updateWidgets],
     );
 
     const expandAll = useCallback(() => {
       widgetHandlesRef.current.forEach((ref) => {
         ref?.current?.expand();
       });
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -302,13 +357,13 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const collapseAll = useCallback(() => {
       widgetHandlesRef.current.forEach((ref) => {
         ref?.current?.collapse();
       });
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -317,13 +372,13 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const minimizeAll = useCallback(() => {
       widgetHandlesRef.current.forEach((ref) => {
         ref?.current?.minimize();
       });
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -332,10 +387,10 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const restoreAll = useCallback(() => {
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -344,13 +399,13 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const pinAll = useCallback(() => {
       widgetHandlesRef.current.forEach((ref) => {
         ref?.current?.pin();
       });
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -359,13 +414,13 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const unpinAll = useCallback(() => {
       widgetHandlesRef.current.forEach((ref) => {
         ref?.current?.unpin();
       });
-      setWidgets((current) => {
+      updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
@@ -374,7 +429,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         return next;
       });
-    }, []);
+    }, [updateWidgets]);
 
     const expandWidget = useCallback(
       (id: string) => {
@@ -423,9 +478,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       [updateWidgetState],
     );
 
-    const getWidgetCount = useCallback(() => widgets.size, [widgets.size]);
+    const getWidgetCount = useCallback(() => widgetsRef.current.size, []);
 
-    const getWidget = useCallback((id: string) => widgets.get(id), [widgets]);
+    const getWidget = useCallback((id: string) => widgetsRef.current.get(id), []);
 
     const manager = useMemo<FloatyWidgetManagerHandle>(
       () => ({

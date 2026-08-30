@@ -320,6 +320,23 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         unpin: () => setIsPinned(false),
         toggle: () => setIsCollapsed((prev) => !prev),
         toggleMinimized: () => setIsMinimized((prev) => !prev),
+        moveTo: (nextPosition) => {
+          const clampedPosition = clampPositionToViewport(nextPosition, sizeRef.current);
+
+          positionRef.current = clampedPosition;
+          setPosition(clampedPosition);
+        },
+        resizeTo: (nextSize) => {
+          sizeRef.current = nextSize;
+          setSize(nextSize);
+          setPosition((current) => {
+            const clampedPosition = clampPositionToViewport(current, nextSize);
+
+            positionRef.current = clampedPosition;
+
+            return clampedPosition;
+          });
+        },
       }),
       [],
     );

@@ -11,7 +11,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.stories.tsx', 'src/test/**', 'src/vite-env.d.ts'],
+      exclude: [
+        'src/**/*.stories.tsx',
+        'src/**/*.bench.ts',
+        'src/components/Floaty/LazyFloatyPanel.tsx',
+        'src/test/**',
+        'src/vite-env.d.ts',
+      ],
+      thresholds: {
+        statements: 80,
+        branches: 70,
+        functions: 80,
+        lines: 80,
+      },
     },
   },
   plugins: [
@@ -23,6 +35,7 @@ export default defineConfig({
         'src/**/*.test.tsx',
         'src/**/*.test.ts',
         'src/**/*.bench.ts',
+        'src/components/Floaty/LazyFloatyPanel.tsx',
         'src/test/**',
       ],
       rollupTypes: true,
@@ -31,6 +44,7 @@ export default defineConfig({
   ],
   base: process.env.GITHUB_PAGES ? '/floaty/' : '/',
   build: {
+    copyPublicDir: false,
     lib: {
       entry: 'src/index.ts',
       name: 'FloatyWidget',

@@ -1,3 +1,5 @@
+import type { FloatyPosition, FloatySize } from './FloatyPosition';
+
 /** Imperative handle exposed via `ref` on a `<Floaty>` component. */
 export interface FloatyHandle {
   /** Expands the widget body if it is collapsed. */
@@ -16,4 +18,8 @@ export interface FloatyHandle {
   toggle: () => void;
   /** Toggles the minimized state of the widget. */
   toggleMinimized: () => void;
+  /** Moves the widget to a screen position, clamped to the visible viewport. */
+  moveTo: (position: FloatyPosition) => void;
+  /** Resizes the widget and keeps it inside the visible viewport. */
+  resizeTo: (size: FloatySize) => void;
 }

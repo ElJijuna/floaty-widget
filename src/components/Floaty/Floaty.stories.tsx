@@ -542,17 +542,16 @@ const LazyWidgetControls = () => {
   const isOpen = Boolean(lazyWidget);
   const isMinimized = lazyWidget?.isMinimized ?? false;
 
-  const loadPanel = () => {
+  const loadPanel = async () => {
     window.setTimeout(() => {
       setLoadRequests((count) => count + 1);
     }, 0);
 
-    // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-    return new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
-      window.setTimeout(() => {
-        void import('./LazyFloatyPanel').then(resolve);
-      }, 900);
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 900);
     });
+
+    return import('./LazyFloatyPanel');
   };
 
   const openLazyWidget = () => {
@@ -878,14 +877,14 @@ const StoryUxControls = () => {
       {
         id: 'ux-lazy-success',
         title: 'Lazy Success',
-        loader: () =>
-          // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-          new Promise<typeof import('./LazyFloatyPanel')>((resolve) => {
-            window.setTimeout(() => {
-              setLazyLoads((count) => count + 1);
-              void import('./LazyFloatyPanel').then(resolve);
-            }, 750);
-          }),
+        loader: async () => {
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, 750);
+          });
+          setLazyLoads((count) => count + 1);
+
+          return import('./LazyFloatyPanel');
+        },
         props: { metric: 'Deferred body', value: 'Loaded' },
         position: { x: 180, y: 420 },
         size: { width: 360 },

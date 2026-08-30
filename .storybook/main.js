@@ -1,6 +1,6 @@
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 const config = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
+  stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: ['@storybook/addon-docs'],
   framework: {
     name: '@storybook/react-vite',
@@ -9,6 +9,10 @@ const config = {
   docs: {
     autodocs: 'tag',
   },
+  viteFinal: (viteConfig) => ({
+    ...viteConfig,
+    plugins: viteConfig.plugins?.filter((plugin) => plugin?.name !== 'unplugin-dts'),
+  }),
 };
 
 export default config;

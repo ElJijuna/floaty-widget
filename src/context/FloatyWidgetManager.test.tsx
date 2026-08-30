@@ -110,6 +110,30 @@ describe('FloatyWidgetManager', () => {
       expect(result.current.getWidget('w-3')).toBeDefined();
     });
 
+    it('reserves unique ids for duplicate widgets opened in the same batch', () => {
+      const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
+      const ids: string[] = [];
+
+      act(() => {
+        ids.push(result.current.open({ id: 'w', component: MockComponent, props: {} }));
+        ids.push(
+          result.current.open(
+            { id: 'w', component: MockComponent, props: {} },
+            { duplicateStrategy: 'duplicate' },
+          ),
+        );
+        ids.push(
+          result.current.open(
+            { id: 'w', component: MockComponent, props: {} },
+            { duplicateStrategy: 'duplicate' },
+          ),
+        );
+      });
+
+      expect(ids).toEqual(['w', 'w-2', 'w-3']);
+      expect(result.current.getWidgetCount()).toBe(3);
+    });
+
     it('respects collapsed/minimized/pinned initial flags', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 
@@ -396,6 +420,60 @@ describe('FloatyWidgetManager', () => {
       expect(() => {
         act(() => result.current.update('unknown', { collapsed: true }));
       }).not.toThrow();
+    });
+
+    it('synchronizes visual state for an already mounted widget', () => {
+      const Controller = () => {
+        const manager = useFloatyWidgetManager();
+
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                manager.open({
+                  id: 'visual',
+                  component: () => <div>Visual body</div>,
+                  props: {},
+                })
+              }
+            >
+              Open visual
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                manager.update('visual', {
+                  collapsed: true,
+                  pinned: true,
+                  position: { x: 24, y: 32 },
+                  size: { width: 480, height: 240 },
+                })
+              }
+            >
+              Update visual
+            </button>
+            <FloatyViewport />
+          </>
+        );
+      };
+      const { container } = render(
+        <FloatyWidgetManager>
+          <Controller />
+        </FloatyWidgetManager>,
+      );
+
+      act(() => screen.getByRole('button', { name: 'Open visual' }).click());
+      act(() => screen.getByRole('button', { name: 'Update visual' }).click());
+
+      const floaty = container.querySelector<HTMLElement>('.floaty');
+
+      expect(floaty).toHaveClass('collapsed', 'pinned');
+      expect(floaty).toHaveStyle({
+        transform: 'translate(24px, 32px)',
+        width: '480px',
+        height: '240px',
+      });
     });
   });
 
