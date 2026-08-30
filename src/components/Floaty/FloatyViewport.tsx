@@ -110,6 +110,7 @@ const FloatyViewportItem = memo(
       <Floaty
         id={widget.id}
         title={widget.title}
+        mode={widget.mode}
         className={[className, widget.className].filter(Boolean).join(' ')}
         style={widgetStyle}
         labels={labels}

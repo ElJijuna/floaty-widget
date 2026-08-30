@@ -2,9 +2,10 @@ import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
+import type { FloatyHandle } from '../../types';
 import { Floaty } from './Floaty';
 import { FloatyPreview } from './FloatyPreview';
 import { FloatyViewport } from './FloatyViewport';
@@ -52,6 +53,61 @@ export const Default: Story = {
   args: {
     title: 'Floaty',
     children: 'Drag me around! Click the icons to pin or collapse.',
+  },
+};
+
+const WindowModeDemo = () => {
+  const floatyRef = useRef<FloatyHandle>(null);
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div style={{ minHeight: '100vh', padding: 24 }}>
+      <div
+        style={{
+          position: 'fixed',
+          right: 20,
+          bottom: 20,
+          zIndex: 2000,
+          display: 'flex',
+          gap: 8,
+          padding: 8,
+          background: 'rgba(15, 23, 42, 0.88)',
+          borderRadius: 10,
+        }}
+      >
+        <button type="button" disabled={isOpen} onClick={() => setIsOpen(true)}>
+          Open window
+        </button>
+        <button type="button" disabled={!isOpen} onClick={() => floatyRef.current?.restore()}>
+          Restore window
+        </button>
+      </div>
+
+      {isOpen ? (
+        <Floaty
+          ref={floatyRef}
+          mode="window"
+          title="Integrated window"
+          initialPosition={{ x: 80, y: 80 }}
+          initialSize={{ width: 420, height: 260 }}
+          onClose={() => setIsOpen(false)}
+        >
+          The header is integrated into the window and remains visible without hover.
+        </Floaty>
+      ) : null}
+    </div>
+  );
+};
+
+export const WindowMode: Story = {
+  render: () => <WindowModeDemo />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Uses `mode="window"` for an integrated, always-visible header. The demo taskbar can restore a minimized window or reopen it after closing.',
+      },
+    },
   },
 };
 

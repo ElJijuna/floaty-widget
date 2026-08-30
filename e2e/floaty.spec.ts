@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const defaultStory = '/iframe.html?id=components-floatywidget--default&viewMode=story';
+const windowStory = '/iframe.html?id=components-floatywidget--window-mode&viewMode=story';
 
 test.describe('Floaty Storybook', () => {
   test.beforeEach(async ({ page }) => {
@@ -49,5 +50,39 @@ test.describe('Floaty Storybook', () => {
     await expect
       .poll(() => widget.evaluate((element) => element.getBoundingClientRect().width))
       .toBeGreaterThan(widthBefore);
+  });
+});
+
+test.describe('Floaty window mode', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(windowStory);
+  });
+
+  test('keeps the integrated header visible and supports the window lifecycle', async ({
+    page,
+  }) => {
+    const widget = page.locator('.floaty--window');
+    const toolbar = page.getByRole('toolbar', { name: 'Integrated window controls' });
+    const initialTransform = await widget.evaluate((element) => element.style.transform);
+
+    await expect(toolbar).toHaveCSS('position', 'relative');
+    await expect(toolbar).toHaveCSS('opacity', '1');
+    await expect(page.getByRole('button', { name: 'Minimize' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+
+    await toolbar.press('ArrowRight');
+    await expect
+      .poll(() => widget.evaluate((element) => element.style.transform))
+      .not.toBe(initialTransform);
+
+    await page.getByRole('button', { name: 'Minimize' }).click();
+    await expect(widget).toHaveCount(0);
+    await page.getByRole('button', { name: 'Restore window' }).click();
+    await expect(widget).toBeVisible();
+
+    await page.getByRole('button', { name: 'Close' }).click();
+    await expect(widget).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open window' }).click();
+    await expect(widget).toBeVisible();
   });
 });

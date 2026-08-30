@@ -27,6 +27,7 @@ export type {
   FloatyIconComponent,
   FloatyIcons,
   FloatyLazyModule,
+  FloatyMode,
   FloatyOpenOptions,
   FloatyOpenWidget,
   FloatyOpenWidgetBase,

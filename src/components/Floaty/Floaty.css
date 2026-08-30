@@ -519,3 +519,40 @@
     max-height: 300px;
   }
 }
+
+/* Integrated desktop-window layout */
+.floaty--window {
+  overflow: hidden;
+  background: var(--floaty-body-bg);
+  border: 1px solid var(--floaty-border);
+  border-radius: var(--floaty-radius);
+  box-shadow: var(--floaty-shadow);
+}
+
+.floaty--window::before,
+.floaty--window::after {
+  display: none;
+}
+
+.floaty--window .floaty-header {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-shrink: 0;
+  border: 0;
+  border-bottom: 1px solid var(--floaty-border);
+  border-radius: 0;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.floaty--window .floaty-body {
+  padding: var(--floaty-body-padding);
+  background: var(--floaty-body-bg);
+}
+
+.floaty--window.collapsed {
+  min-height: 0;
+}

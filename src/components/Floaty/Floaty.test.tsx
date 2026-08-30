@@ -44,6 +44,16 @@ describe('Floaty', () => {
       expect(container.firstChild).toHaveClass('my-class');
     });
 
+    it('renders an integrated window mode without changing the default mode', () => {
+      const { container, rerender } = render(<Floaty />);
+
+      expect(container.firstChild).toHaveClass('floaty--floating');
+
+      rerender(<Floaty mode="window" />);
+
+      expect(container.firstChild).toHaveClass('floaty--window');
+    });
+
     it('clamps the initial position inside the viewport', () => {
       const originalWidth = window.innerWidth;
       const originalHeight = window.innerHeight;

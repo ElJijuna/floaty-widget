@@ -22,6 +22,7 @@ describe('FloatyWidgetManager', () => {
           component: MockComponent,
           props: {},
           title: 'My Widget',
+          mode: 'window',
         });
       });
 
@@ -29,6 +30,7 @@ describe('FloatyWidgetManager', () => {
       const widget = result.current.getWidget('test');
 
       expect(widget?.title).toBe('My Widget');
+      expect(widget?.mode).toBe('window');
       expect(widget?.isCollapsed).toBe(false);
       expect(widget?.isMinimized).toBe(false);
       expect(widget?.isPinned).toBe(false);

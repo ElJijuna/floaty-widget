@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { FloatyMode } from './FloatyMode';
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
 import type { FloatyComponentLoader } from './FloatyWidget';
 
@@ -12,6 +13,8 @@ export type FloatyOpenWidgetBase<P> = {
   fallback?: ReactNode;
   /** Content displayed in the widget header. */
   title?: ReactNode;
+  /** Visual layout. Use `window` for an integrated, always-visible header. */
+  mode?: FloatyMode;
   /** Initial position on screen. */
   position?: FloatyPosition;
   /** Initial dimensions. */

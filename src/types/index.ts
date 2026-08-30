@@ -1,5 +1,6 @@
 export type { FloatyHandle } from './FloatyHandle';
 export type { FloatyIconComponent, FloatyIconName, FloatyIcons } from './FloatyIcons';
+export type { FloatyMode } from './FloatyMode';
 export type {
   FloatyDuplicateStrategy,
   FloatyOpenOptions,

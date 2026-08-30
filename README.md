@@ -257,6 +257,7 @@ All props are optional.
 | `title` | `ReactNode` | `'Floaty'` | Header title |
 | `children` | `ReactNode` | `'Content'` | Body content |
 | `id` | `string` | — | Registers with `FloatyProvider` when provided |
+| `mode` | `'floating' \| 'window'` | `'floating'` | Use `window` for an integrated, always-visible header |
 | `initialPosition` | `{ x, y }` | `{ x: 100, y: 100 }` | Starting position — automatically clamped to viewport bounds |
 | `initialSize` | `{ width?, height? }` | — | Starting size |
 | `defaultCollapsed` | `boolean` | `false` | Start collapsed |
@@ -270,6 +271,16 @@ All props are optional.
 | `className` | `string` | — | Root element class |
 | `onClose` | `() => void` | — | Shows close button when provided |
 | `onFocus` | `() => void` | — | Called on pointer down |
+
+Use window mode when the controls should remain attached and visible like a desktop window:
+
+```tsx
+<Floaty mode="window" title="Settings" onClose={closeSettings}>
+  <Settings />
+</Floaty>
+```
+
+The same option is accepted by `openFloaty()` and `manager.open()`.
 
 ### Imperative ref
 

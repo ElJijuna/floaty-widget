@@ -17,6 +17,7 @@ import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 import type {
   FloatyHandle,
   FloatyIcons,
+  FloatyMode,
   FloatyPosition,
   FloatySize,
   FloatyTexts,
@@ -41,6 +42,8 @@ export interface FloatyProps {
   labels?: Partial<FloatyTexts>;
   /** Custom icon components for action buttons on this widget only. */
   icons?: FloatyIcons;
+  /** Visual layout. `window` keeps the header integrated and always visible. @default 'floating' */
+  mode?: FloatyMode;
   /** Whether the widget body is collapsed on first render. @default false */
   defaultCollapsed?: boolean;
   /** Whether the widget is minimized (hidden) on first render. @default false */
@@ -245,6 +248,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       id,
       labels: labelsProp,
       icons = {},
+      mode = 'floating',
       defaultCollapsed = false,
       defaultMinimized = false,
       defaultPinned = false,
@@ -360,6 +364,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           isPinned,
           position,
           size,
+          mode,
           zIndex,
         });
       }
@@ -374,10 +379,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           isPinned,
           position,
           size,
+          mode,
           zIndex,
         });
       }
-    }, [id, isCollapsed, isMinimized, isPinned, position, size, zIndex, updateWidgetState]);
+    }, [id, isCollapsed, isMinimized, isPinned, mode, position, size, zIndex, updateWidgetState]);
 
     const flushPendingFrame = useCallback(() => {
       frameRef.current = null;
@@ -682,14 +688,14 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     return (
       <div
         ref={floatyRef}
-        className={`floaty ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isResizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+        className={`floaty floaty--${mode} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isResizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
         onPointerDown={onFocus}
         style={{
           ...style,
           left: 0,
           top: 0,
           width: size.width ?? style.width,
-          height: size.height ?? style.height,
+          height: mode === 'window' && isCollapsed ? undefined : (size.height ?? style.height),
           transform: `translate(${position.x}px, ${position.y}px)`,
           zIndex,
         }}
