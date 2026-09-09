@@ -49,8 +49,9 @@ export const FloatyPreview = ({
       <div
         aria-hidden="true"
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
+          // Unlike transform, zoom scales the element's layout box as well as its paint.
+          // Keeping the unscaled box here makes hover containers as tall as the widget.
+          zoom: scale,
           pointerEvents: 'none',
           userSelect: 'none',
         }}

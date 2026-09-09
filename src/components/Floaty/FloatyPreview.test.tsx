@@ -14,7 +14,7 @@ describe('FloatyPreview', () => {
     expect(screen.getByText('No preview')).toBeInTheDocument();
   });
 
-  it('renders a scaled, non-interactive preview of an open widget', () => {
+  it('renders a layout-scaled, non-interactive preview of an open widget', () => {
     const managerRef = createRef<FloatyWidgetManagerHandle>();
     const { container } = render(
       <FloatyWidgetManager ref={managerRef}>
@@ -32,7 +32,7 @@ describe('FloatyPreview', () => {
 
     expect(screen.getByText('Live preview')).toBeInTheDocument();
     expect(container.querySelector('.preview-frame > div')).toHaveStyle({
-      transform: 'scale(0.5)',
+      zoom: '0.5',
       pointerEvents: 'none',
       userSelect: 'none',
     });
