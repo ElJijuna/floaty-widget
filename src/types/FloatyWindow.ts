@@ -40,14 +40,18 @@ export interface FloatyGeometry {
   size: FloatySize;
 }
 
-/** Serializable layout state stored by Floaty persistence. */
-export interface FloatyPersistedState extends FloatyGeometry {
-  version: 1;
+/** Complete state supplied to a controlled `<Floaty>`. */
+export interface FloatyControlledState extends FloatyGeometry {
   isCollapsed: boolean;
   isMinimized: boolean;
   isPinned: boolean;
   isMaximized: boolean;
   snapZone: FloatySnapZone | null;
+}
+
+/** Serializable layout state stored by Floaty persistence. */
+export interface FloatyPersistedState extends FloatyControlledState {
+  version: 1;
   /** Free geometry restored after leaving maximize or snap. */
   restoreGeometry?: FloatyGeometry;
 }

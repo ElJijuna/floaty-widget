@@ -17,6 +17,7 @@ export type { FloatyWidgetPatch } from './FloatyWidgetPatch';
 export type { FloatyWidgetState } from './FloatyWidgetState';
 export type {
   FloatyArrangeOptions,
+  FloatyControlledState,
   FloatyGeometry,
   FloatyPersistedState,
   FloatyResizeDirection,

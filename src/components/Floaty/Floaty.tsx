@@ -5,6 +5,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
+  type SetStateAction,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -16,6 +17,7 @@ import { createPortal } from 'react-dom';
 import './Floaty.css';
 import { useFloatyManager } from '../../hooks/useFloatyWidgetManager';
 import type {
+  FloatyControlledState,
   FloatyHandle,
   FloatyIcons,
   FloatyMode,
@@ -60,6 +62,10 @@ export interface FloatyProps {
   icons?: FloatyIcons;
   /** Visual layout. `window` keeps the header integrated and always visible. @default 'floating' */
   mode?: FloatyMode;
+  /** Complete externally controlled state. When supplied, `onValueChange` receives proposed updates. */
+  value?: FloatyControlledState;
+  /** Called with the next complete state after a user or imperative action. */
+  onValueChange?: (value: FloatyControlledState) => void;
   /** Title bar appearance in window mode. @default 'windows' */
   windowStyle?: FloatyWindowStyle;
   /** Application icon shown in the window title bar. */
@@ -127,6 +133,9 @@ const KEYBOARD_MOVE_LARGE_STEP = 50;
 const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+
+const resolveStateAction = <T,>(action: SetStateAction<T>, previous: T): T =>
+  typeof action === 'function' ? (action as (value: T) => T)(previous) : action;
 
 const getKeyboardStep = (
   e: ReactKeyboardEvent<HTMLElement>,
@@ -291,6 +300,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       labels: labelsProp,
       icons = {},
       mode = 'floating',
+      value,
+      onValueChange,
       windowStyle = 'windows',
       windowIcon,
       defaultCollapsed = false,
@@ -325,24 +336,76 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     );
     const mergedIcons = useMemo(() => ({ ...manager?.icons, ...icons }), [manager?.icons, icons]);
     const [persistedState] = useState(() => readPersistedState(persistenceKey));
-    const [isCollapsed, setIsCollapsed] = useState(persistedState?.isCollapsed ?? defaultCollapsed);
-    const [isMinimized, setIsMinimized] = useState(persistedState?.isMinimized ?? defaultMinimized);
-    const [isPinned, setIsPinned] = useState(persistedState?.isPinned ?? defaultPinned);
-    const [isMaximized, setIsMaximized] = useState(persistedState?.isMaximized ?? defaultMaximized);
-    const [snapZone, setSnapZone] = useState<FloatySnapZone | null>(
-      persistedState?.snapZone ?? null,
+    const [internalState, setInternalState] = useState<FloatyControlledState>(() => ({
+      isCollapsed: persistedState?.isCollapsed ?? defaultCollapsed,
+      isMinimized: persistedState?.isMinimized ?? defaultMinimized,
+      isPinned: persistedState?.isPinned ?? defaultPinned,
+      isMaximized: persistedState?.isMaximized ?? defaultMaximized,
+      snapZone: persistedState?.snapZone ?? null,
+      position: clampPosition(
+        persistedState?.position ?? initialPosition,
+        persistedState?.size ?? initialSize,
+      ),
+      size: persistedState?.size ?? initialSize ?? {},
+    }));
+    const currentState = value ?? internalState;
+    const { isCollapsed, isMinimized, isPinned, isMaximized, snapZone, position, size } =
+      currentState;
+    const stateRef = useRef(currentState);
+    const valueRef = useRef(value);
+    const onValueChangeRef = useRef(onValueChange);
+    stateRef.current = currentState;
+    valueRef.current = value;
+    onValueChangeRef.current = onValueChange;
+
+    const applyState = useCallback((patch: Partial<FloatyControlledState>) => {
+      const next = { ...stateRef.current, ...patch };
+      stateRef.current = next;
+      if (valueRef.current !== undefined) {
+        onValueChangeRef.current?.(next);
+      } else {
+        setInternalState(next);
+      }
+    }, []);
+    const setIsCollapsed = useCallback(
+      (action: SetStateAction<boolean>) =>
+        applyState({ isCollapsed: resolveStateAction(action, stateRef.current.isCollapsed) }),
+      [applyState],
+    );
+    const setIsMinimized = useCallback(
+      (action: SetStateAction<boolean>) =>
+        applyState({ isMinimized: resolveStateAction(action, stateRef.current.isMinimized) }),
+      [applyState],
+    );
+    const setIsPinned = useCallback(
+      (action: SetStateAction<boolean>) =>
+        applyState({ isPinned: resolveStateAction(action, stateRef.current.isPinned) }),
+      [applyState],
+    );
+    const setIsMaximized = useCallback(
+      (action: SetStateAction<boolean>) =>
+        applyState({ isMaximized: resolveStateAction(action, stateRef.current.isMaximized) }),
+      [applyState],
+    );
+    const setSnapZone = useCallback(
+      (action: SetStateAction<FloatySnapZone | null>) =>
+        applyState({ snapZone: resolveStateAction(action, stateRef.current.snapZone) }),
+      [applyState],
+    );
+    const setPosition = useCallback(
+      (action: SetStateAction<FloatyPosition>) =>
+        applyState({ position: resolveStateAction(action, stateRef.current.position) }),
+      [applyState],
+    );
+    const setSize = useCallback(
+      (action: SetStateAction<FloatySize>) =>
+        applyState({ size: resolveStateAction(action, stateRef.current.size) }),
+      [applyState],
     );
     const [snapPreview, setSnapPreview] = useState<FloatySnapZone | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
-    const [position, setPosition] = useState<FloatyPosition>(() =>
-      clampPosition(
-        persistedState?.position ?? initialPosition,
-        persistedState?.size ?? initialSize,
-      ),
-    );
-    const [size, setSize] = useState<FloatySize>(persistedState?.size ?? initialSize ?? {});
     const floatyRef = useRef<HTMLElement>(null);
     const dragStateRef = useRef({
       isDragging: false,
@@ -400,7 +463,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         setPosition(geometry.position);
         setSize(geometry.size);
       },
-      [],
+      [setPosition, setSize],
     );
 
     const captureRestoreGeometry = useCallback(() => {
@@ -426,7 +489,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       setSnapZone(null);
       setIsMaximized(true);
       setIsCollapsed(false);
-    }, [captureRestoreGeometry, commitGeometry]);
+    }, [captureRestoreGeometry, commitGeometry, setIsCollapsed, setIsMaximized, setSnapZone]);
 
     const unmaximizeWindow = useCallback(() => {
       commitGeometry(restoreGeometryRef.current);
@@ -434,7 +497,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       isMaximizedRef.current = false;
       setSnapZone(null);
       setIsMaximized(false);
-    }, [commitGeometry]);
+    }, [commitGeometry, setIsMaximized, setSnapZone]);
 
     const snapWindow = useCallback(
       (zone: FloatySnapZone) => {
@@ -447,7 +510,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         setIsMaximized(maximized);
         setIsCollapsed(false);
       },
-      [captureRestoreGeometry, commitGeometry],
+      [captureRestoreGeometry, commitGeometry, setIsCollapsed, setIsMaximized, setSnapZone],
     );
 
     const handleMethods = useMemo<FloatyHandle>(
@@ -516,7 +579,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         },
         snapTo: snapWindow,
       }),
-      [maximizeWindow, snapWindow, unmaximizeWindow],
+      [
+        maximizeWindow,
+        setIsCollapsed,
+        setIsMaximized,
+        setIsMinimized,
+        setIsPinned,
+        setPosition,
+        setSize,
+        setSnapZone,
+        snapWindow,
+        unmaximizeWindow,
+      ],
     );
 
     // Keep internal ref always updated
@@ -782,7 +856,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       globalThis.removeEventListener('pointermove', handlePointerMove);
       globalThis.removeEventListener('pointerup', handlePointerUp);
       globalThis.removeEventListener('pointercancel', handlePointerUp);
-    }, [flushPendingFrame, handlePointerMove, onResizeEnd, snapWindow]);
+    }, [
+      flushPendingFrame,
+      handlePointerMove,
+      onResizeEnd,
+      setPosition,
+      setSize,
+      setSnapZone,
+      snapWindow,
+    ]);
 
     const startGlobalPointerListeners = useCallback(() => {
       globalThis.addEventListener('pointermove', handlePointerMove);
@@ -991,7 +1073,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           height: numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT),
         };
 
-        setPosition((current) => clampPosition(current, measuredSize));
+        setPosition((current) => {
+          const clamped = clampPosition(current, measuredSize);
+          return clamped.x === current.x && clamped.y === current.y ? current : clamped;
+        });
       };
 
       handleViewportResize();
@@ -1001,7 +1086,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       return () => {
         globalThis.removeEventListener('resize', handleViewportResize);
       };
-    }, [commitGeometry]);
+    }, [commitGeometry, setPosition]);
 
     useEffect(() => {
       if (isCollapsed || isMinimized) {
