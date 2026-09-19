@@ -99,9 +99,17 @@ test.describe('Floaty window mode', () => {
     await widget.locator('.floaty-button--maximize').click();
     await expect(widget).not.toHaveAttribute('data-maximized');
 
-    const resizeHandle = page.getByRole('button', { name: 'Resize widget handle' });
     const widthBefore = await widget.evaluate((element) => element.getBoundingClientRect().width);
-    await resizeHandle.press('ArrowRight');
+    const windowBox = await widget.boundingBox();
+    if (!windowBox) {
+      throw new Error('Window is not visible for resizing');
+    }
+    const edgeX = windowBox.x + windowBox.width - 3;
+    const edgeY = windowBox.y + windowBox.height / 2;
+    await page.mouse.move(edgeX, edgeY);
+    await page.mouse.down();
+    await page.mouse.move(edgeX + 48, edgeY, { steps: 5 });
+    await page.mouse.up();
     await expect
       .poll(() => widget.evaluate((element) => element.getBoundingClientRect().width))
       .toBeGreaterThan(widthBefore);
@@ -121,5 +129,21 @@ test.describe('Floaty window mode', () => {
     await expect(widget).toHaveCount(0);
     await page.getByRole('button', { name: 'Open window' }).click();
     await expect(widget).toBeVisible();
+  });
+
+  test('switches between Windows and macOS title bars', async ({ page }) => {
+    const widget = page.locator('.floaty--window');
+    const style = page.getByRole('combobox', { name: 'Window style' });
+
+    await expect(widget).toHaveClass(/floaty--window-windows/);
+    await expect(widget.locator('.floaty-window-icon')).toBeVisible();
+    await expect(widget.getByRole('button', { name: 'Pin' })).toHaveCount(0);
+
+    await style.selectOption('mac');
+    await expect(widget).toHaveClass(/floaty--window-mac/);
+    await expect(widget.getByRole('button', { name: 'Close' })).toBeVisible();
+
+    await style.selectOption('custom');
+    await expect(widget).toHaveClass(/floaty--window-custom/);
   });
 });

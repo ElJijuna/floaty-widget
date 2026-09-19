@@ -35,6 +35,9 @@ jobs:
       - name: Validate
         run: npm run check
 
+      - name: Check coverage
+        run: npm run test:coverage
+
       - name: Build
         run: npm run build
 
