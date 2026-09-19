@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const defaultStory = '/iframe.html?id=components-floatywidget--default&viewMode=story';
 const windowStory = '/iframe.html?id=components-floatywidget--window-mode&viewMode=story';
+const layoutsStory = '/iframe.html?id=components-floatywidget--multi-window-layouts&viewMode=story';
 
 test.describe('Floaty Storybook', () => {
   test.beforeEach(async ({ page }) => {
@@ -51,6 +52,32 @@ test.describe('Floaty Storybook', () => {
       .poll(() => widget.evaluate((element) => element.getBoundingClientRect().width))
       .toBeGreaterThan(widthBefore);
   });
+});
+
+test('arranges four windows into a non-overlapping grid', async ({ page }) => {
+  await page.goto(layoutsStory);
+  const windows = page.locator('.floaty--window');
+  await expect(windows).toHaveCount(4);
+
+  await page.getByRole('button', { name: 'Arrange grid' }).click();
+
+  await expect
+    .poll(() =>
+      windows.evaluateAll((elements) => {
+        const boxes = elements.map((element) => element.getBoundingClientRect());
+        return boxes.every((a, first) =>
+          boxes.every(
+            (b, second) =>
+              first === second ||
+              a.right <= b.left ||
+              b.right <= a.left ||
+              a.bottom <= b.top ||
+              b.bottom <= a.top,
+          ),
+        );
+      }),
+    )
+    .toBe(true);
 });
 
 test.describe('Floaty window mode', () => {

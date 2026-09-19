@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import type {
+  FloatyArrangeOptions,
   FloatyComponentLoader,
   FloatyDuplicateStrategy,
   FloatyHandle,
@@ -24,8 +25,9 @@ import type {
   FloatyWidgetManagerProps,
   FloatyWidgetPatch,
   FloatyWidgetState,
+  FloatyWindowArrangement,
 } from '../types';
-import { readPersistedState, writePersistedState } from '../utils/windowGeometry';
+import { getWindowLayout, readPersistedState, writePersistedState } from '../utils/windowGeometry';
 
 export const FloatyManagerContext = createContext<FloatyWidgetManagerHandle | null>(null);
 
@@ -555,6 +557,60 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       [updateWidgetState],
     );
 
+    const arrangeWindows = useCallback(
+      (layout: FloatyWindowArrangement, options: FloatyArrangeOptions = {}) => {
+        if (typeof window === 'undefined') {
+          return 0;
+        }
+
+        const visibleWindows = Array.from(widgetsRef.current.values()).filter(
+          (widget) => widget.mode === 'window' && !widget.isMinimized,
+        );
+        if (visibleWindows.length === 0) {
+          return 0;
+        }
+
+        const geometries = getWindowLayout(
+          visibleWindows.length,
+          layout,
+          { width: window.innerWidth, height: window.innerHeight },
+          options,
+        );
+        const next = new Map(widgetsRef.current);
+
+        visibleWindows.forEach((widget, index) => {
+          const geometry = geometries[index];
+          widgetHandlesRef.current.get(widget.id)?.current?.setGeometry(geometry);
+          next.set(widget.id, {
+            ...widget,
+            ...geometry,
+            isCollapsed: false,
+            isMaximized: false,
+            snapZone: null,
+          });
+
+          if (widget.persistenceKey) {
+            const persisted = readPersistedState(widget.persistenceKey);
+            writePersistedState(widget.persistenceKey, {
+              ...persisted,
+              version: 1,
+              ...geometry,
+              isCollapsed: false,
+              isMinimized: false,
+              isPinned: widget.isPinned,
+              isMaximized: false,
+              snapZone: null,
+              restoreGeometry: geometry,
+            });
+          }
+        });
+
+        updateWidgets(() => next);
+        return visibleWindows.length;
+      },
+      [updateWidgets],
+    );
+
     const getWidgetCount = useCallback(() => widgetsRef.current.size, []);
 
     const getWidget = useCallback((id: string) => widgetsRef.current.get(id), []);
@@ -585,6 +641,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         unpinWidget,
         maximizeWidget,
         unmaximizeWidget,
+        arrangeWindows,
         getWidgetCount,
         getWidget,
         widgets,
@@ -617,6 +674,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         unpinWidget,
         maximizeWidget,
         unmaximizeWidget,
+        arrangeWindows,
         getWidgetCount,
         getWidget,
         widgets,

@@ -3,6 +3,16 @@ import type { FloatyPosition, FloatySize } from './FloatyPosition';
 /** Visual chrome for window mode. `custom` uses the consumer's CSS variables. */
 export type FloatyWindowStyle = 'mac' | 'windows' | 'custom';
 
+/** Arrangement applied to visible windows managed by Floaty. */
+export type FloatyWindowArrangement = 'columns' | 'rows' | 'grid';
+
+/** Spacing reserved while arranging windows, in pixels. */
+export interface FloatyArrangeOptions {
+  gap?: number;
+  margin?: number;
+  bottomInset?: number;
+}
+
 /** Viewport region occupied by a snapped window. */
 export type FloatySnapZone =
   | 'top'

@@ -120,6 +120,7 @@ floaty.minimizeAll()
 floaty.restoreAll()
 floaty.pinAll()
 floaty.unpinAll()
+floaty.arrangeWindows('grid', { bottomInset: 72 })
 
 // Per-widget
 floaty.collapseWidget('commits')
@@ -305,6 +306,22 @@ Use window mode when the controls should remain attached and visible like a desk
 Window mode supports eight resize zones, maximize/restore, and snap to halves, quarters, or the
 full viewport. The same window and persistence options are accepted by `openFloaty()` and
 `manager.open()`.
+
+### Arrange multiple windows
+
+The manager can organize visible window-mode widgets in columns, rows, or a grid. Minimized
+windows and floating widgets keep their current state. You can reserve space for a taskbar:
+
+```tsx
+const manager = useFloatyWidgetManager();
+
+manager.arrangeWindows('grid', { gap: 12, margin: 16, bottomInset: 72 });
+manager.arrangeWindows('columns');
+manager.arrangeWindows('rows');
+```
+
+`arrangeWindows()` returns the number of windows arranged. It clears maximize and snap state,
+expands collapsed windows, and persists the new geometry for windows with a `persistenceKey`.
 
 ### Desktop taskbar
 

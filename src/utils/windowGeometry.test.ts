@@ -4,6 +4,7 @@ import {
   constrainSize,
   getSnapGeometry,
   getSnapZone,
+  getWindowLayout,
   readPersistedState,
   writePersistedState,
 } from './windowGeometry';
@@ -79,5 +80,25 @@ describe('window geometry utilities', () => {
     expect(readPersistedState(key)).toBeNull();
     getItem.mockRestore();
     window.localStorage.removeItem(key);
+  });
+
+  it('arranges windows in grid, columns, and rows with reserved space', () => {
+    const viewport = { width: 1000, height: 800 };
+    const options = { margin: 20, gap: 10, bottomInset: 50 };
+    const grid = getWindowLayout(4, 'grid', viewport, options);
+
+    expect(grid).toEqual([
+      { position: { x: 20, y: 20 }, size: { width: 475, height: 350 } },
+      { position: { x: 505, y: 20 }, size: { width: 475, height: 350 } },
+      { position: { x: 20, y: 380 }, size: { width: 475, height: 350 } },
+      { position: { x: 505, y: 380 }, size: { width: 475, height: 350 } },
+    ]);
+    expect(
+      getWindowLayout(3, 'columns', viewport, options).map(({ position }) => position.y),
+    ).toEqual([20, 20, 20]);
+    expect(getWindowLayout(3, 'rows', viewport, options).map(({ position }) => position.x)).toEqual(
+      [20, 20, 20],
+    );
+    expect(getWindowLayout(0, 'grid', viewport)).toEqual([]);
   });
 });

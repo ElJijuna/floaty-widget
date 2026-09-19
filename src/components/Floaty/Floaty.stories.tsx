@@ -165,6 +165,58 @@ export const WindowMode: Story = {
   },
 };
 
+const LayoutWindowContent = ({ label }: { label: string }) => (
+  <div style={{ display: 'grid', gap: 12 }}>
+    <strong style={{ fontSize: 18 }}>{label}</strong>
+    <span>Arrange the open windows using the controls above.</span>
+  </div>
+);
+
+const MultiWindowWorkspace = () => {
+  const manager = useFloatyWidgetManager();
+  const { open } = manager;
+
+  useEffect(() => {
+    ['Project', 'Notes', 'Activity', 'Settings'].forEach((label, index) => {
+      open({
+        id: `layout-${index}`,
+        mode: 'window',
+        title: label,
+        component: LayoutWindowContent,
+        props: { label },
+        position: { x: 60 + index * 48, y: 90 + index * 40 },
+        size: { width: 340, height: 220 },
+      });
+    });
+  }, [open]);
+
+  return (
+    <div style={{ minHeight: '100vh', padding: 24 }}>
+      <div style={{ position: 'fixed', right: 20, top: 64, zIndex: 2000, display: 'flex', gap: 8 }}>
+        {(['grid', 'columns', 'rows'] as const).map((layout) => (
+          <button
+            key={layout}
+            type="button"
+            onClick={() => manager.arrangeWindows(layout, { bottomInset: 72 })}
+          >
+            Arrange {layout}
+          </button>
+        ))}
+      </div>
+      <FloatyViewport />
+      <FloatyTaskbar style={{ position: 'fixed', right: 20, bottom: 20, left: 20, zIndex: 3000 }} />
+    </div>
+  );
+};
+
+export const MultiWindowLayouts: Story = {
+  render: () => (
+    <FloatyWidgetManager>
+      <MultiWindowWorkspace />
+    </FloatyWidgetManager>
+  ),
+};
+
 export const WithLongContent: Story = {
   args: {
     title: 'Long Content Example',

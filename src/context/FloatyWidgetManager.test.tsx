@@ -566,6 +566,73 @@ describe('FloatyWidgetManager', () => {
   });
 
   describe('bulk operations', () => {
+    it('arranges only visible windows and restores arranged geometry after maximizing', () => {
+      const key = 'floaty-test:arranged-window';
+      const withViewport = ({ children }: { children: ReactNode }) => (
+        <FloatyWidgetManager>
+          <FloatyViewport />
+          {children}
+        </FloatyWidgetManager>
+      );
+      const { result } = renderHook(() => useFloatyWidgetManager(), {
+        wrapper: withViewport,
+      });
+
+      act(() => {
+        result.current.open({
+          id: 'one',
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          persistenceKey: key,
+        });
+        result.current.open({ id: 'two', mode: 'window', component: MockComponent, props: {} });
+        result.current.open({
+          id: 'hidden',
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          minimized: true,
+        });
+        result.current.open({ id: 'floating', component: MockComponent, props: {} });
+      });
+      act(() => result.current.maximizeWidget('one'));
+      const floatingPosition = result.current.getWidget('floating')?.position;
+
+      let arranged = 0;
+      act(() => {
+        arranged = result.current.arrangeWindows('columns', {
+          margin: 20,
+          gap: 10,
+          bottomInset: 60,
+        });
+      });
+
+      expect(arranged).toBe(2);
+      const one = result.current.getWidget('one');
+      const two = result.current.getWidget('two');
+      expect(one).toMatchObject({ isMaximized: false, snapZone: null, position: { x: 20, y: 20 } });
+      expect(two?.position?.x).toBeGreaterThan(one?.position?.x ?? 0);
+      expect(result.current.getWidget('hidden')?.isMinimized).toBe(true);
+      expect(result.current.getWidget('floating')?.position).toEqual(floatingPosition);
+      expect(document.querySelectorAll('.floaty--window')).toHaveLength(2);
+      expect(JSON.parse(window.localStorage.getItem(key) ?? '{}')).toMatchObject({
+        position: one?.position,
+        size: one?.size,
+        restoreGeometry: { position: one?.position, size: one?.size },
+      });
+
+      act(() => result.current.maximizeWidget('one'));
+      act(() => result.current.unmaximizeWidget('one'));
+      expect(result.current.getWidget('one')).toMatchObject({
+        position: one?.position,
+        size: one?.size,
+      });
+      act(() => result.current.closeAll());
+      expect(result.current.arrangeWindows('grid')).toBe(0);
+      window.localStorage.removeItem(key);
+    });
+
     it('collapseAll / expandAll toggle isCollapsed on all widgets', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 

@@ -493,6 +493,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             return clampedPosition;
           });
         },
+        setGeometry: (geometry) => {
+          positionRef.current = geometry.position;
+          sizeRef.current = geometry.size;
+          restoreGeometryRef.current = geometry;
+          snapZoneRef.current = null;
+          isMaximizedRef.current = false;
+          setPosition(geometry.position);
+          setSize(geometry.size);
+          setIsCollapsed(false);
+          setSnapZone(null);
+          setIsMaximized(false);
+        },
         maximize: maximizeWindow,
         unmaximize: unmaximizeWindow,
         toggleMaximized: () => {
