@@ -126,14 +126,16 @@ test.describe('Floaty window mode', () => {
     await widget.locator('.floaty-button--maximize').click();
     await expect(widget).not.toHaveAttribute('data-maximized');
 
+    const eastHandle = widget.locator('.floaty-resize-handle--e');
+    await expect(eastHandle).toHaveCSS('cursor', 'ew-resize');
+    await eastHandle.hover();
     const widthBefore = await widget.evaluate((element) => element.getBoundingClientRect().width);
-    const windowBox = await widget.boundingBox();
-    if (!windowBox) {
-      throw new Error('Window is not visible for resizing');
+    const handleBox = await eastHandle.boundingBox();
+    if (!handleBox) {
+      throw new Error('East resize edge is not visible');
     }
-    const edgeX = windowBox.x + windowBox.width - 3;
-    const edgeY = windowBox.y + windowBox.height / 2;
-    await page.mouse.move(edgeX, edgeY);
+    const edgeX = handleBox.x + handleBox.width / 2;
+    const edgeY = handleBox.y + handleBox.height / 2;
     await page.mouse.down();
     await page.mouse.move(edgeX + 48, edgeY, { steps: 5 });
     await page.mouse.up();
