@@ -1,5 +1,8 @@
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
 
+/** Visual chrome for window mode. `custom` uses the consumer's CSS variables. */
+export type FloatyWindowStyle = 'mac' | 'windows' | 'custom';
+
 /** Viewport region occupied by a snapped window. */
 export type FloatySnapZone =
   | 'top'

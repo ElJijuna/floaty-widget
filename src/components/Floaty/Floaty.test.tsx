@@ -54,6 +54,29 @@ describe('Floaty', () => {
       expect(container.firstChild).toHaveClass('floaty--window');
     });
 
+    it('shows only OS window controls and applies the selected window style', () => {
+      const { container, rerender } = render(
+        <Floaty
+          mode="window"
+          windowStyle="mac"
+          windowIcon={<span data-testid="app-icon" />}
+          onClose={() => {}}
+        />,
+      );
+
+      expect(container.firstChild).toHaveClass('floaty--window-mac');
+      expect(screen.getByTestId('app-icon')).toBeInTheDocument();
+      expect(
+        screen.getAllByRole('button').map((button) => button.getAttribute('aria-label')),
+      ).toEqual(['Maximize', 'Minimize', 'Close']);
+      expect(screen.queryByRole('button', { name: 'Pin' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Collapse' })).not.toBeInTheDocument();
+      expect(container.querySelectorAll('.floaty-resize-handle')).toHaveLength(8);
+
+      rerender(<Floaty mode="window" windowStyle="custom" onClose={() => {}} />);
+      expect(container.firstChild).toHaveClass('floaty--window-custom');
+    });
+
     it('clamps the initial position inside the viewport', () => {
       const originalWidth = window.innerWidth;
       const originalHeight = window.innerHeight;
@@ -380,6 +403,7 @@ describe('Floaty', () => {
     });
 
     it('hydrates and updates a versioned persisted layout', () => {
+      const ref = createRef<FloatyHandle>();
       const key = 'floaty-test:persisted-window';
       window.localStorage.setItem(
         key,
@@ -395,13 +419,13 @@ describe('Floaty', () => {
         }),
       );
 
-      const { container } = render(<Floaty mode="window" persistenceKey={key} />);
+      const { container } = render(<Floaty ref={ref} mode="window" persistenceKey={key} />);
       const root = container.firstElementChild as HTMLElement;
 
       expect(root).toHaveClass('pinned');
       expect(root).toHaveStyle({ transform: 'translate(24px, 32px)', width: '480px' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Unpin' }));
+      act(() => ref.current?.unpin());
       expect(JSON.parse(window.localStorage.getItem(key) ?? '{}')).toMatchObject({
         version: 1,
         isPinned: false,

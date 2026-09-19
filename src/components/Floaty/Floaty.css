@@ -601,6 +601,25 @@
   box-shadow: var(--floaty-shadow);
 }
 
+.floaty--window-windows {
+  --floaty-radius: 8px;
+  --floaty-header-bg: #f3f3f3;
+  --floaty-header-fg: #202020;
+  --floaty-body-bg: #fff;
+  --floaty-border: #d8d8d8;
+  --floaty-button-hover-bg: #e3e3e3;
+  --floaty-font-family: "Segoe UI", sans-serif;
+}
+
+.floaty--window-mac {
+  --floaty-radius: 11px;
+  --floaty-header-bg: #f6f6f6;
+  --floaty-header-fg: #333;
+  --floaty-body-bg: #fff;
+  --floaty-border: #d6d6d6;
+  --floaty-font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 .floaty--window::before,
 .floaty--window::after {
   display: none;
@@ -618,6 +637,132 @@
   opacity: 1;
   pointer-events: auto;
   transform: none;
+  min-height: 38px;
+  padding: 0 0 0 12px;
+  gap: 8px;
+}
+
+.floaty--window .floaty-title {
+  text-align: left;
+  font-weight: 500;
+}
+
+.floaty-window-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  order: -1;
+}
+
+.floaty-window-icon > svg,
+.floaty-window-icon > img {
+  width: 100%;
+  height: 100%;
+}
+
+.floaty-window-icon-default {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  box-shadow: inset 0 3px currentColor;
+}
+
+.floaty--window .floaty-button {
+  width: 42px;
+  height: 38px;
+  border-radius: 0;
+}
+
+.floaty--window .floaty-button:hover,
+.floaty--window .floaty-button:active {
+  transform: none;
+}
+
+.floaty--window .floaty-button--minimize {
+  order: 1;
+  margin-left: auto;
+}
+.floaty--window .floaty-button--maximize {
+  order: 2;
+}
+.floaty--window .floaty-button--close {
+  order: 3;
+}
+.floaty--window .floaty-button--close:hover {
+  background: #e81123;
+  color: white;
+}
+
+.floaty--window-mac .floaty-header {
+  padding: 0 12px;
+  gap: 0;
+}
+
+.floaty--window-mac .floaty-button {
+  width: 20px;
+  height: 28px;
+  order: -2;
+  margin: 0 2px;
+}
+
+.floaty--window-mac .floaty-button svg {
+  display: none;
+}
+.floaty--window-mac .floaty-button::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #febc2e;
+}
+
+.floaty--window-mac .floaty-button--close {
+  order: -4;
+}
+.floaty--window-mac .floaty-button--close::before {
+  background: #ff5f57;
+}
+.floaty--window-mac .floaty-button--minimize {
+  order: -3;
+  margin-left: 0;
+}
+.floaty--window-mac .floaty-button--maximize::before {
+  background: #28c840;
+}
+.floaty--window-mac .floaty-button--close:hover {
+  background: transparent;
+  color: inherit;
+}
+.floaty--window-mac .floaty-window-icon {
+  order: -1;
+  margin-left: 12px;
+}
+.floaty--window-mac .floaty-title {
+  text-align: center;
+  margin-right: 92px;
+}
+
+.floaty--window .floaty-resize-handle {
+  opacity: 0;
+}
+.floaty--window .floaty-resize-handle--se::before {
+  display: none;
+}
+.floaty--window.resize-enabled .floaty-resize-handle,
+.floaty--window.resizing .floaty-resize-handle {
+  opacity: 0;
+  transform: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .floaty--window .floaty-resize-handle {
+    opacity: 0;
+  }
 }
 
 .floaty--window .floaty-body {

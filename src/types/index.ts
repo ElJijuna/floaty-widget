@@ -21,4 +21,5 @@ export type {
   FloatyResizeDirection,
   FloatySizeConstraints,
   FloatySnapZone,
+  FloatyWindowStyle,
 } from './FloatyWindow';

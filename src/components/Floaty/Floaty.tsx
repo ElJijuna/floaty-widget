@@ -25,6 +25,7 @@ import type {
   FloatySizeConstraints,
   FloatySnapZone,
   FloatyTexts,
+  FloatyWindowStyle,
 } from '../../types';
 import {
   clampPosition,
@@ -59,6 +60,10 @@ export interface FloatyProps {
   icons?: FloatyIcons;
   /** Visual layout. `window` keeps the header integrated and always visible. @default 'floating' */
   mode?: FloatyMode;
+  /** Title bar appearance in window mode. @default 'windows' */
+  windowStyle?: FloatyWindowStyle;
+  /** Application icon shown in the window title bar. */
+  windowIcon?: ReactNode;
   /** Whether the widget body is collapsed on first render. @default false */
   defaultCollapsed?: boolean;
   /** Whether the widget is minimized (hidden) on first render. @default false */
@@ -286,6 +291,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       labels: labelsProp,
       icons = {},
       mode = 'floating',
+      windowStyle = 'windows',
+      windowIcon,
       defaultCollapsed = false,
       defaultMinimized = false,
       defaultPinned = false,
@@ -524,6 +531,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           position,
           size,
           mode,
+          windowStyle,
+          windowIcon,
           zIndex,
           persistenceKey,
         });
@@ -542,6 +551,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           position,
           size,
           mode,
+          windowStyle,
+          windowIcon,
           zIndex,
           persistenceKey,
         });
@@ -553,6 +564,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       isMinimized,
       isPinned,
       mode,
+      windowStyle,
+      windowIcon,
       persistenceKey,
       position,
       size,
@@ -1000,7 +1013,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-active={isActive || undefined}
           data-maximized={isMaximized || undefined}
           data-snap-zone={snapZone ?? undefined}
-          className={`floaty floaty--${mode} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
           style={{
             ...style,
@@ -1026,30 +1039,40 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
             tabIndex={0}
           >
-            <span className="floaty-header-grip" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </span>
+            {mode === 'floating' && (
+              <span className="floaty-header-grip" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
 
-            <button
-              type="button"
-              className="floaty-button floaty-button--pin"
-              onClick={() => setIsPinned((pinned) => !pinned)}
-              title={isPinned ? labels.unpin : labels.pin}
-              aria-label={isPinned ? labels.unpin : labels.pin}
-            >
-              {isPinned && Unpin ? (
-                <Unpin active />
-              ) : !isPinned && Pin ? (
-                <Pin />
-              ) : (
-                <PinIcon pinned={isPinned} />
-              )}
-            </button>
+            {mode === 'floating' && (
+              <button
+                type="button"
+                className="floaty-button floaty-button--pin"
+                onClick={() => setIsPinned((pinned) => !pinned)}
+                title={isPinned ? labels.unpin : labels.pin}
+                aria-label={isPinned ? labels.unpin : labels.pin}
+              >
+                {isPinned && Unpin ? (
+                  <Unpin active />
+                ) : !isPinned && Pin ? (
+                  <Pin />
+                ) : (
+                  <PinIcon pinned={isPinned} />
+                )}
+              </button>
+            )}
+
+            {mode === 'window' && (
+              <span className="floaty-window-icon" aria-hidden="true">
+                {windowIcon ?? <span className="floaty-window-icon-default" />}
+              </span>
+            )}
 
             {mode === 'window' && (
               <button
@@ -1074,21 +1097,23 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
               {title}
             </span>
 
-            <button
-              type="button"
-              className="floaty-button floaty-button--expand"
-              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
-              title={isCollapsed ? labels.expand : labels.collapse}
-              aria-label={isCollapsed ? labels.expand : labels.collapse}
-            >
-              {isCollapsed && Expand ? (
-                <Expand active />
-              ) : !isCollapsed && Collapse ? (
-                <Collapse />
-              ) : (
-                <ChevronIcon collapsed={isCollapsed} />
-              )}
-            </button>
+            {mode === 'floating' && (
+              <button
+                type="button"
+                className="floaty-button floaty-button--expand"
+                onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+                title={isCollapsed ? labels.expand : labels.collapse}
+                aria-label={isCollapsed ? labels.expand : labels.collapse}
+              >
+                {isCollapsed && Expand ? (
+                  <Expand active />
+                ) : !isCollapsed && Collapse ? (
+                  <Collapse />
+                ) : (
+                  <ChevronIcon collapsed={isCollapsed} />
+                )}
+              </button>
+            )}
 
             {mode === 'floating' && (
               <button
@@ -1140,7 +1165,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             resizeEnabled &&
             !isMaximized &&
             RESIZE_DIRECTIONS.map((direction) =>
-              direction === 'se' ? (
+              direction === 'se' && mode === 'floating' ? (
                 <button
                   key={direction}
                   type="button"

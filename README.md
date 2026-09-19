@@ -11,6 +11,10 @@
 
 Draggable, collapsible, resizable floating widgets for React 19.
 
+| Windows style | macOS style |
+| --- | --- |
+| ![Floaty window with Windows controls](docs/images/window-windows.png) | ![Floaty window with macOS controls](docs/images/window-mac.png) |
+
 ## Installation
 
 ```bash
@@ -258,6 +262,8 @@ All props are optional.
 | `children` | `ReactNode` | `'Content'` | Body content |
 | `id` | `string` | — | Registers with `FloatyProvider` when provided |
 | `mode` | `'floating' \| 'window'` | `'floating'` | Use `window` for an integrated, always-visible header |
+| `windowStyle` | `'windows' \| 'mac' \| 'custom'` | `'windows'` | Window title bar appearance; `custom` uses your CSS variables |
+| `windowIcon` | `ReactNode` | Built-in icon | Application icon in the window title bar |
 | `initialPosition` | `{ x, y }` | `{ x: 100, y: 100 }` | Starting position — automatically clamped to viewport bounds |
 | `initialSize` | `{ width?, height? }` | — | Starting size |
 | `defaultCollapsed` | `boolean` | `false` | Start collapsed |
@@ -286,6 +292,7 @@ Use window mode when the controls should remain attached and visible like a desk
 ```tsx
 <Floaty
   mode="window"
+  windowStyle="mac"
   title="Settings"
   persistenceKey="workspace:settings"
   sizeConstraints={{ minWidth: 320, minHeight: 180 }}

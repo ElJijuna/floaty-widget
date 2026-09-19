@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { FloatyMode } from './FloatyMode';
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
-import type { FloatySnapZone } from './FloatyWindow';
+import type { FloatySnapZone, FloatyWindowStyle } from './FloatyWindow';
 
 /** Runtime state of a widget tracked by `FloatyWidgetManager`. */
 export interface FloatyWidgetState {
@@ -11,6 +11,10 @@ export interface FloatyWidgetState {
   title?: ReactNode;
   /** Visual layout used by the widget. */
   mode?: FloatyMode;
+  /** Window chrome style. */
+  windowStyle?: FloatyWindowStyle;
+  /** Application icon displayed in the window title bar. */
+  windowIcon?: ReactNode;
   /** Whether the widget body is hidden (header still visible). */
   isCollapsed: boolean;
   /** Whether the widget is fully hidden from the screen. */

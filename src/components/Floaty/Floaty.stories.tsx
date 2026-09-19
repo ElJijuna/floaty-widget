@@ -57,19 +57,37 @@ export const Default: Story = {
 };
 
 const IntegratedWindowContent = () => (
-  <div>
-    Drag to an edge to snap, use every border to resize, or double-click the header to maximize. The
-    taskbar restores minimized windows and the layout survives a reload.
+  <div style={{ display: 'grid', gap: 16, color: '#242a35' }}>
+    <div>
+      <strong style={{ display: 'block', fontSize: 18 }}>Workspace settings</strong>
+      <span style={{ color: '#667085', fontSize: 13 }}>Make this space work for you.</span>
+    </div>
+    <label style={{ display: 'grid', gap: 5, fontSize: 13 }}>
+      Workspace name
+      <input
+        defaultValue="Product team"
+        style={{ padding: '8px 10px', border: '1px solid #d0d5dd', borderRadius: 6 }}
+      />
+    </label>
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+      <input type="checkbox" defaultChecked />
+      Show desktop notifications
+    </label>
+    <span style={{ color: '#667085', fontSize: 12 }}>
+      Drag the title bar or resize from any edge or corner.
+    </span>
   </div>
 );
 
 const WindowModeWorkspace = () => {
   const manager = useFloatyWidgetManager();
+  const [windowStyle, setWindowStyle] = useState<'mac' | 'windows' | 'custom'>('windows');
   const { open } = manager;
   const openWindow = useCallback(() => {
     open({
       id: 'integrated-window',
       mode: 'window',
+      windowStyle,
       title: 'Integrated window',
       component: IntegratedWindowContent,
       props: {},
@@ -77,7 +95,7 @@ const WindowModeWorkspace = () => {
       size: { width: 460, height: 280 },
       persistenceKey: 'floaty-story:integrated-window',
     });
-  }, [open]);
+  }, [open, windowStyle]);
 
   useEffect(() => {
     openWindow();
@@ -98,6 +116,15 @@ const WindowModeWorkspace = () => {
           borderRadius: 10,
         }}
       >
+        <select
+          aria-label="Window style"
+          value={windowStyle}
+          onChange={(event) => setWindowStyle(event.target.value as typeof windowStyle)}
+        >
+          <option value="windows">Windows</option>
+          <option value="mac">macOS</option>
+          <option value="custom">Custom</option>
+        </select>
         <button
           type="button"
           disabled={manager.widgets.has('integrated-window')}

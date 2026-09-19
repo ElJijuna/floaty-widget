@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { FloatyMode } from './FloatyMode';
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
 import type { FloatyComponentLoader } from './FloatyWidget';
+import type { FloatyWindowStyle } from './FloatyWindow';
 
 /** Common payload fields used when opening a widget. */
 export type FloatyOpenWidgetBase<P> = {
@@ -15,6 +16,10 @@ export type FloatyOpenWidgetBase<P> = {
   title?: ReactNode;
   /** Visual layout. Use `window` for an integrated, always-visible header. */
   mode?: FloatyMode;
+  /** Window chrome style. @default 'windows' */
+  windowStyle?: FloatyWindowStyle;
+  /** Application icon displayed in the window title bar. */
+  windowIcon?: ReactNode;
   /** Initial position on screen. */
   position?: FloatyPosition;
   /** Initial dimensions. */

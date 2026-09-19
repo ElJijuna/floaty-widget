@@ -155,6 +155,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             id: widgetId,
             title: widget.title,
             mode: widget.mode ?? 'floating',
+            windowStyle: widget.windowStyle,
+            windowIcon: widget.windowIcon,
             component: component as ComponentType<unknown> | undefined,
             loader: widget.loader as FloatyComponentLoader<unknown> | undefined,
             props: widget.props,
@@ -292,6 +294,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             id,
             title: initialState.title ?? previous?.title,
             mode: initialState.mode ?? previous?.mode ?? 'floating',
+            windowStyle: initialState.windowStyle ?? previous?.windowStyle,
+            windowIcon: initialState.windowIcon ?? previous?.windowIcon,
             position: initialState.position ?? previous?.position,
             size: initialState.size ?? previous?.size,
             isCollapsed: initialState.isCollapsed ?? previous?.isCollapsed ?? false,
@@ -350,6 +354,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             nextWidget.position === previous.position &&
             nextWidget.size === previous.size &&
             nextWidget.mode === previous.mode &&
+            nextWidget.windowStyle === previous.windowStyle &&
+            nextWidget.windowIcon === previous.windowIcon &&
             nextWidget.zIndex === previous.zIndex
           ) {
             return current;
