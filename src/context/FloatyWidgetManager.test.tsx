@@ -477,6 +477,56 @@ describe('FloatyWidgetManager', () => {
         height: '240px',
       });
     });
+
+    it('passes window style and icon through the viewport and updates them', () => {
+      const Controller = () => {
+        const manager = useFloatyWidgetManager();
+        return (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                manager.open({
+                  id: 'styled',
+                  mode: 'window',
+                  windowStyle: 'mac',
+                  windowIcon: <span data-testid="mac-icon" />,
+                  component: MockComponent,
+                  props: {},
+                })
+              }
+            >
+              Open styled
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                manager.update('styled', {
+                  windowStyle: 'windows',
+                  windowIcon: <span data-testid="windows-icon" />,
+                })
+              }
+            >
+              Update styled
+            </button>
+            <FloatyViewport />
+          </>
+        );
+      };
+      const { container } = render(
+        <FloatyWidgetManager>
+          <Controller />
+        </FloatyWidgetManager>,
+      );
+
+      act(() => screen.getByRole('button', { name: 'Open styled' }).click());
+      expect(container.querySelector('.floaty')).toHaveClass('floaty--window-mac');
+      expect(screen.getByTestId('mac-icon')).toBeInTheDocument();
+
+      act(() => screen.getByRole('button', { name: 'Update styled' }).click());
+      expect(container.querySelector('.floaty')).toHaveClass('floaty--window-windows');
+      expect(screen.getByTestId('windows-icon')).toBeInTheDocument();
+    });
   });
 
   describe('updateProps', () => {
@@ -566,6 +616,53 @@ describe('FloatyWidgetManager', () => {
   });
 
   describe('per-widget operations', () => {
+    it('restores and maximizes a persisted window through the manager', () => {
+      const key = 'floaty-test:managed-layout';
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 1,
+          position: { x: 30, y: 40 },
+          size: { width: 340, height: 220 },
+          isCollapsed: false,
+          isMinimized: true,
+          isPinned: false,
+          isMaximized: false,
+          snapZone: null,
+          restoreGeometry: { position: { x: 30, y: 40 }, size: { width: 340, height: 220 } },
+        }),
+      );
+      const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
+
+      act(() =>
+        result.current.open({
+          id: 'persisted',
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          persistenceKey: key,
+        }),
+      );
+      expect(result.current.getWidget('persisted')?.isMinimized).toBe(true);
+
+      act(() => result.current.restoreWidget('persisted'));
+      expect(result.current.getWidget('persisted')?.isMinimized).toBe(false);
+      expect(JSON.parse(window.localStorage.getItem(key) ?? '{}').isMinimized).toBe(false);
+
+      act(() => result.current.maximizeWidget('persisted'));
+      expect(result.current.getWidget('persisted')?.isMaximized).toBe(true);
+      expect(JSON.parse(window.localStorage.getItem(key) ?? '{}').isMaximized).toBe(true);
+
+      act(() => result.current.unmaximizeWidget('persisted'));
+      expect(result.current.getWidget('persisted')).toMatchObject({
+        isMaximized: false,
+        position: { x: 30, y: 40 },
+        size: { width: 340, height: 220 },
+      });
+      expect(JSON.parse(window.localStorage.getItem(key) ?? '{}').isMaximized).toBe(false);
+      window.localStorage.removeItem(key);
+    });
+
     it('collapseWidget / expandWidget', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 

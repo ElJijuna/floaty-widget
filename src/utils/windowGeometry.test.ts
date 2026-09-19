@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { clampPosition, constrainSize, getSnapGeometry, getSnapZone } from './windowGeometry';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  clampPosition,
+  constrainSize,
+  getSnapGeometry,
+  getSnapZone,
+  readPersistedState,
+  writePersistedState,
+} from './windowGeometry';
 
 describe('window geometry utilities', () => {
   it('detects edge and corner snap zones', () => {
@@ -32,5 +39,45 @@ describe('window geometry utilities', () => {
         { width: 800, height: 600 },
       ),
     ).toEqual({ width: 700, height: 120 });
+  });
+
+  it('rejects missing, malformed, and outdated persisted geometry', () => {
+    const key = 'floaty-test:invalid-layout';
+    expect(readPersistedState(key)).toBeNull();
+
+    for (const value of [
+      '{',
+      '{"version":2,"position":{"x":1,"y":2}}',
+      '{"version":1,"position":{"x":"1","y":2}}',
+    ]) {
+      window.localStorage.setItem(key, value);
+      expect(readPersistedState(key)).toBeNull();
+    }
+
+    window.localStorage.removeItem(key);
+  });
+
+  it('round-trips valid persisted geometry and tolerates unavailable storage', () => {
+    const key = 'floaty-test:layout';
+    const state = {
+      version: 1 as const,
+      position: { x: 24, y: 32 },
+      size: { width: 480, height: 260 },
+      isCollapsed: false,
+      isMinimized: false,
+      isPinned: false,
+      isMaximized: false,
+      snapZone: null,
+    };
+
+    writePersistedState(key, state);
+    expect(readPersistedState(key)).toEqual(state);
+
+    const getItem = vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(readPersistedState(key)).toBeNull();
+    getItem.mockRestore();
+    window.localStorage.removeItem(key);
   });
 });

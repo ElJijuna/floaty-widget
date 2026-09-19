@@ -262,6 +262,44 @@ describe('Floaty', () => {
       expect(getBoundingClientRect).not.toHaveBeenCalled();
       expect(root).not.toHaveClass('dragging');
     });
+
+    it('previews a snap zone while dragging and applies it on release', () => {
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialPosition={{ x: 100, y: 100 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+      vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+        left: 100,
+        top: 100,
+        right: 420,
+        bottom: 300,
+        width: 320,
+        height: 200,
+      } as DOMRect);
+      header.setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(header, { clientX: 140, clientY: 120, pointerId: 1 });
+      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 1, clientY: 300 });
+
+      expect(document.querySelector('.floaty-snap-preview')).toHaveAttribute(
+        'data-snap-zone',
+        'left',
+      );
+
+      fireEvent.pointerUp(globalThis as unknown as Window);
+
+      expect(root).toHaveAttribute('data-snap-zone', 'left');
+      expect(root).toHaveStyle({
+        transform: 'translate(0px, 0px)',
+        width: `${Math.floor(window.innerWidth / 2)}px`,
+      });
+      expect(document.querySelector('.floaty-snap-preview')).not.toBeInTheDocument();
+    });
   });
 
   describe('resize', () => {
@@ -352,6 +390,37 @@ describe('Floaty', () => {
       expect(root).toHaveStyle({ transform: 'translate(80px, 100px)', width: '340px' });
       expect(onResizeStart).toHaveBeenCalledWith({ width: 320, height: 200 });
       expect(onResizeEnd).toHaveBeenCalledWith({ width: 340, height: 200 });
+    });
+
+    it('resizes from the north-west corner while keeping the opposite corner fixed', () => {
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialPosition={{ x: 100, y: 100 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const handle = container.querySelector('.floaty-resize-handle--nw') as HTMLElement;
+      vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+        left: 100,
+        top: 100,
+        right: 420,
+        bottom: 300,
+        width: 320,
+        height: 200,
+      } as DOMRect);
+      handle.setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 });
+      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 80, clientY: 70 });
+      fireEvent.pointerUp(globalThis as unknown as Window);
+
+      expect(root).toHaveStyle({
+        transform: 'translate(80px, 70px)',
+        width: '340px',
+        height: '230px',
+      });
     });
   });
 
