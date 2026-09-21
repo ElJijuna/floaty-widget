@@ -471,6 +471,147 @@ describe('Floaty', () => {
       expect(root).toHaveStyle({ transform: 'translate(40px, 50px)', width: '320px' });
     });
 
+    it('moves imperatively, clamping the position to the viewport', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.moveTo({ x: 5000, y: 5000 }));
+
+      expect(root).toHaveStyle({
+        transform: `translate(${window.innerWidth - 320}px, ${window.innerHeight - 200}px)`,
+      });
+    });
+
+    it('clears an active maximize state when moved imperatively', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.maximize());
+      expect(root).toHaveAttribute('data-maximized', 'true');
+
+      act(() => ref.current?.moveTo({ x: 0, y: 0 }));
+      expect(root).not.toHaveAttribute('data-maximized');
+    });
+
+    it('resizes imperatively, applying the given width and keeping the current height', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.resizeTo({ width: 500 }));
+
+      expect(root).toHaveStyle({ width: '500px', height: '200px' });
+    });
+
+    it('resizes imperatively, applying the given height and keeping the current width', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.resizeTo({ height: 300 }));
+
+      expect(root).toHaveStyle({ width: '320px', height: '300px' });
+    });
+
+    it('applies geometry imperatively and clears snap state', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.snapTo('left'));
+      expect(root).toHaveAttribute('data-snap-zone', 'left');
+
+      act(() =>
+        ref.current?.setGeometry({
+          position: { x: 60, y: 70 },
+          size: { width: 360, height: 220 },
+        }),
+      );
+
+      expect(root).not.toHaveAttribute('data-snap-zone');
+      expect(root).toHaveStyle({
+        transform: 'translate(60px, 70px)',
+        width: '360px',
+        height: '220px',
+      });
+    });
+
+    it('toggles maximized state imperatively', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.toggleMaximized());
+      expect(root).toHaveAttribute('data-maximized', 'true');
+
+      act(() => ref.current?.toggleMaximized());
+      expect(root).not.toHaveAttribute('data-maximized');
+      expect(root).toHaveStyle({ transform: 'translate(40px, 50px)', width: '320px' });
+    });
+
+    it('treats a snapped window as maximized when toggled imperatively', () => {
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+
+      act(() => ref.current?.snapTo('left'));
+      act(() => ref.current?.toggleMaximized());
+
+      expect(root).not.toHaveAttribute('data-snap-zone');
+      expect(root).toHaveStyle({ transform: 'translate(40px, 50px)', width: '320px' });
+    });
+
     it('hydrates and updates a versioned persisted layout', () => {
       const ref = createRef<FloatyHandle>();
       const key = 'floaty-test:persisted-window';

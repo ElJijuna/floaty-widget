@@ -34,8 +34,8 @@
 - [ ] Awareness de multi-viewport / multi-monitor
 
 ## Fase 5: Calidad y mantenimiento
-- [ ] Subir el umbral de cobertura de branches (actual: 83.48%, mínimo configurado: 82%, poco margen)
-- [ ] Revisar líneas sin cubrir en Floaty.tsx (drag/resize edge cases) y FloatyWidgetManager.tsx
+- [x] Cubrir el handle imperativo (`moveTo`, `resizeTo`, `setGeometry`, `toggleMaximized`) sin tests (branches: 83.48% → 83.77%)
+- [ ] Revisar branches restantes sin cubrir en FloatyWidgetManager.tsx (líneas 63,103,134,154,212,224-236,298-309,344,428,544,562) y windowGeometry.ts (getSnapZone, líneas 92,95,98)
 
 ## Características del Floaty:
 - **Header Draggable**: Permite arrastrar el componente por la pantalla (instantáneo, sin laggers)
