@@ -18,7 +18,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /touch\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'chromium-touch',
+      testMatch: /touch\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], hasTouch: true },
     },
   ],
   webServer: {

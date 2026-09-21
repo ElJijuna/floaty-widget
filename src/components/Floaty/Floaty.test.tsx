@@ -243,8 +243,8 @@ describe('Floaty', () => {
       const pointerTarget = globalThis as unknown as Window;
 
       fireEvent.pointerDown(header, { clientX: 100, clientY: 100, pointerId: 1 });
-      fireEvent.pointerMove(pointerTarget, { clientX: 120, clientY: 125 });
-      fireEvent.pointerMove(pointerTarget, { clientX: 130, clientY: 140 });
+      fireEvent.pointerMove(pointerTarget, { clientX: 120, clientY: 125, pointerId: 1 });
+      fireEvent.pointerMove(pointerTarget, { clientX: 130, clientY: 140, pointerId: 1 });
       fireEvent.pointerUp(pointerTarget);
 
       expect(getBoundingClientRect).toHaveBeenCalledOnce();
@@ -284,7 +284,11 @@ describe('Floaty', () => {
       header.setPointerCapture = vi.fn();
 
       fireEvent.pointerDown(header, { clientX: 140, clientY: 120, pointerId: 1 });
-      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 1, clientY: 300 });
+      fireEvent.pointerMove(globalThis as unknown as Window, {
+        clientX: 1,
+        clientY: 300,
+        pointerId: 1,
+      });
 
       expect(document.querySelector('.floaty-snap-preview')).toHaveAttribute(
         'data-snap-zone',
@@ -384,7 +388,11 @@ describe('Floaty', () => {
       westHandle.setPointerCapture = vi.fn();
 
       fireEvent.pointerDown(westHandle, { clientX: 100, clientY: 180, pointerId: 1 });
-      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 80, clientY: 180 });
+      fireEvent.pointerMove(globalThis as unknown as Window, {
+        clientX: 80,
+        clientY: 180,
+        pointerId: 1,
+      });
       fireEvent.pointerUp(globalThis as unknown as Window);
 
       expect(root).toHaveStyle({ transform: 'translate(80px, 100px)', width: '340px' });
@@ -413,7 +421,11 @@ describe('Floaty', () => {
       handle.setPointerCapture = vi.fn();
 
       fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 });
-      fireEvent.pointerMove(globalThis as unknown as Window, { clientX: 80, clientY: 70 });
+      fireEvent.pointerMove(globalThis as unknown as Window, {
+        clientX: 80,
+        clientY: 70,
+        pointerId: 1,
+      });
       fireEvent.pointerUp(globalThis as unknown as Window);
 
       expect(root).toHaveStyle({
@@ -421,6 +433,76 @@ describe('Floaty', () => {
         width: '340px',
         height: '230px',
       });
+    });
+
+    it('pinch-resizes proportionally with two touch pointers and emits lifecycle callbacks', () => {
+      const onResizeStart = vi.fn();
+      const onResizeEnd = vi.fn();
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialPosition={{ x: 100, y: 100 }}
+          initialSize={{ width: 300, height: 200 }}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+      header.setPointerCapture = vi.fn();
+      const pointerTarget = globalThis as unknown as Window;
+
+      fireEvent.pointerDown(header, {
+        clientX: 0,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: 'touch',
+      });
+      fireEvent.pointerDown(header, {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 2,
+        pointerType: 'touch',
+      });
+
+      expect(onResizeStart).toHaveBeenCalledWith({ width: 300, height: 200 });
+      expect(root).not.toHaveClass('dragging');
+      expect(root).toHaveClass('resizing');
+
+      fireEvent.pointerMove(pointerTarget, { clientX: 300, clientY: 0, pointerId: 2 });
+      fireEvent.pointerUp(pointerTarget, { pointerId: 2 });
+
+      expect(root).toHaveStyle({ width: '900px', height: '600px' });
+      expect(root).not.toHaveClass('resizing');
+      expect(onResizeEnd).toHaveBeenCalledWith({ width: 900, height: 600 });
+    });
+
+    it('ignores a second touch pointer when resizing is disabled', () => {
+      const { container } = render(
+        <Floaty initialPosition={{ x: 100, y: 100 }} initialSize={{ width: 300, height: 200 }} />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const header = container.querySelector('.floaty-header') as HTMLElement;
+      header.setPointerCapture = vi.fn();
+      const pointerTarget = globalThis as unknown as Window;
+
+      fireEvent.pointerDown(header, {
+        clientX: 0,
+        clientY: 0,
+        pointerId: 1,
+        pointerType: 'touch',
+      });
+      fireEvent.pointerDown(header, {
+        clientX: 100,
+        clientY: 0,
+        pointerId: 2,
+        pointerType: 'touch',
+      });
+      fireEvent.pointerMove(pointerTarget, { clientX: 300, clientY: 0, pointerId: 2 });
+      fireEvent.pointerUp(pointerTarget, { pointerId: 1 });
+
+      expect(root).toHaveStyle({ width: '300px', height: '200px' });
+      expect(root).not.toHaveClass('resizing');
     });
   });
 

@@ -496,9 +496,27 @@
   }
 
   .floaty-resize-handle {
+    opacity: 0.86;
+  }
+
+  /* Only grow the narrow axis of edge handles so they stay full-strip and
+     don't collapse into a small square stuck against the header buttons. */
+  .floaty-resize-handle--n,
+  .floaty-resize-handle--s {
+    height: 36px;
+  }
+
+  .floaty-resize-handle--e,
+  .floaty-resize-handle--w {
+    width: 36px;
+  }
+
+  .floaty-resize-handle--ne,
+  .floaty-resize-handle--nw,
+  .floaty-resize-handle--se,
+  .floaty-resize-handle--sw {
     width: 36px;
     height: 36px;
-    opacity: 0.86;
   }
 
   .floaty-resize-handle::before {

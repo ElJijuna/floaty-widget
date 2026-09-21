@@ -37,6 +37,12 @@
 - [x] Cubrir el handle imperativo (`moveTo`, `resizeTo`, `setGeometry`, `toggleMaximized`) sin tests (branches: 83.48% → 83.77%)
 - [ ] Revisar branches restantes sin cubrir en FloatyWidgetManager.tsx (líneas 63,103,134,154,212,224-236,298-309,344,428,544,562) y windowGeometry.ts (getSnapZone, líneas 92,95,98)
 
+## Fase 6: Soporte táctil
+- [x] Pinch-to-resize con dos dedos desde el header (gated por `resizeEnabled`/`isCollapsed`, emite `onResizeStart`/`onResizeEnd`)
+- [x] Fix de multi-touch: el drag/resize por pointer ahora filtra por `pointerId` activo, evitando que un segundo dedo secuestre el gesto en curso
+- [x] Fix de CSS táctil: los resize handles de borde (n/s/e/w) bajo `(pointer: coarse)` solo agrandan su eje angosto en vez de colapsar a un cuadrado 36×36 pegado al header, que tapaba los botones en modo window (bug encontrado con e2e real, no reproducible en jsdom)
+- [x] Tests e2e de touch reales (`e2e/touch.spec.ts`, proyecto `chromium-touch` con `hasTouch: true`, gestos vía CDP `Input.dispatchTouchEvent`): drag, resize de handle y pinch
+
 ## Características del Floaty:
 - **Header Draggable**: Permite arrastrar el componente por la pantalla (instantáneo, sin laggers)
 - **Expand/Collapse**: Botón con flecha SVG animada en lado derecho
@@ -45,3 +51,4 @@
 - **Animaciones**: Expand/collapse con spring easing, border-radius smooth
 - **Accesibilidad**: Soporte de teclado para colapsar, mover y redimensionar
 - **Responsive**: Reajuste automático al cambiar el viewport y controles touch más visibles
+- **Táctil**: Drag y resize vía Pointer Events (touch/mouse/pen unificado), más pinch-to-resize con dos dedos

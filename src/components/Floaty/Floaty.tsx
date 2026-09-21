@@ -33,6 +33,7 @@ import {
   clampPosition,
   constrainSize,
   DEFAULT_MIN_HEIGHT,
+  DEFAULT_MIN_WIDTH,
   DEFAULT_SNAP_THRESHOLD,
   getSnapGeometry,
   getSnapZone,
@@ -409,6 +410,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const floatyRef = useRef<HTMLElement>(null);
     const dragStateRef = useRef({
       isDragging: false,
+      pointerId: 0,
       startPointerX: 0,
       startPointerY: 0,
       startX: 0,
@@ -420,6 +422,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     });
     const resizeStateRef = useRef({
       isResizing: false,
+      pointerId: 0,
       startPointerX: 0,
       startPointerY: 0,
       startWidth: 0,
@@ -429,6 +432,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       direction: 'se' as FloatyResizeDirection,
       startX: 0,
       startY: 0,
+    });
+    const pinchStateRef = useRef({
+      isPinching: false,
+      pointers: new Map<number, { x: number; y: number }>(),
+      startDistance: 0,
+      startWidth: 0,
+      startHeight: 0,
     });
     const positionRef = useRef(position);
     const sizeRef = useRef(size);
@@ -734,7 +744,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
     const handlePointerMove = useCallback(
       (e: PointerEvent) => {
-        if (dragStateRef.current.isDragging) {
+        if (dragStateRef.current.isDragging && e.pointerId === dragStateRef.current.pointerId) {
           const dragState = dragStateRef.current;
 
           let newX = dragState.startX + e.clientX - dragState.startPointerX;
@@ -766,7 +776,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           }
         }
 
-        if (resizeStateRef.current.isResizing) {
+        if (resizeStateRef.current.isResizing && e.pointerId === resizeStateRef.current.pointerId) {
           const resizeState = resizeStateRef.current;
           const dx = e.clientX - resizeState.startPointerX;
           const dy = e.clientY - resizeState.startPointerY;
@@ -811,60 +821,104 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
           scheduleVisualUpdate();
         }
+
+        if (pinchStateRef.current.isPinching && !resizeStateRef.current.isResizing) {
+          const pinchState = pinchStateRef.current;
+          const pointer = pinchState.pointers.get(e.pointerId);
+          if (pointer) {
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+          }
+
+          const [first, second] = Array.from(pinchState.pointers.values());
+          if (first && second && pinchState.startDistance > 0) {
+            const distance = Math.hypot(first.x - second.x, first.y - second.y);
+            const scale = distance / pinchState.startDistance;
+
+            const constrained = constrainSize(
+              {
+                width: pinchState.startWidth * scale,
+                height: pinchState.startHeight * scale,
+              },
+              sizeConstraintsRef.current,
+              {
+                width: window.innerWidth - positionRef.current.x,
+                height: window.innerHeight - positionRef.current.y,
+              },
+            );
+
+            pendingSizeRef.current = constrained;
+            scheduleVisualUpdate();
+          }
+        }
       },
       [mode, scheduleVisualUpdate, snap, snapThreshold],
     );
 
-    const handlePointerUp = useCallback(() => {
-      const nextPosition = pendingPositionRef.current;
-      const nextSize = pendingSizeRef.current;
-      const nextSnapZone = snapPreviewRef.current;
-      const endedDrag = dragStateRef.current.isDragging;
-      const endedResize = resizeStateRef.current.isResizing;
+    const handlePointerUp = useCallback(
+      (e: PointerEvent) => {
+        pinchStateRef.current.pointers.delete(e.pointerId);
 
-      if (frameRef.current !== null) {
-        cancelAnimationFrame(frameRef.current);
-        flushPendingFrame();
-      }
-
-      dragStateRef.current.isDragging = false;
-      resizeStateRef.current.isResizing = false;
-      pendingPositionRef.current = null;
-      pendingSizeRef.current = null;
-      snapPreviewRef.current = null;
-      setSnapPreview(null);
-
-      if (nextSnapZone && endedDrag) {
-        snapWindow(nextSnapZone);
-      } else if (nextPosition) {
-        positionRef.current = nextPosition;
-        setPosition(nextPosition);
-        snapZoneRef.current = null;
-        setSnapZone(null);
-      }
-
-      if (nextSize) {
-        sizeRef.current = nextSize;
-        setSize(nextSize);
-        if (endedResize) {
-          onResizeEnd?.(nextSize);
+        const endedPinch = pinchStateRef.current.isPinching;
+        if (endedPinch) {
+          pinchStateRef.current.isPinching = false;
+          pinchStateRef.current.pointers.clear();
         }
-      }
 
-      setIsDragging(false);
-      setIsResizing(false);
-      globalThis.removeEventListener('pointermove', handlePointerMove);
-      globalThis.removeEventListener('pointerup', handlePointerUp);
-      globalThis.removeEventListener('pointercancel', handlePointerUp);
-    }, [
-      flushPendingFrame,
-      handlePointerMove,
-      onResizeEnd,
-      setPosition,
-      setSize,
-      setSnapZone,
-      snapWindow,
-    ]);
+        const nextPosition = pendingPositionRef.current;
+        const nextSize = pendingSizeRef.current;
+        const nextSnapZone = snapPreviewRef.current;
+        const endedDrag = dragStateRef.current.isDragging;
+        const endedResize = resizeStateRef.current.isResizing || endedPinch;
+
+        if (frameRef.current !== null) {
+          cancelAnimationFrame(frameRef.current);
+          flushPendingFrame();
+        }
+
+        dragStateRef.current.isDragging = false;
+        resizeStateRef.current.isResizing = false;
+        pendingPositionRef.current = null;
+        pendingSizeRef.current = null;
+        snapPreviewRef.current = null;
+        setSnapPreview(null);
+
+        if (nextSnapZone && endedDrag) {
+          snapWindow(nextSnapZone);
+        } else if (nextPosition) {
+          positionRef.current = nextPosition;
+          setPosition(nextPosition);
+          snapZoneRef.current = null;
+          setSnapZone(null);
+        }
+
+        if (nextSize) {
+          sizeRef.current = nextSize;
+          setSize(nextSize);
+          if (endedResize) {
+            onResizeEnd?.(nextSize);
+          }
+        }
+
+        setIsDragging(false);
+        setIsResizing(false);
+
+        if (pinchStateRef.current.pointers.size === 0) {
+          globalThis.removeEventListener('pointermove', handlePointerMove);
+          globalThis.removeEventListener('pointerup', handlePointerUp);
+          globalThis.removeEventListener('pointercancel', handlePointerUp);
+        }
+      },
+      [
+        flushPendingFrame,
+        handlePointerMove,
+        onResizeEnd,
+        setPosition,
+        setSize,
+        setSnapZone,
+        snapWindow,
+      ],
+    );
 
     const startGlobalPointerListeners = useCallback(() => {
       globalThis.addEventListener('pointermove', handlePointerMove);
@@ -889,6 +943,43 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         return;
       }
 
+      if (e.pointerType === 'touch') {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        pinchStateRef.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (pinchStateRef.current.pointers.size >= 2) {
+          const resizeEnabled = mode === 'window' || isResizeEnabled;
+
+          if (!pinchStateRef.current.isPinching && resizeEnabled && !isCollapsed) {
+            dragStateRef.current.isDragging = false;
+            setIsDragging(false);
+
+            const [first, second] = Array.from(pinchStateRef.current.pointers.values());
+            pinchStateRef.current.isPinching = true;
+            pinchStateRef.current.startDistance = Math.hypot(
+              first.x - second.x,
+              first.y - second.y,
+            );
+            pinchStateRef.current.startWidth = numericSize(
+              sizeRef.current.width,
+              DEFAULT_MIN_WIDTH,
+            );
+            pinchStateRef.current.startHeight = numericSize(
+              sizeRef.current.height,
+              DEFAULT_MIN_HEIGHT,
+            );
+            onResizeStart?.({
+              width: pinchStateRef.current.startWidth,
+              height: pinchStateRef.current.startHeight,
+            });
+            setIsResizing(true);
+            startGlobalPointerListeners();
+          }
+
+          return;
+        }
+      }
+
       const rect = floatyRef.current?.getBoundingClientRect();
 
       if (rect) {
@@ -896,6 +987,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         e.currentTarget.setPointerCapture(e.pointerId);
         dragStateRef.current = {
           isDragging: true,
+          pointerId: e.pointerId,
           startPointerX: e.clientX,
           startPointerY: e.clientY,
           startX: positionRef.current.x,
@@ -929,6 +1021,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         e.currentTarget.setPointerCapture(e.pointerId);
         resizeStateRef.current = {
           isResizing: true,
+          pointerId: e.pointerId,
           startPointerX: e.clientX,
           startPointerY: e.clientY,
           startWidth: rect.width,
