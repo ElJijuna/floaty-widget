@@ -31,7 +31,6 @@
 - [x] Taskbar y preview de widgets colapsados
 - [x] Carga perezosa de contenido (loader/fallback)
 - [x] Persistencia de layout por widget (posición, tamaño, pin, collapse, maximize, snap) via `persistenceKey`, incluyendo geometría post-arrange — ya cubierto por tests en `FloatyWidgetManager.test.tsx` y `Floaty.test.tsx`
-- [ ] Awareness de multi-viewport / multi-monitor
 - [ ] (Fuera de alcance por diseño) Restaurar automáticamente qué widgets estaban abiertos entre sesiones — el store mantiene referencias a componentes React no serializables; el consumidor decide qué reabrir
 
 ## Fase 5: Calidad y mantenimiento
