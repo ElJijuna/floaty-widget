@@ -16,12 +16,26 @@
 - [x] Iconos SVG para Pin y Chevron
 - [x] Animaciones suaves de expand/collapse
 
-## Fase 3: Mejoras y Publicación
+## Fase 3: Mejoras y Publicación ✓
 - [x] Agregar estilos globales y temas
 - [x] Documentación de UX, teclado, viewport y textos configurables
 - [x] Tests unitarios de interacciones UX principales
-- [ ] Build para producción
-- [ ] Publicar en npm
+- [x] Build para producción
+- [x] Publicar en npm (v1.9.0, release automatizado con semantic-release)
+
+## Fase 4: Gestión de múltiples ventanas
+- [x] FloatyWidgetManager / FloatyProvider con store de widgets
+- [x] Resize handles (incluyendo handle este) con persistencia de geometría
+- [x] Arrange de ventanas: grid, columnas y filas
+- [x] Controlled state management con manejo de estado externo
+- [x] Taskbar y preview de widgets colapsados
+- [x] Carga perezosa de contenido (loader/fallback)
+- [ ] Persistencia completa de layout (posición + arrange + pin) en storage
+- [ ] Awareness de multi-viewport / multi-monitor
+
+## Fase 5: Calidad y mantenimiento
+- [ ] Subir el umbral de cobertura de branches (actual: 83.48%, mínimo configurado: 82%, poco margen)
+- [ ] Revisar líneas sin cubrir en Floaty.tsx (drag/resize edge cases) y FloatyWidgetManager.tsx
 
 ## Características del Floaty:
 - **Header Draggable**: Permite arrastrar el componente por la pantalla (instantáneo, sin laggers)
