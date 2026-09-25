@@ -2,6 +2,16 @@
   "name": "floaty-widget",
   "version": "0.1.0",
   "description": "A floating component with drag, collapse/expand, and pin functionality",
+  "keywords": [
+    "react",
+    "floating",
+    "widget",
+    "window",
+    "draggable",
+    "resizable",
+    "panel",
+    "taskbar"
+  ],
   "type": "module",
   "packageManager": "npm@11.12.1",
   "engines": {
@@ -84,6 +94,14 @@
   },
   "author": "pilmee <pilmee@gmail.com> (https://github.com/ElJijuna)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ElJijuna/floaty-widget.git"
+  },
+  "homepage": "https://github.com/ElJijuna/floaty-widget#readme",
+  "bugs": {
+    "url": "https://github.com/ElJijuna/floaty-widget/issues"
+  },
   "publishConfig": {
     "access": "public"
   },

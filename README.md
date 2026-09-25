@@ -21,6 +21,15 @@ Draggable, collapsible, resizable floating widgets for React 19.
 npm install floaty-widget
 ```
 
+The package is also mirrored to [GitHub Packages](https://github.com/ElJijuna/floaty-widget/pkgs/npm/floaty-widget) as `@eljijuna/floaty-widget`:
+
+```bash
+echo "@eljijuna:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @eljijuna/floaty-widget
+```
+
+GitHub Packages requires authentication even for public packages. Use a token with the `read:packages` scope.
+
 ## Usage modes
 
 There are three ways to use Floaty, from simplest to most powerful.
