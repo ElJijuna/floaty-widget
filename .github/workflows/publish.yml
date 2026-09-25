@@ -55,6 +55,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Signed provenance attestation on npmjs.com (uses the job's id-token: write).
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Build Storybook
         if: steps.release.outputs.new_release_published == 'true'
