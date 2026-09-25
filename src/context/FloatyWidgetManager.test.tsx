@@ -798,4 +798,53 @@ describe('FloatyWidgetManager', () => {
       spy.mockRestore();
     });
   });
+
+  describe('focus management', () => {
+    const Opener = () => {
+      const manager = useFloatyWidgetManager();
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              manager.open({
+                id: 'focus',
+                component: MockComponent,
+                props: {},
+                title: 'Focus widget',
+                autoFocus: true,
+              })
+            }
+          >
+            Open widget
+          </button>
+          <button type="button" onClick={() => manager.minimizeWidget('focus')}>
+            Minimize widget
+          </button>
+          <FloatyViewport />
+        </>
+      );
+    };
+
+    it('moves focus into an autoFocus widget and back to the trigger on close', () => {
+      render(
+        <FloatyWidgetManager>
+          <Opener />
+        </FloatyWidgetManager>,
+      );
+      const trigger = screen.getByRole('button', { name: 'Open widget' });
+      trigger.focus();
+      act(() => trigger.click());
+
+      expect(screen.getByRole('toolbar', { name: 'Focus widget controls' })).toHaveFocus();
+
+      const close = screen.getByRole('button', { name: 'Close' });
+      close.focus();
+      act(() => close.click());
+
+      expect(screen.queryByRole('toolbar', { name: 'Focus widget controls' })).toBeNull();
+      expect(trigger).toHaveFocus();
+    });
+  });
 });

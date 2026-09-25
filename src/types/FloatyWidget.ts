@@ -19,4 +19,8 @@ export interface FloatyWidget<P = unknown> extends FloatyWidgetState {
   fallback?: ReactNode;
   /** Additional CSS class applied to the widget root element. */
   className?: string;
+  /** Moves keyboard focus to the widget header when it appears. */
+  autoFocus?: boolean;
+  /** Returns focus to the previously focused element when the widget closes or minimizes. */
+  restoreFocus?: boolean;
 }

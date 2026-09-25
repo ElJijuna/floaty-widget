@@ -36,6 +36,10 @@ export type FloatyOpenWidgetBase<P> = {
   persistenceKey?: string;
   /** Additional CSS class applied to the widget root element. */
   className?: string;
+  /** Moves keyboard focus to the widget header when it appears. @default false */
+  autoFocus?: boolean;
+  /** Returns focus to the previously focused element when the widget closes or minimizes. @default true */
+  restoreFocus?: boolean;
 };
 
 /** Payload passed to `manager.open()` to create a new widget. */

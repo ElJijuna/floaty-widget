@@ -815,6 +815,110 @@ describe('Floaty', () => {
     });
   });
 
+  describe('focus management', () => {
+    const header = () => screen.getByRole('toolbar', { name: 'Floaty controls' });
+
+    it('does not move focus on mount by default', () => {
+      render(<Floaty />);
+
+      expect(document.body).toHaveFocus();
+    });
+
+    it('focuses the header on mount and on restore with autoFocus', () => {
+      const ref = createRef<FloatyHandle>();
+      render(<Floaty ref={ref} autoFocus />);
+
+      expect(header()).toHaveFocus();
+
+      act(() => ref.current?.minimize());
+      act(() => (document.activeElement as HTMLElement | null)?.blur());
+      act(() => ref.current?.restore());
+
+      expect(header()).toHaveFocus();
+    });
+
+    it('returns focus to the opener when the widget unmounts with focus inside', () => {
+      const { rerender } = render(<button type="button">Open</button>);
+      const opener = screen.getByRole('button', { name: 'Open' });
+      opener.focus();
+
+      rerender(
+        <>
+          <button type="button">Open</button>
+          <Floaty autoFocus />
+        </>,
+      );
+      expect(header()).toHaveFocus();
+
+      rerender(<button type="button">Open</button>);
+      expect(opener).toHaveFocus();
+    });
+
+    it('returns focus to the opener when minimized from its own button', () => {
+      const { rerender } = render(<button type="button">Open</button>);
+      const opener = screen.getByRole('button', { name: 'Open' });
+      opener.focus();
+
+      rerender(
+        <>
+          <button type="button">Open</button>
+          <Floaty />
+        </>,
+      );
+      const minimize = screen.getByRole('button', { name: 'Minimize' });
+      minimize.focus();
+      fireEvent.click(minimize);
+
+      expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    });
+
+    it('does not steal focus that already moved outside the widget', () => {
+      const { rerender } = render(
+        <>
+          <button type="button">Open</button>
+          <input aria-label="Elsewhere" />
+        </>,
+      );
+      screen.getByRole('button', { name: 'Open' }).focus();
+
+      rerender(
+        <>
+          <button type="button">Open</button>
+          <input aria-label="Elsewhere" />
+          <Floaty autoFocus />
+        </>,
+      );
+      const elsewhere = screen.getByRole('textbox', { name: 'Elsewhere' });
+      elsewhere.focus();
+
+      rerender(
+        <>
+          <button type="button">Open</button>
+          <input aria-label="Elsewhere" />
+        </>,
+      );
+      expect(elsewhere).toHaveFocus();
+    });
+
+    it('leaves focus alone when restoreFocus is false', () => {
+      const { rerender } = render(<button type="button">Open</button>);
+      const opener = screen.getByRole('button', { name: 'Open' });
+      opener.focus();
+
+      rerender(
+        <>
+          <button type="button">Open</button>
+          <Floaty autoFocus restoreFocus={false} />
+        </>,
+      );
+      expect(header()).toHaveFocus();
+
+      rerender(<button type="button">Open</button>);
+      expect(opener).not.toHaveFocus();
+    });
+  });
+
   describe('imperative handle', () => {
     it('exposes collapse and expand methods via ref', () => {
       const ref = createRef<FloatyHandle>();

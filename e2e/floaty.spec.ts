@@ -203,4 +203,25 @@ test.describe('Floaty window mode', () => {
       .poll(() => widget.evaluate((element) => element.getBoundingClientRect().height))
       .toBeGreaterThan(heightBefore);
   });
+
+  test('returns keyboard focus to the taskbar when a restored window minimizes', async ({
+    page,
+  }) => {
+    const widget = page.locator('.floaty--window');
+    const taskbarButton = page
+      .getByRole('toolbar', { name: 'Open windows' })
+      .getByRole('button', { name: 'Integrated window', exact: true });
+
+    await widget.getByRole('button', { name: 'Minimize' }).click();
+    await expect(widget).toHaveCount(0);
+
+    await taskbarButton.focus();
+    await page.keyboard.press('Enter');
+    await expect(widget).toBeVisible();
+
+    await widget.getByRole('button', { name: 'Minimize' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(widget).toHaveCount(0);
+    await expect(taskbarButton).toBeFocused();
+  });
 });

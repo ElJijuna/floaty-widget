@@ -166,6 +166,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             position: persisted?.position ?? widget.position,
             size: persisted?.size ?? widget.size,
             className: widget.className,
+            autoFocus: widget.autoFocus,
+            restoreFocus: widget.restoreFocus,
             isCollapsed: persisted?.isCollapsed ?? widget.collapsed ?? false,
             isMinimized: persisted?.isMinimized ?? widget.minimized ?? false,
             isPinned: persisted?.isPinned ?? widget.pinned ?? false,

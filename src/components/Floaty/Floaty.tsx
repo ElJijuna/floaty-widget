@@ -9,6 +9,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -95,6 +96,13 @@ export interface FloatyProps {
   zIndex?: number;
   /** Whether this widget is currently the active/front-most widget. */
   isActive?: boolean;
+  /** Moves keyboard focus to the header when the widget appears (mount or restore). @default false */
+  autoFocus?: boolean;
+  /**
+   * Returns focus to the element focused before the widget appeared when it closes or minimizes
+   * while focus is inside it. Never moves focus that is elsewhere. @default true
+   */
+  restoreFocus?: boolean;
   /** Called when the user clicks the close button. If omitted, the close button is not rendered. */
   onClose?: () => void;
   /** Called when the user clicks or starts dragging the widget (used to bring it to front). */
@@ -317,6 +325,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       persistenceKey,
       zIndex,
       isActive = false,
+      autoFocus = false,
+      restoreFocus = true,
       onClose,
       onFocus,
       onFocusChange,
@@ -408,6 +418,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isResizing, setIsResizing] = useState(false);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const floatyRef = useRef<HTMLElement>(null);
+    const openerRef = useRef<HTMLElement | null>(null);
+    const hasFocusRef = useRef(false);
+    const autoFocusRef = useRef(autoFocus);
+    const restoreFocusRef = useRef(restoreFocus);
+    autoFocusRef.current = autoFocus;
+    restoreFocusRef.current = restoreFocus;
     const dragStateRef = useRef({
       isDragging: false,
       pointerId: 0,
@@ -1191,6 +1207,39 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     }, [isCollapsed, isMinimized]);
 
+    // Focus management runs whenever the section appears (mount or restore from minimized).
+    // A layout-effect cleanup covers both ways it disappears: on unmount it runs before the DOM
+    // is removed, on minimize it runs after, so "focus inside" is tracked by focus events too.
+    useLayoutEffect(() => {
+      const node = floatyRef.current;
+
+      if (isMinimized || !node) {
+        return;
+      }
+
+      const active = document.activeElement;
+      openerRef.current =
+        active instanceof HTMLElement && active !== document.body && !node.contains(active)
+          ? active
+          : null;
+
+      if (autoFocusRef.current) {
+        node.querySelector<HTMLElement>('.floaty-header')?.focus({ preventScroll: true });
+      }
+
+      return () => {
+        const current = document.activeElement;
+        const focusLost = !current || current === document.body || node.contains(current);
+        const opener = openerRef.current;
+
+        if (restoreFocusRef.current && hasFocusRef.current && focusLost && opener?.isConnected) {
+          opener.focus({ preventScroll: true });
+        }
+
+        hasFocusRef.current = false;
+      };
+    }, [isMinimized]);
+
     if (isMinimized) {
       return null;
     }
@@ -1209,6 +1258,14 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-snap-zone={snapZone ?? undefined}
           className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
+          onFocus={() => {
+            hasFocusRef.current = true;
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              hasFocusRef.current = false;
+            }
+          }}
           style={{
             ...style,
             left: 0,
