@@ -42,9 +42,7 @@ jobs:
       - name: Validate
         run: npm run check
 
-      - name: Build
-        run: npm run build
-
+      # No explicit build: `npm publish` inside semantic-release runs `prepack` (npm run build).
       - name: Semantic Release
         id: release
         uses: cycjimmy/semantic-release-action@v4
