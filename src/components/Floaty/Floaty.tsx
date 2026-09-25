@@ -1117,13 +1117,17 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       )[e.key] ?? { width: 0, height: 0 };
       const baseLeft = rect?.left ?? positionRef.current.x;
       const baseTop = rect?.top ?? positionRef.current.y;
-      setSize(
-        constrainSize(
-          { width: currentWidth + delta.width, height: currentHeight + delta.height },
-          sizeConstraintsRef.current,
-          { width: window.innerWidth - baseLeft, height: window.innerHeight - baseTop },
-        ),
+      const nextSize = constrainSize(
+        { width: currentWidth + delta.width, height: currentHeight + delta.height },
+        sizeConstraintsRef.current,
+        { width: window.innerWidth - baseLeft, height: window.innerHeight - baseTop },
       );
+
+      // Each key press is a complete resize, so it reports the same lifecycle as a pointer gesture.
+      onResizeStart?.({ width: currentWidth, height: currentHeight });
+      sizeRef.current = nextSize;
+      setSize(nextSize);
+      onResizeEnd?.(nextSize);
     };
 
     const toggleResizeEnabled = () => {
@@ -1355,7 +1359,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             resizeEnabled &&
             !isMaximized &&
             RESIZE_DIRECTIONS.map((direction) =>
-              direction === 'se' && mode === 'floating' ? (
+              direction === 'se' ? (
                 <button
                   key={direction}
                   type="button"

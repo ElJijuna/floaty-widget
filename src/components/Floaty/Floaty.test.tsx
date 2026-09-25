@@ -68,7 +68,7 @@ describe('Floaty', () => {
       expect(screen.getByTestId('app-icon')).toBeInTheDocument();
       expect(
         screen.getAllByRole('button').map((button) => button.getAttribute('aria-label')),
-      ).toEqual(['Maximize', 'Minimize', 'Close']);
+      ).toEqual(['Maximize', 'Minimize', 'Close', 'Resize widget handle']);
       expect(screen.queryByRole('button', { name: 'Pin' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Collapse' })).not.toBeInTheDocument();
       expect(container.querySelectorAll('.floaty-resize-handle')).toHaveLength(8);
@@ -341,6 +341,52 @@ describe('Floaty', () => {
 
       fireEvent.keyDown(resizeHandle, { key: 'ArrowLeft', altKey: true });
       expect(root).toHaveStyle({ width: '335px', height: '224px' });
+    });
+
+    it('resizes a window with arrow keys and reports the resize lifecycle', () => {
+      const onResizeStart = vi.fn();
+      const onResizeEnd = vi.fn();
+      const { container } = render(
+        <Floaty
+          mode="window"
+          initialSize={{ width: 320, height: 160 }}
+          sizeConstraints={{ maxWidth: 340 }}
+          onResizeStart={onResizeStart}
+          onResizeEnd={onResizeEnd}
+        />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const resizeHandle = screen.getByRole('button', { name: 'Resize widget handle' });
+
+      expect(resizeHandle).toHaveAttribute(
+        'aria-keyshortcuts',
+        'ArrowUp ArrowRight ArrowDown ArrowLeft',
+      );
+
+      fireEvent.keyDown(resizeHandle, { key: 'ArrowDown' });
+      expect(root).toHaveStyle({ width: '320px', height: '176px' });
+      expect(onResizeStart).toHaveBeenLastCalledWith({ width: 320, height: 160 });
+      expect(onResizeEnd).toHaveBeenLastCalledWith({ width: 320, height: 176 });
+
+      fireEvent.keyDown(resizeHandle, { key: 'ArrowRight', shiftKey: true });
+      expect(root).toHaveStyle({ width: '340px', height: '176px' });
+      expect(onResizeEnd).toHaveBeenLastCalledWith({ width: 340, height: 176 });
+
+      fireEvent.keyDown(resizeHandle, { key: 'Enter' });
+      expect(onResizeEnd).toHaveBeenCalledTimes(2);
+    });
+
+    it('hides the window keyboard resize handle while maximized or collapsed', () => {
+      const { rerender } = render(<Floaty mode="window" defaultMaximized />);
+
+      expect(
+        screen.queryByRole('button', { name: 'Resize widget handle' }),
+      ).not.toBeInTheDocument();
+
+      rerender(<Floaty key="collapsed" mode="window" defaultCollapsed />);
+      expect(
+        screen.queryByRole('button', { name: 'Resize widget handle' }),
+      ).not.toBeInTheDocument();
     });
 
     it('disables resize mode when the widget collapses', () => {

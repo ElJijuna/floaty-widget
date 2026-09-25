@@ -378,7 +378,7 @@ Floaty can be operated without a pointer:
 - In window mode, `Enter`, `Space`, or a header double-click maximizes/restores the window.
 - Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
 - In floating mode, press the resize button in the header to reveal the resize handle; window mode keeps edge handles available.
-- In floating mode, focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. In window mode, drag an edge or corner to resize.
+- Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. In window mode the bottom-right handle is always in the tab order and only becomes visible on keyboard focus; edges and corners can also be dragged. Each key press emits `onResizeStart` and `onResizeEnd`.
 - Drag a window header to a viewport edge or corner to preview and apply snap geometry.
 
 Widget positions are clamped into the visible viewport on initial render, during drag, and after viewport resize/orientation changes.

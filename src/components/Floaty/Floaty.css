@@ -777,6 +777,14 @@
   transform: none;
 }
 
+/* Keyboard resize: the SE handle stays invisible until it receives keyboard focus. */
+.floaty--window .floaty-resize-handle--se:focus-visible {
+  opacity: 1;
+}
+.floaty--window .floaty-resize-handle--se:focus-visible::before {
+  display: block;
+}
+
 @media (hover: none), (pointer: coarse) {
   .floaty--window .floaty-resize-handle {
     opacity: 0;

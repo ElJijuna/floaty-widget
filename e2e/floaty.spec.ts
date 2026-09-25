@@ -175,4 +175,32 @@ test.describe('Floaty window mode', () => {
     await style.selectOption('custom');
     await expect(widget).toHaveClass(/floaty--window-custom/);
   });
+
+  test('resizes the window from the keyboard', async ({ page }) => {
+    const widget = page.locator('.floaty--window');
+    const resizeHandle = widget.getByRole('button', { name: /handle$/ });
+
+    await expect(resizeHandle).toHaveCSS('opacity', '0');
+
+    for (
+      let i = 0;
+      i < 20 && !(await resizeHandle.evaluate((el) => el === document.activeElement));
+      i++
+    ) {
+      await page.keyboard.press('Tab');
+    }
+    await expect(resizeHandle).toBeFocused();
+    await expect(resizeHandle).toHaveCSS('opacity', '1');
+
+    const widthBefore = await widget.evaluate((element) => element.getBoundingClientRect().width);
+    const heightBefore = await widget.evaluate((element) => element.getBoundingClientRect().height);
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowDown');
+    await expect
+      .poll(() => widget.evaluate((element) => element.getBoundingClientRect().width))
+      .toBeGreaterThan(widthBefore);
+    await expect
+      .poll(() => widget.evaluate((element) => element.getBoundingClientRect().height))
+      .toBeGreaterThan(heightBefore);
+  });
 });
