@@ -39,7 +39,7 @@ export default defineConfig({
         'src/components/Floaty/LazyFloatyPanel.tsx',
         'src/test/**',
       ],
-      rollupTypes: true,
+      bundleTypes: true,
       tsconfigPath: './tsconfig.json',
     }),
   ],
