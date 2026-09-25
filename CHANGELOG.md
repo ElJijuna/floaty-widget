@@ -1,3 +1,16 @@
+# [1.11.0](https://github.com/ElJijuna/floaty-widget/compare/v1.10.0...v1.11.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* disable declaration map in TypeScript configuration ([0ec26ed](https://github.com/ElJijuna/floaty-widget/commit/0ec26edbc16f1f6e08edb21227fdfd5322b91f87))
+
+
+### Features
+
+* add focus management options for Floaty widget with autoFocus and restoreFocus props ([dd35614](https://github.com/ElJijuna/floaty-widget/commit/dd356146b4ff71345d63908397aea22c00517114))
+* implement keyboard resizing for window mode and update related tests ([7c2ab3f](https://github.com/ElJijuna/floaty-widget/commit/7c2ab3f5cff404601819db63cc85f31ee0d22b9b))
+
 # [1.10.0](https://github.com/ElJijuna/floaty-widget/compare/v1.9.0...v1.10.0) (2026-09-21)
 
 

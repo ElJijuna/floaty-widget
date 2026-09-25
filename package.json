@@ -1,6 +1,6 @@
 {
   "name": "floaty-widget",
-  "version": "0.1.0",
+  "version": "1.11.0",
   "description": "A floating component with drag, collapse/expand, and pin functionality",
   "keywords": [
     "react",
