@@ -9,7 +9,7 @@
 [![CI](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/ElJijuna/floaty-widget/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/ElJijuna/floaty-widget.svg)](./LICENSE)
 
-Draggable, collapsible, resizable floating widgets for React 19.
+Draggable, collapsible, resizable floating widgets for React 18 and 19.
 
 | Windows style | macOS style |
 | --- | --- |
