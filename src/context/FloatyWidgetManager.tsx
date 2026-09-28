@@ -5,12 +5,14 @@ import {
   lazy,
   type RefObject,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import type {
+  FloatyActiveLayout,
   FloatyArrangeOptions,
   FloatyComponentLoader,
   FloatyDuplicateStrategy,
@@ -72,6 +74,15 @@ const normalizeLazyModule = <P,>(loaded: FloatyLazyModule<P>): { default: Compon
   return loaded;
 };
 
+const isArrangeable = (widget: FloatyWidget) =>
+  widget.mode === 'window' && !widget.isMinimized && !widget.isMaximized;
+
+const getArrangedKey = (widgets: Map<string, FloatyWidget>) =>
+  Array.from(widgets.values())
+    .filter(isArrangeable)
+    .map((widget) => widget.id)
+    .join('\u0000');
+
 const createLazyComponent = <P,>(loader: FloatyComponentLoader<P>) => {
   return lazy(async () => normalizeLazyModule(await loader()));
 };
@@ -82,6 +93,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     const zIndexRef = useRef(1000);
     const [widgets, setWidgets] = useState<Map<string, FloatyWidget>>(() => new Map());
     const widgetsRef = useRef(widgets);
+    const [layout, setLayoutState] = useState<FloatyActiveLayout | null>(null);
+    const layoutRef = useRef(layout);
+    const arrangedKeyRef = useRef<string | null>(null);
 
     const updateWidgets = useCallback(
       (updater: (current: Map<string, FloatyWidget>) => Map<string, FloatyWidget>) => {
@@ -564,34 +578,33 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       [updateWidgetState],
     );
 
-    const arrangeWindows = useCallback(
-      (layout: FloatyWindowArrangement, options: FloatyArrangeOptions = {}) => {
-        if (typeof window === 'undefined') {
-          return 0;
-        }
-
-        const visibleWindows = Array.from(widgetsRef.current.values()).filter(
-          (widget) => widget.mode === 'window' && !widget.isMinimized,
-        );
-        if (visibleWindows.length === 0) {
-          return 0;
+    const applyArrangement = useCallback(
+      (
+        layout: FloatyWindowArrangement,
+        options: FloatyArrangeOptions,
+        windows: FloatyWidget[],
+      ): FloatyArrangeOptions => {
+        if (windows.length === 0) {
+          return options;
         }
 
         const axis = layout === 'left' || layout === 'right' ? 'width' : 'height';
-        const currentSizes = visibleWindows
+        const currentSizes = windows
           .map((widget) => widget.size?.[axis])
           .filter((value): value is number => typeof value === 'number');
-        const geometries = getWindowLayout(
-          visibleWindows.length,
-          layout,
-          { width: window.innerWidth, height: window.innerHeight },
+        const resolvedOptions =
           isDockEdge(layout) && options.size === undefined && currentSizes.length > 0
             ? { ...options, size: Math.max(...currentSizes) }
-            : options,
+            : options;
+        const geometries = getWindowLayout(
+          windows.length,
+          layout,
+          { width: window.innerWidth, height: window.innerHeight },
+          resolvedOptions,
         );
         const next = new Map(widgetsRef.current);
 
-        visibleWindows.forEach((widget, index) => {
+        windows.forEach((widget, index) => {
           const geometry = geometries[index];
           widgetHandlesRef.current.get(widget.id)?.current?.setGeometry(geometry);
           next.set(widget.id, {
@@ -619,10 +632,86 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         });
 
         updateWidgets(() => next);
-        return visibleWindows.length;
+        return resolvedOptions;
       },
       [updateWidgets],
     );
+
+    const arrangeWindows = useCallback(
+      (layout: FloatyWindowArrangement, options: FloatyArrangeOptions = {}) => {
+        if (typeof window === 'undefined') {
+          return 0;
+        }
+
+        const visibleWindows = Array.from(widgetsRef.current.values()).filter(
+          (widget) => widget.mode === 'window' && !widget.isMinimized,
+        );
+        applyArrangement(layout, options, visibleWindows);
+        return visibleWindows.length;
+      },
+      [applyArrangement],
+    );
+
+    const reflowLayout = useCallback(() => {
+      const active = layoutRef.current;
+
+      if (!active || typeof window === 'undefined') {
+        return 0;
+      }
+
+      const windows = Array.from(widgetsRef.current.values()).filter(isArrangeable);
+      const resolvedOptions = applyArrangement(active.arrangement, active.options, windows);
+
+      arrangedKeyRef.current = getArrangedKey(widgetsRef.current);
+
+      if (resolvedOptions !== active.options) {
+        // Freeze the dock thickness so later windows do not resize the whole stack.
+        const nextLayout = { ...active, options: resolvedOptions };
+
+        layoutRef.current = nextLayout;
+        setLayoutState(nextLayout);
+      }
+
+      return windows.length;
+    }, [applyArrangement]);
+
+    const setLayout = useCallback(
+      (arrangement: FloatyWindowArrangement | null, options: FloatyArrangeOptions = {}) => {
+        const nextLayout = arrangement ? { arrangement, options } : null;
+
+        layoutRef.current = nextLayout;
+        arrangedKeyRef.current = null;
+        setLayoutState(nextLayout);
+
+        return reflowLayout();
+      },
+      [reflowLayout],
+    );
+
+    useEffect(() => {
+      if (layout && getArrangedKey(widgets) !== arrangedKeyRef.current) {
+        reflowLayout();
+      }
+    }, [layout, widgets, reflowLayout]);
+
+    useEffect(() => {
+      if (!layout) {
+        return undefined;
+      }
+
+      let frame = 0;
+      const handleResize = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => reflowLayout());
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        cancelAnimationFrame(frame);
+        window.removeEventListener('resize', handleResize);
+      };
+    }, [layout, reflowLayout]);
 
     const getWidgetCount = useCallback(() => widgetsRef.current.size, []);
 
@@ -655,6 +744,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         maximizeWidget,
         unmaximizeWidget,
         arrangeWindows,
+        setLayout,
+        layout,
         getWidgetCount,
         getWidget,
         widgets,
@@ -688,6 +779,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         maximizeWidget,
         unmaximizeWidget,
         arrangeWindows,
+        setLayout,
+        layout,
         getWidgetCount,
         getWidget,
         widgets,

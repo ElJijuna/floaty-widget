@@ -7,7 +7,11 @@ import type { FloatyTheme } from './FloatyTheme';
 import type { FloatyWidget } from './FloatyWidget';
 import type { FloatyWidgetPatch } from './FloatyWidgetPatch';
 import type { FloatyWidgetState } from './FloatyWidgetState';
-import type { FloatyArrangeOptions, FloatyWindowArrangement } from './FloatyWindow';
+import type {
+  FloatyActiveLayout,
+  FloatyArrangeOptions,
+  FloatyWindowArrangement,
+} from './FloatyWindow';
 
 /** Full API surface returned by `useFloatyWidgetManager()` and exposed via the `FloatyWidgetManager` ref. */
 export interface FloatyWidgetManagerHandle {
@@ -74,6 +78,14 @@ export interface FloatyWidgetManagerHandle {
   unmaximizeWidget: (id: string) => void;
   /** Arranges visible window-mode widgets inside the viewport. Returns the number arranged. */
   arrangeWindows: (layout: FloatyWindowArrangement, options?: FloatyArrangeOptions) => number;
+  /**
+   * Keeps an arrangement active: it is applied now and re-applied whenever window-mode widgets are
+   * opened, closed, minimized, restored, maximized or unmaximized, and when the viewport resizes.
+   * Pass `null` to release windows back to free positioning. Returns the number arranged.
+   */
+  setLayout: (layout: FloatyWindowArrangement | null, options?: FloatyArrangeOptions) => number;
+  /** Arrangement currently kept by `setLayout()`, or `null` when windows are free. */
+  layout: FloatyActiveLayout | null;
   /** Returns the total number of registered widgets. */
   getWidgetCount: () => number;
   /** Returns the current state of a widget, or `undefined` if it does not exist. */

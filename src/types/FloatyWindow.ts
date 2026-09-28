@@ -24,6 +24,12 @@ export interface FloatyArrangeOptions {
   size?: number;
 }
 
+/** Arrangement kept active by `setLayout()` and re-applied whenever the windows or viewport change. */
+export interface FloatyActiveLayout {
+  arrangement: FloatyWindowArrangement;
+  options: FloatyArrangeOptions;
+}
+
 /** Viewport region occupied by a snapped window. */
 export type FloatySnapZone =
   | 'top'

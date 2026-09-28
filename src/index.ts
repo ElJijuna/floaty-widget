@@ -24,6 +24,7 @@ export {
   updateFloaty,
 } from './singleton';
 export type {
+  FloatyActiveLayout,
   FloatyArrangeOptions,
   FloatyComponentLoader,
   FloatyDockEdge,

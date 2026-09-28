@@ -16,6 +16,7 @@ export type { FloatyWidgetManagerProps } from './FloatyWidgetManagerProps';
 export type { FloatyWidgetPatch } from './FloatyWidgetPatch';
 export type { FloatyWidgetState } from './FloatyWidgetState';
 export type {
+  FloatyActiveLayout,
   FloatyArrangeOptions,
   FloatyControlledState,
   FloatyDockEdge,

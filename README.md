@@ -345,6 +345,27 @@ windows do not fit along the edge at their minimum size, they wrap into addition
 `arrangeWindows()` returns the number of windows arranged. It clears maximize and snap state,
 expands collapsed windows, and persists the new geometry for windows with a `persistenceKey`.
 
+#### Keep a layout active
+
+`arrangeWindows()` is a one-shot action: windows opened, closed or restored afterwards keep their
+own geometry. Use `setLayout()` to keep an arrangement active instead. It is applied immediately
+and re-applied whenever window-mode widgets are opened, closed, minimized, restored, maximized or
+unmaximized, and when the viewport resizes:
+
+```tsx
+manager.setLayout('right', { size: 360, bottomInset: 72 });
+
+manager.layout; // { arrangement: 'right', options: { size: 360, bottomInset: 72 } }
+
+manager.setLayout(null); // release windows back to free positioning
+```
+
+Maximized windows temporarily leave the layout and rejoin it when unmaximized. For docked
+layouts without an explicit `size`, the thickness is taken from the current windows the first time
+the layout is applied and then kept, so opening a larger window does not resize the whole stack.
+Manually dragging or resizing a window does not release the layout; that window is put back in
+place on the next reflow.
+
 ### Desktop taskbar
 
 `FloatyTaskbar` reads the nearest manager and provides accessible focus, restore, and close

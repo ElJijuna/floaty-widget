@@ -674,6 +674,104 @@ describe('FloatyWidgetManager', () => {
       expect(wide?.position?.y).toBe(narrow?.size?.height);
     });
 
+    it('setLayout keeps an arrangement across window and viewport changes', () => {
+      const withViewport = ({ children }: { children: ReactNode }) => (
+        <FloatyWidgetManager>
+          <FloatyViewport />
+          {children}
+        </FloatyWidgetManager>
+      );
+      const { result } = renderHook(() => useFloatyWidgetManager(), {
+        wrapper: withViewport,
+      });
+      const openWindow = (id: string, width = 300) =>
+        result.current.open({
+          id,
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          position: { x: 40, y: 40 },
+          size: { width, height: 200 },
+        });
+
+      act(() => {
+        openWindow('a');
+      });
+
+      let arranged = 0;
+      act(() => {
+        arranged = result.current.setLayout('right', { margin: 0, gap: 0 });
+      });
+
+      expect(arranged).toBe(1);
+      expect(result.current.layout).toEqual({
+        arrangement: 'right',
+        options: { margin: 0, gap: 0, size: 300 },
+      });
+      expect(result.current.getWidget('a')).toMatchObject({
+        position: { x: window.innerWidth - 300, y: 0 },
+        size: { width: 300, height: window.innerHeight },
+      });
+
+      // A wider window joins the stack without changing the frozen dock width.
+      act(() => {
+        openWindow('b', 500);
+      });
+      const half = Math.floor(window.innerHeight / 2);
+      expect(result.current.getWidget('a')?.size).toEqual({ width: 300, height: half });
+      expect(result.current.getWidget('b')).toMatchObject({
+        position: { x: window.innerWidth - 300, y: half },
+        size: { width: 300 },
+      });
+      const transforms = Array.from(document.querySelectorAll<HTMLElement>('.floaty--window')).map(
+        (element) => element.style.transform,
+      );
+      expect(transforms).toContain(`translate(${window.innerWidth - 300}px, ${half}px)`);
+
+      // Maximized windows leave the stack; the rest fill the edge.
+      act(() => result.current.maximizeWidget('b'));
+      expect(result.current.getWidget('a')?.size?.height).toBe(window.innerHeight);
+      expect(result.current.getWidget('b')?.isMaximized).toBe(true);
+      act(() => result.current.unmaximizeWidget('b'));
+      expect(result.current.getWidget('a')?.size?.height).toBe(half);
+
+      act(() => result.current.minimizeWidget('a'));
+      expect(result.current.getWidget('b')).toMatchObject({
+        position: { x: window.innerWidth - 300, y: 0 },
+        size: { width: 300, height: window.innerHeight },
+      });
+      act(() => result.current.restoreWidget('a'));
+      act(() => result.current.close('b'));
+      expect(result.current.getWidget('a')?.size?.height).toBe(window.innerHeight);
+
+      const frames = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation((callback: FrameRequestCallback) => {
+          callback(0);
+          return 1;
+        });
+      const originalWidth = window.innerWidth;
+      act(() => {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 900 });
+        window.dispatchEvent(new Event('resize'));
+      });
+      expect(result.current.getWidget('a')?.position?.x).toBe(600);
+
+      // Releasing the layout stops reflowing.
+      act(() => {
+        expect(result.current.setLayout(null)).toBe(0);
+      });
+      expect(result.current.layout).toBeNull();
+      act(() => {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+        window.dispatchEvent(new Event('resize'));
+        openWindow('c');
+      });
+      expect(result.current.getWidget('a')?.position?.x).toBe(600);
+      expect(result.current.getWidget('c')?.position).toEqual({ x: 40, y: 40 });
+      frames.mockRestore();
+    });
+
     it('collapseAll / expandAll toggle isCollapsed on all widgets', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 

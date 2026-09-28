@@ -27,6 +27,7 @@
 - [x] FloatyWidgetManager / FloatyProvider con store de widgets
 - [x] Resize handles (incluyendo handle este) con persistencia de geometría
 - [x] Arrange de ventanas: grid, columnas y filas
+- [x] Dock de ventanas a un borde (`left`/`right`/`top`/`bottom`) y layout persistente con `setLayout()` que se recalcula al abrir/cerrar/minimizar/maximizar y al redimensionar el viewport
 - [x] Controlled state management con manejo de estado externo
 - [x] Taskbar y preview de widgets colapsados
 - [x] Carga perezosa de contenido (loader/fallback)

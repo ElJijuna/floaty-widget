@@ -2,7 +2,7 @@ import { GhClientProvider, useGhRepo, useGhRepoCommits } from '@api-hooks/gh';
 import { Badge, Button, Card, Separator, Spinner } from '@gnome-ui/react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
 import { Floaty } from './Floaty';
@@ -175,6 +175,8 @@ const LayoutWindowContent = ({ label }: { label: string }) => (
 const MultiWindowWorkspace = () => {
   const manager = useFloatyWidgetManager();
   const { open } = manager;
+  const [keepLayout, setKeepLayout] = useState(true);
+  const openedRef = useRef(4);
 
   useEffect(() => {
     ['Project', 'Notes', 'Activity', 'Settings'].forEach((label, index) => {
@@ -190,18 +192,63 @@ const MultiWindowWorkspace = () => {
     });
   }, [open]);
 
+  const openWindow = () => {
+    const index = openedRef.current;
+    openedRef.current += 1;
+    open({
+      id: `layout-${index}`,
+      mode: 'window',
+      title: `Window ${index + 1}`,
+      component: LayoutWindowContent,
+      props: { label: `Window ${index + 1}` },
+      position: { x: 120, y: 120 },
+      size: { width: 340, height: 220 },
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', padding: 24 }}>
-      <div style={{ position: 'fixed', right: 20, top: 64, zIndex: 2000, display: 'flex', gap: 8 }}>
+      <div
+        style={{
+          position: 'fixed',
+          right: 20,
+          top: 64,
+          zIndex: 2000,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            type="checkbox"
+            checked={keepLayout}
+            onChange={(event) => {
+              setKeepLayout(event.target.checked);
+              if (!event.target.checked) {
+                manager.setLayout(null);
+              }
+            }}
+          />
+          Keep layout
+        </label>
         {(['grid', 'columns', 'rows', 'left', 'right', 'top', 'bottom'] as const).map((layout) => (
           <button
             key={layout}
             type="button"
-            onClick={() => manager.arrangeWindows(layout, { bottomInset: 72 })}
+            aria-pressed={manager.layout?.arrangement === layout}
+            onClick={() =>
+              keepLayout
+                ? manager.setLayout(layout, { bottomInset: 72 })
+                : manager.arrangeWindows(layout, { bottomInset: 72 })
+            }
           >
             Arrange {layout}
           </button>
         ))}
+        <button type="button" onClick={openWindow}>
+          Open window
+        </button>
       </div>
       <FloatyViewport />
       <FloatyTaskbar style={{ position: 'fixed', right: 20, bottom: 20, left: 20, zIndex: 3000 }} />
