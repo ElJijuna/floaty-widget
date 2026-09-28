@@ -239,8 +239,8 @@ const MultiWindowWorkspace = () => {
             aria-pressed={manager.layout?.arrangement === layout}
             onClick={() =>
               keepLayout
-                ? manager.setLayout(layout, { bottomInset: 72 })
-                : manager.arrangeWindows(layout, { bottomInset: 72 })
+                ? manager.setLayout(layout, { insets: { top: 110, bottom: 72 } })
+                : manager.arrangeWindows(layout, { insets: { top: 110, bottom: 72 } })
             }
           >
             Arrange {layout}

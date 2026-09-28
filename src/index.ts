@@ -32,6 +32,7 @@ export type {
   FloatyHandle,
   FloatyIconComponent,
   FloatyIcons,
+  FloatyInsets,
   FloatyLazyModule,
   FloatyMode,
   FloatyOpenOptions,

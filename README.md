@@ -129,7 +129,7 @@ floaty.minimizeAll()
 floaty.restoreAll()
 floaty.pinAll()
 floaty.unpinAll()
-floaty.arrangeWindows('grid', { bottomInset: 72 })
+floaty.arrangeWindows('grid', { insets: { bottom: 72 } })
 
 // Per-widget
 floaty.collapseWidget('commits')
@@ -322,12 +322,12 @@ full viewport. The same window and persistence options are accepted by `openFloa
 
 The manager can organize visible window-mode widgets in columns, rows, a grid, or docked
 against one edge of the viewport. Minimized windows and floating widgets keep their current
-state. You can reserve space for a taskbar:
+state. You can reserve space for a header, sidebar or taskbar:
 
 ```tsx
 const manager = useFloatyWidgetManager();
 
-manager.arrangeWindows('grid', { gap: 12, margin: 16, bottomInset: 72 });
+manager.arrangeWindows('grid', { gap: 12, margin: 16, insets: { bottom: 72 } });
 manager.arrangeWindows('columns');
 manager.arrangeWindows('rows');
 
@@ -335,7 +335,15 @@ manager.arrangeWindows('rows');
 manager.arrangeWindows('left'); // stacked one below the other on the left
 manager.arrangeWindows('right', { size: 360 }); // stacked on the right, 360px wide
 manager.arrangeWindows('top'); // side by side along the top
-manager.arrangeWindows('bottom', { size: 220, bottomInset: 72 }); // side by side above the taskbar
+manager.arrangeWindows('bottom', { size: 220, insets: { bottom: 72 } }); // side by side above the taskbar
+```
+
+Use `insets` to keep windows clear of fixed UI such as an app header, a sidebar or a taskbar.
+Each inset is added to `margin` on its edge. The older `bottomInset` option still works but is
+deprecated in favour of `insets.bottom`, which takes precedence when both are set:
+
+```tsx
+manager.arrangeWindows('left', { insets: { top: 64, left: 240, bottom: 72 } });
 ```
 
 For `left`/`right`, `size` is the stack width; for `top`/`bottom`, it is the stack height. When
@@ -353,9 +361,9 @@ and re-applied whenever window-mode widgets are opened, closed, minimized, resto
 unmaximized, and when the viewport resizes:
 
 ```tsx
-manager.setLayout('right', { size: 360, bottomInset: 72 });
+manager.setLayout('right', { size: 360, insets: { bottom: 72 } });
 
-manager.layout; // { arrangement: 'right', options: { size: 360, bottomInset: 72 } }
+manager.layout; // { arrangement: 'right', options: { size: 360, insets: { bottom: 72 } } }
 
 manager.setLayout(null); // release windows back to free positioning
 ```

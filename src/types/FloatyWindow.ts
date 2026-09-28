@@ -12,10 +12,21 @@ export type FloatyDockEdge = 'left' | 'right' | 'top' | 'bottom';
  */
 export type FloatyWindowArrangement = 'columns' | 'rows' | 'grid' | FloatyDockEdge;
 
+/** Space reserved on each viewport edge (e.g. an app header, sidebar or taskbar), in pixels. */
+export interface FloatyInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 /** Spacing reserved while arranging windows, in pixels. */
 export interface FloatyArrangeOptions {
   gap?: number;
   margin?: number;
+  /** Space reserved on each edge, added to `margin`. */
+  insets?: FloatyInsets;
+  /** @deprecated Use `insets.bottom`. Ignored when `insets.bottom` is set. */
   bottomInset?: number;
   /**
    * Thickness of a docked stack: width for `left`/`right`, height for `top`/`bottom`.

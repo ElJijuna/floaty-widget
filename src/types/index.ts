@@ -21,6 +21,7 @@ export type {
   FloatyControlledState,
   FloatyDockEdge,
   FloatyGeometry,
+  FloatyInsets,
   FloatyPersistedState,
   FloatyResizeDirection,
   FloatySizeConstraints,

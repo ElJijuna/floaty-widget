@@ -102,6 +102,29 @@ describe('window geometry utilities', () => {
     expect(getWindowLayout(0, 'grid', viewport)).toEqual([]);
   });
 
+  it('reserves insets on every edge on top of the margin', () => {
+    const viewport = { width: 1000, height: 800 };
+    const insets = { top: 60, right: 100, bottom: 72, left: 200 };
+
+    expect(getWindowLayout(1, 'grid', viewport, { margin: 10, insets })).toEqual([
+      { position: { x: 210, y: 70 }, size: { width: 680, height: 648 } },
+    ]);
+    expect(getWindowLayout(1, 'right', viewport, { margin: 0, insets, size: 300 })).toEqual([
+      { position: { x: 600, y: 60 }, size: { width: 300, height: 668 } },
+    ]);
+    expect(getWindowLayout(1, 'top', viewport, { margin: 0, insets, size: 200 })).toEqual([
+      { position: { x: 200, y: 60 }, size: { width: 700, height: 200 } },
+    ]);
+    // `insets.bottom` wins over the deprecated `bottomInset`; negative values are ignored.
+    expect(
+      getWindowLayout(1, 'grid', viewport, {
+        margin: 0,
+        bottomInset: 300,
+        insets: { bottom: 100, left: -50 },
+      })[0],
+    ).toEqual({ position: { x: 0, y: 0 }, size: { width: 1000, height: 700 } });
+  });
+
   it('docks windows stacked against each viewport edge', () => {
     const viewport = { width: 1000, height: 800 };
     const options = { margin: 20, gap: 10, bottomInset: 50, size: 300 };

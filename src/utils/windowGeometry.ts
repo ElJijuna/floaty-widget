@@ -79,15 +79,19 @@ export const getWindowLayout = (
 
   const margin = Math.max(0, options.margin ?? 16);
   const gap = Math.max(0, options.gap ?? 12);
-  const bottomInset = Math.max(0, options.bottomInset ?? 0);
-  const usableWidth = Math.max(1, viewport.width - margin * 2);
-  const usableHeight = Math.max(1, viewport.height - margin * 2 - bottomInset);
+  const inset = (value: number | undefined) => Math.max(0, value ?? 0);
+  const left = margin + inset(options.insets?.left);
+  const top = margin + inset(options.insets?.top);
+  const right = margin + inset(options.insets?.right);
+  const bottom = margin + inset(options.insets?.bottom ?? options.bottomInset);
+  const usableWidth = Math.max(1, viewport.width - left - right);
+  const usableHeight = Math.max(1, viewport.height - top - bottom);
 
   if (isDockEdge(layout)) {
     return getDockLayout(
       count,
       layout,
-      { x: margin, y: margin, width: usableWidth, height: usableHeight },
+      { x: left, y: top, width: usableWidth, height: usableHeight },
       gap,
       options.size,
     );
@@ -108,14 +112,14 @@ export const getWindowLayout = (
   return Array.from({ length: count }, (_, index) => {
     const column = index % columns;
     const row = Math.floor(index / columns);
-    const x = margin + Math.floor(column * widthStep);
-    const y = margin + Math.floor(row * heightStep);
-    const right = margin + Math.floor((column + 1) * widthStep) - gap;
-    const bottom = margin + Math.floor((row + 1) * heightStep) - gap;
+    const x = left + Math.floor(column * widthStep);
+    const y = top + Math.floor(row * heightStep);
+    const cellRight = left + Math.floor((column + 1) * widthStep) - gap;
+    const cellBottom = top + Math.floor((row + 1) * heightStep) - gap;
 
     return {
       position: { x, y },
-      size: { width: Math.max(1, right - x), height: Math.max(1, bottom - y) },
+      size: { width: Math.max(1, cellRight - x), height: Math.max(1, cellBottom - y) },
     };
   });
 };
