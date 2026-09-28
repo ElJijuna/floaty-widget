@@ -353,6 +353,11 @@ windows do not fit along the edge at their minimum size, they wrap into addition
 `arrangeWindows()` returns the number of windows arranged. It clears maximize and snap state,
 expands collapsed windows, and persists the new geometry for windows with a `persistenceKey`.
 
+Windows slide and resize into place. Tune the transition with the `--floaty-arrange-duration` and
+`--floaty-arrange-easing` CSS variables, or pass `animate: false` to jump instantly. The animation
+is skipped when the user prefers reduced motion. The same transition is available on a single
+window through its handle: `ref.current.setGeometry(geometry, { animate: true })`.
+
 #### Keep a layout active
 
 `arrangeWindows()` is a one-shot action: windows opened, closed or restored afterwards keep their
@@ -368,7 +373,8 @@ manager.layout; // { arrangement: 'right', options: { size: 360, insets: { botto
 manager.setLayout(null); // release windows back to free positioning
 ```
 
-Maximized windows temporarily leave the layout and rejoin it when unmaximized. For docked
+Maximized windows temporarily leave the layout and rejoin it when unmaximized. Reflows caused
+by a viewport resize are applied without animation so windows follow the resize immediately. For docked
 layouts without an explicit `size`, the thickness is taken from the current windows the first time
 the layout is applied and then kept, so opening a larger window does not resize the whole stack.
 Manually dragging or resizing a window does not release the layout; that window is put back in
@@ -487,6 +493,8 @@ Or use CSS variables directly:
   --floaty-scrollbar-track: rgba(30, 30, 46, 0.62);
   --floaty-drag-blur: 0.6px;
   --floaty-drag-opacity: 0.95;
+  --floaty-arrange-duration: 0.24s;
+  --floaty-arrange-easing: cubic-bezier(0.2, 0, 0, 1);
   --floaty-font-family: inherit;
   --floaty-header-padding-block: 8px;
   --floaty-header-padding-inline: 12px;

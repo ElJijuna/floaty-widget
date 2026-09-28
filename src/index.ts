@@ -41,6 +41,7 @@ export type {
   FloatyPersistedState,
   FloatyPosition,
   FloatyResizeDirection,
+  FloatySetGeometryOptions,
   FloatySize,
   FloatySizeConstraints,
   FloatySnapZone,

@@ -583,6 +583,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         layout: FloatyWindowArrangement,
         options: FloatyArrangeOptions,
         windows: FloatyWidget[],
+        animate = options.animate ?? true,
       ): FloatyArrangeOptions => {
         if (windows.length === 0) {
           return options;
@@ -606,7 +607,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
         windows.forEach((widget, index) => {
           const geometry = geometries[index];
-          widgetHandlesRef.current.get(widget.id)?.current?.setGeometry(geometry);
+          widgetHandlesRef.current.get(widget.id)?.current?.setGeometry(geometry, { animate });
           next.set(widget.id, {
             ...widget,
             ...geometry,
@@ -652,28 +653,36 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       [applyArrangement],
     );
 
-    const reflowLayout = useCallback(() => {
-      const active = layoutRef.current;
+    const reflowLayout = useCallback(
+      (animate?: boolean) => {
+        const active = layoutRef.current;
 
-      if (!active || typeof window === 'undefined') {
-        return 0;
-      }
+        if (!active || typeof window === 'undefined') {
+          return 0;
+        }
 
-      const windows = Array.from(widgetsRef.current.values()).filter(isArrangeable);
-      const resolvedOptions = applyArrangement(active.arrangement, active.options, windows);
+        const windows = Array.from(widgetsRef.current.values()).filter(isArrangeable);
+        const resolvedOptions = applyArrangement(
+          active.arrangement,
+          active.options,
+          windows,
+          animate ?? active.options.animate ?? true,
+        );
 
-      arrangedKeyRef.current = getArrangedKey(widgetsRef.current);
+        arrangedKeyRef.current = getArrangedKey(widgetsRef.current);
 
-      if (resolvedOptions !== active.options) {
-        // Freeze the dock thickness so later windows do not resize the whole stack.
-        const nextLayout = { ...active, options: resolvedOptions };
+        if (resolvedOptions !== active.options) {
+          // Freeze the dock thickness so later windows do not resize the whole stack.
+          const nextLayout = { ...active, options: resolvedOptions };
 
-        layoutRef.current = nextLayout;
-        setLayoutState(nextLayout);
-      }
+          layoutRef.current = nextLayout;
+          setLayoutState(nextLayout);
+        }
 
-      return windows.length;
-    }, [applyArrangement]);
+        return windows.length;
+      },
+      [applyArrangement],
+    );
 
     const setLayout = useCallback(
       (arrangement: FloatyWindowArrangement | null, options: FloatyArrangeOptions = {}) => {
@@ -702,7 +711,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       let frame = 0;
       const handleResize = () => {
         cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => reflowLayout());
+        // Follow the viewport immediately; animating here would lag behind the resize.
+        frame = requestAnimationFrame(() => reflowLayout(false));
       };
 
       window.addEventListener('resize', handleResize);

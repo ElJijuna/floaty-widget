@@ -24,6 +24,7 @@ export type {
   FloatyInsets,
   FloatyPersistedState,
   FloatyResizeDirection,
+  FloatySetGeometryOptions,
   FloatySizeConstraints,
   FloatySnapZone,
   FloatyWindowArrangement,

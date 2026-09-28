@@ -20,6 +20,8 @@
   --floaty-transition:
     opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease,
     -webkit-filter 0.16s ease;
+  --floaty-arrange-duration: 0.24s;
+  --floaty-arrange-easing: cubic-bezier(0.2, 0, 0, 1);
   --floaty-font-family: var(
     --gnome-font-family,
     -apple-system,
@@ -117,6 +119,15 @@
 
 .floaty.resizing {
   transition: none;
+}
+
+/* Temporary while arrangeWindows()/setLayout() move and resize windows together. */
+.floaty.arranging:not(.dragging):not(.resizing) {
+  transition:
+    var(--floaty-transition),
+    transform var(--floaty-arrange-duration) var(--floaty-arrange-easing),
+    width var(--floaty-arrange-duration) var(--floaty-arrange-easing),
+    height var(--floaty-arrange-duration) var(--floaty-arrange-easing);
 }
 
 .floaty.pinned {
@@ -529,6 +540,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .floaty,
+  .floaty.arranging:not(.dragging):not(.resizing),
   .floaty::after,
   .floaty-header,
   .floaty-header-grip,

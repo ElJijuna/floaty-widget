@@ -671,6 +671,48 @@ describe('Floaty', () => {
       expect(root).toHaveStyle({ width: '320px', height: '300px' });
     });
 
+    it('animates imperative geometry only when requested', () => {
+      vi.useFakeTimers();
+      const ref = createRef<FloatyHandle>();
+      const { container } = render(
+        <Floaty
+          ref={ref}
+          mode="window"
+          initialPosition={{ x: 40, y: 50 }}
+          initialSize={{ width: 320, height: 200 }}
+        >
+          <span data-testid="child" />
+        </Floaty>,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      const geometry = { position: { x: 60, y: 70 }, size: { width: 360, height: 220 } };
+
+      act(() => ref.current?.setGeometry(geometry));
+      expect(root).not.toHaveClass('arranging');
+
+      act(() => ref.current?.setGeometry(geometry, { animate: true }));
+      expect(root).toHaveClass('arranging');
+
+      // Bubbled transitions from children and unrelated properties keep the class.
+      fireEvent.transitionEnd(screen.getByTestId('child'), { propertyName: 'width' });
+      fireEvent.transitionEnd(root, { propertyName: 'opacity' });
+      expect(root).toHaveClass('arranging');
+
+      fireEvent.transitionEnd(root, { propertyName: 'width' });
+      expect(root).not.toHaveClass('arranging');
+
+      // Falls back to a timeout when no transition fires.
+      act(() => ref.current?.setGeometry(geometry, { animate: true }));
+      act(() => vi.advanceTimersByTime(1000));
+      expect(root).not.toHaveClass('arranging');
+
+      // A non-animated update cancels a running animation.
+      act(() => ref.current?.setGeometry(geometry, { animate: true }));
+      act(() => ref.current?.setGeometry(geometry));
+      expect(root).not.toHaveClass('arranging');
+      vi.useRealTimers();
+    });
+
     it('applies geometry imperatively and clears snap state', () => {
       const ref = createRef<FloatyHandle>();
       const { container } = render(

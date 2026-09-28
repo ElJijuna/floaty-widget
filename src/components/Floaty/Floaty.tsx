@@ -142,6 +142,8 @@ const KEYBOARD_MOVE_LARGE_STEP = 50;
 const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+const ARRANGE_FALLBACK_MS = 1000;
+const ARRANGE_PROPERTIES = new Set(['transform', 'width', 'height']);
 
 const resolveStateAction = <T,>(action: SetStateAction<T>, previous: T): T =>
   typeof action === 'function' ? (action as (value: T) => T)(previous) : action;
@@ -416,6 +418,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [snapPreview, setSnapPreview] = useState<FloatySnapZone | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
+    const [isArranging, setIsArranging] = useState(false);
+    const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
@@ -582,7 +586,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             return clampedPosition;
           });
         },
-        setGeometry: (geometry) => {
+        setGeometry: (geometry, options) => {
+          if (arrangeTimeoutRef.current) {
+            clearTimeout(arrangeTimeoutRef.current);
+            arrangeTimeoutRef.current = null;
+          }
+          if (options?.animate) {
+            setIsArranging(true);
+            // Fallback for when no transition fires (unchanged geometry or reduced motion).
+            arrangeTimeoutRef.current = setTimeout(() => {
+              arrangeTimeoutRef.current = null;
+              setIsArranging(false);
+            }, ARRANGE_FALLBACK_MS);
+          } else {
+            setIsArranging(false);
+          }
           positionRef.current = geometry.position;
           sizeRef.current = geometry.size;
           restoreGeometryRef.current = geometry;
@@ -625,6 +643,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     sizeRef.current = size;
     isMaximizedRef.current = isMaximized;
     snapZoneRef.current = snapZone;
+
+    useEffect(
+      () => () => {
+        if (arrangeTimeoutRef.current) {
+          clearTimeout(arrangeTimeoutRef.current);
+        }
+      },
+      [],
+    );
 
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
@@ -1256,8 +1283,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-active={isActive || undefined}
           data-maximized={isMaximized || undefined}
           data-snap-zone={snapZone ?? undefined}
-          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
+          onTransitionEnd={(event) => {
+            if (
+              isArranging &&
+              event.target === event.currentTarget &&
+              ARRANGE_PROPERTIES.has(event.propertyName)
+            ) {
+              if (arrangeTimeoutRef.current) {
+                clearTimeout(arrangeTimeoutRef.current);
+                arrangeTimeoutRef.current = null;
+              }
+              setIsArranging(false);
+            }
+          }}
           onFocus={() => {
             hasFocusRef.current = true;
           }}

@@ -609,6 +609,9 @@ describe('FloatyWidgetManager', () => {
       });
 
       expect(arranged).toBe(2);
+      document.querySelectorAll('.floaty--window').forEach((element) => {
+        expect(element).toHaveClass('arranging');
+      });
       const one = result.current.getWidget('one');
       const two = result.current.getWidget('two');
       expect(one).toMatchObject({ isMaximized: false, snapZone: null, position: { x: 20, y: 20 } });
@@ -662,7 +665,10 @@ describe('FloatyWidgetManager', () => {
       });
 
       act(() => {
-        result.current.arrangeWindows('right', { margin: 0, gap: 0 });
+        result.current.arrangeWindows('right', { margin: 0, gap: 0, animate: false });
+      });
+      document.querySelectorAll('.floaty--window').forEach((element) => {
+        expect(element).not.toHaveClass('arranging');
       });
 
       const narrow = result.current.getWidget('narrow');
@@ -756,6 +762,8 @@ describe('FloatyWidgetManager', () => {
         window.dispatchEvent(new Event('resize'));
       });
       expect(result.current.getWidget('a')?.position?.x).toBe(600);
+      // Viewport reflows follow the resize without animating.
+      expect(document.querySelector('.floaty--window')).not.toHaveClass('arranging');
 
       // Releasing the layout stops reflowing.
       act(() => {

@@ -28,6 +28,8 @@ export interface FloatyArrangeOptions {
   insets?: FloatyInsets;
   /** @deprecated Use `insets.bottom`. Ignored when `insets.bottom` is set. */
   bottomInset?: number;
+  /** Animate windows into their new geometry. Defaults to `true`. */
+  animate?: boolean;
   /**
    * Thickness of a docked stack: width for `left`/`right`, height for `top`/`bottom`.
    * Defaults to the largest current window size along that axis.
@@ -66,6 +68,12 @@ export interface FloatySizeConstraints {
 export interface FloatyGeometry {
   position: FloatyPosition;
   size: FloatySize;
+}
+
+/** Options for `FloatyHandle.setGeometry()`. */
+export interface FloatySetGeometryOptions {
+  /** Transition position and size instead of jumping. Defaults to `false`. */
+  animate?: boolean;
 }
 
 /** Complete state supplied to a controlled `<Floaty>`. */
