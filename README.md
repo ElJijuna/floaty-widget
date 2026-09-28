@@ -320,8 +320,9 @@ full viewport. The same window and persistence options are accepted by `openFloa
 
 ### Arrange multiple windows
 
-The manager can organize visible window-mode widgets in columns, rows, or a grid. Minimized
-windows and floating widgets keep their current state. You can reserve space for a taskbar:
+The manager can organize visible window-mode widgets in columns, rows, a grid, or docked
+against one edge of the viewport. Minimized windows and floating widgets keep their current
+state. You can reserve space for a taskbar:
 
 ```tsx
 const manager = useFloatyWidgetManager();
@@ -329,7 +330,17 @@ const manager = useFloatyWidgetManager();
 manager.arrangeWindows('grid', { gap: 12, margin: 16, bottomInset: 72 });
 manager.arrangeWindows('columns');
 manager.arrangeWindows('rows');
+
+// Dock every window against an edge
+manager.arrangeWindows('left'); // stacked one below the other on the left
+manager.arrangeWindows('right', { size: 360 }); // stacked on the right, 360px wide
+manager.arrangeWindows('top'); // side by side along the top
+manager.arrangeWindows('bottom', { size: 220, bottomInset: 72 }); // side by side above the taskbar
 ```
+
+For `left`/`right`, `size` is the stack width; for `top`/`bottom`, it is the stack height. When
+omitted, it defaults to the largest current width (or height) among the arranged windows. If the
+windows do not fit along the edge at their minimum size, they wrap into additional lanes inward.
 
 `arrangeWindows()` returns the number of windows arranged. It clears maximize and snap state,
 expands collapsed windows, and persists the new geometry for windows with a `persistenceKey`.

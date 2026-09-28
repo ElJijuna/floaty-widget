@@ -633,6 +633,47 @@ describe('FloatyWidgetManager', () => {
       window.localStorage.removeItem(key);
     });
 
+    it('arrangeWindows docks windows against an edge using their widest size', () => {
+      const withViewport = ({ children }: { children: ReactNode }) => (
+        <FloatyWidgetManager>
+          <FloatyViewport />
+          {children}
+        </FloatyWidgetManager>
+      );
+      const { result } = renderHook(() => useFloatyWidgetManager(), {
+        wrapper: withViewport,
+      });
+
+      act(() => {
+        result.current.open({
+          id: 'narrow',
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          size: { width: 280, height: 200 },
+        });
+        result.current.open({
+          id: 'wide',
+          mode: 'window',
+          component: MockComponent,
+          props: {},
+          size: { width: 320, height: 200 },
+        });
+      });
+
+      act(() => {
+        result.current.arrangeWindows('right', { margin: 0, gap: 0 });
+      });
+
+      const narrow = result.current.getWidget('narrow');
+      const wide = result.current.getWidget('wide');
+      expect(narrow?.size?.width).toBe(320);
+      expect(wide?.size?.width).toBe(320);
+      expect(narrow?.position).toEqual({ x: window.innerWidth - 320, y: 0 });
+      expect(wide?.position?.x).toBe(window.innerWidth - 320);
+      expect(wide?.position?.y).toBe(narrow?.size?.height);
+    });
+
     it('collapseAll / expandAll toggle isCollapsed on all widgets', () => {
       const { result } = renderHook(() => useFloatyWidgetManager(), { wrapper });
 

@@ -3,14 +3,25 @@ import type { FloatyPosition, FloatySize } from './FloatyPosition';
 /** Visual chrome for window mode. `custom` uses the consumer's CSS variables. */
 export type FloatyWindowStyle = 'mac' | 'windows' | 'custom';
 
-/** Arrangement applied to visible windows managed by Floaty. */
-export type FloatyWindowArrangement = 'columns' | 'rows' | 'grid';
+/** Viewport edge used to dock a stack of windows. */
+export type FloatyDockEdge = 'left' | 'right' | 'top' | 'bottom';
+
+/**
+ * Arrangement applied to visible windows managed by Floaty.
+ * `left`/`right` stack windows vertically against that edge; `top`/`bottom` place them side by side.
+ */
+export type FloatyWindowArrangement = 'columns' | 'rows' | 'grid' | FloatyDockEdge;
 
 /** Spacing reserved while arranging windows, in pixels. */
 export interface FloatyArrangeOptions {
   gap?: number;
   margin?: number;
   bottomInset?: number;
+  /**
+   * Thickness of a docked stack: width for `left`/`right`, height for `top`/`bottom`.
+   * Defaults to the largest current window size along that axis.
+   */
+  size?: number;
 }
 
 /** Viewport region occupied by a snapped window. */

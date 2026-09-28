@@ -193,7 +193,7 @@ const MultiWindowWorkspace = () => {
   return (
     <div style={{ minHeight: '100vh', padding: 24 }}>
       <div style={{ position: 'fixed', right: 20, top: 64, zIndex: 2000, display: 'flex', gap: 8 }}>
-        {(['grid', 'columns', 'rows'] as const).map((layout) => (
+        {(['grid', 'columns', 'rows', 'left', 'right', 'top', 'bottom'] as const).map((layout) => (
           <button
             key={layout}
             type="button"

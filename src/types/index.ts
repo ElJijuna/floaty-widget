@@ -18,6 +18,7 @@ export type { FloatyWidgetState } from './FloatyWidgetState';
 export type {
   FloatyArrangeOptions,
   FloatyControlledState,
+  FloatyDockEdge,
   FloatyGeometry,
   FloatyPersistedState,
   FloatyResizeDirection,

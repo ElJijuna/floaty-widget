@@ -1,5 +1,6 @@
 import type {
   FloatyArrangeOptions,
+  FloatyDockEdge,
   FloatyGeometry,
   FloatyPersistedState,
   FloatyPosition,
@@ -12,6 +13,58 @@ import type {
 export const DEFAULT_MIN_WIDTH = 240;
 export const DEFAULT_MIN_HEIGHT = 96;
 export const DEFAULT_SNAP_THRESHOLD = 28;
+export const DEFAULT_DOCK_WIDTH = 360;
+export const DEFAULT_DOCK_HEIGHT = 240;
+
+const DOCK_EDGES: readonly FloatyWindowArrangement[] = ['left', 'right', 'top', 'bottom'];
+
+export const isDockEdge = (layout: FloatyWindowArrangement): layout is FloatyDockEdge =>
+  DOCK_EDGES.includes(layout);
+
+/**
+ * Stacks windows against one viewport edge: vertically for `left`/`right`, side by side for
+ * `top`/`bottom`. Windows that do not fit at their minimum size wrap into extra lanes inward.
+ */
+const getDockLayout = (
+  count: number,
+  edge: FloatyDockEdge,
+  bounds: { x: number; y: number; width: number; height: number },
+  gap: number,
+  size: number | undefined,
+): FloatyGeometry[] => {
+  const vertical = edge === 'left' || edge === 'right';
+  const length = vertical ? bounds.height : bounds.width;
+  const depth = vertical ? bounds.width : bounds.height;
+  const minLength = vertical ? DEFAULT_MIN_HEIGHT : DEFAULT_MIN_WIDTH;
+  const minThickness = vertical ? DEFAULT_MIN_WIDTH : DEFAULT_MIN_HEIGHT;
+  const perLane = Math.min(count, Math.max(1, Math.floor((length + gap) / (minLength + gap))));
+  const lanes = Math.ceil(count / perLane);
+  const requested = size ?? (vertical ? DEFAULT_DOCK_WIDTH : DEFAULT_DOCK_HEIGHT);
+  const maxThickness = Math.max(1, Math.floor((depth - gap * (lanes - 1)) / lanes));
+  const thickness = Math.min(maxThickness, Math.max(minThickness, Math.floor(requested)));
+  const fromEnd = edge === 'right' || edge === 'bottom';
+
+  return Array.from({ length: count }, (_, index) => {
+    const lane = Math.floor(index / perLane);
+    const slot = index % perLane;
+    const slots = Math.min(perLane, count - lane * perLane);
+    const step = (length + gap) / slots;
+    const start = Math.floor(slot * step);
+    const extent = Math.max(1, Math.floor((slot + 1) * step) - gap - start);
+    const offset = lane * (thickness + gap);
+    const across = fromEnd ? depth - offset - thickness : offset;
+
+    return vertical
+      ? {
+          position: { x: bounds.x + across, y: bounds.y + start },
+          size: { width: thickness, height: extent },
+        }
+      : {
+          position: { x: bounds.x + start, y: bounds.y + across },
+          size: { width: extent, height: thickness },
+        };
+  });
+};
 
 /** Computes non-overlapping cells for a set of windows within the usable viewport. */
 export const getWindowLayout = (
@@ -29,6 +82,17 @@ export const getWindowLayout = (
   const bottomInset = Math.max(0, options.bottomInset ?? 0);
   const usableWidth = Math.max(1, viewport.width - margin * 2);
   const usableHeight = Math.max(1, viewport.height - margin * 2 - bottomInset);
+
+  if (isDockEdge(layout)) {
+    return getDockLayout(
+      count,
+      layout,
+      { x: margin, y: margin, width: usableWidth, height: usableHeight },
+      gap,
+      options.size,
+    );
+  }
+
   const maxColumns = Math.max(1, Math.floor((usableWidth + gap) / (DEFAULT_MIN_WIDTH + gap)));
   const maxRows = Math.max(1, Math.floor((usableHeight + gap) / (DEFAULT_MIN_HEIGHT + gap)));
   const columns =

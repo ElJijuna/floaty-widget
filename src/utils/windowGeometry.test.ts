@@ -101,4 +101,44 @@ describe('window geometry utilities', () => {
     );
     expect(getWindowLayout(0, 'grid', viewport)).toEqual([]);
   });
+
+  it('docks windows stacked against each viewport edge', () => {
+    const viewport = { width: 1000, height: 800 };
+    const options = { margin: 20, gap: 10, bottomInset: 50, size: 300 };
+
+    expect(getWindowLayout(3, 'left', viewport, options)).toEqual([
+      { position: { x: 20, y: 20 }, size: { width: 300, height: 230 } },
+      { position: { x: 20, y: 260 }, size: { width: 300, height: 230 } },
+      { position: { x: 20, y: 500 }, size: { width: 300, height: 230 } },
+    ]);
+    expect(getWindowLayout(2, 'right', viewport, options)).toEqual([
+      { position: { x: 680, y: 20 }, size: { width: 300, height: 350 } },
+      { position: { x: 680, y: 380 }, size: { width: 300, height: 350 } },
+    ]);
+    expect(getWindowLayout(2, 'top', viewport, { ...options, size: 200 })).toEqual([
+      { position: { x: 20, y: 20 }, size: { width: 475, height: 200 } },
+      { position: { x: 505, y: 20 }, size: { width: 475, height: 200 } },
+    ]);
+    expect(getWindowLayout(2, 'bottom', viewport, { ...options, size: 200 })).toEqual([
+      { position: { x: 20, y: 530 }, size: { width: 475, height: 200 } },
+      { position: { x: 505, y: 530 }, size: { width: 475, height: 200 } },
+    ]);
+  });
+
+  it('wraps docked windows into inward lanes and clamps thickness', () => {
+    const viewport = { width: 1000, height: 200 };
+    const docked = getWindowLayout(3, 'right', viewport, { margin: 0, gap: 0, size: 5000 });
+
+    expect(docked.map(({ position }) => position)).toEqual([
+      { x: 500, y: 0 },
+      { x: 500, y: 100 },
+      { x: 0, y: 0 },
+    ]);
+    expect(docked.map(({ size }) => size)).toEqual([
+      { width: 500, height: 100 },
+      { width: 500, height: 100 },
+      { width: 500, height: 200 },
+    ]);
+    expect(getWindowLayout(1, 'left', viewport, { size: 10 })[0].size.width).toBe(240);
+  });
 });

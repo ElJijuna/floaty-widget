@@ -24,7 +24,9 @@ export {
   updateFloaty,
 } from './singleton';
 export type {
+  FloatyArrangeOptions,
   FloatyComponentLoader,
+  FloatyDockEdge,
   FloatyGeometry,
   FloatyHandle,
   FloatyIconComponent,
@@ -47,4 +49,5 @@ export type {
   FloatyWidgetManagerProps,
   FloatyWidgetPatch,
   FloatyWidgetState,
+  FloatyWindowArrangement,
 } from './types';

@@ -27,7 +27,12 @@ import type {
   FloatyWidgetState,
   FloatyWindowArrangement,
 } from '../types';
-import { getWindowLayout, readPersistedState, writePersistedState } from '../utils/windowGeometry';
+import {
+  getWindowLayout,
+  isDockEdge,
+  readPersistedState,
+  writePersistedState,
+} from '../utils/windowGeometry';
 
 export const FloatyManagerContext = createContext<FloatyWidgetManagerHandle | null>(null);
 
@@ -572,11 +577,17 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           return 0;
         }
 
+        const axis = layout === 'left' || layout === 'right' ? 'width' : 'height';
+        const currentSizes = visibleWindows
+          .map((widget) => widget.size?.[axis])
+          .filter((value): value is number => typeof value === 'number');
         const geometries = getWindowLayout(
           visibleWindows.length,
           layout,
           { width: window.innerWidth, height: window.innerHeight },
-          options,
+          isDockEdge(layout) && options.size === undefined && currentSizes.length > 0
+            ? { ...options, size: Math.max(...currentSizes) }
+            : options,
         );
         const next = new Map(widgetsRef.current);
 
