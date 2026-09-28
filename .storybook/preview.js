@@ -4,6 +4,20 @@ import './preview.css';
 const preview = {
   parameters: {
     layout: 'fullscreen',
+    options: {
+      storySort: {
+        order: [
+          'Floaty',
+          [
+            'Widget',
+            'Desktop',
+            ['Workspace', 'Layouts', 'Taskbar & preview'],
+            'Manager',
+            'Theming',
+          ],
+        ],
+      },
+    },
     viewport: {
       defaultViewport: 'responsive',
     },

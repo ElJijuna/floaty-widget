@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const windowStory = '/iframe.html?id=components-floatywidget--window-mode&viewMode=story';
+const windowStory = '/iframe.html?id=floaty-desktop-workspace--single-window&viewMode=story';
 
 test.describe('Floaty touch input', () => {
   test.beforeEach(async ({ page }) => {

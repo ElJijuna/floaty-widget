@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-const defaultStory = '/iframe.html?id=components-floatywidget--default&viewMode=story';
-const windowStory = '/iframe.html?id=components-floatywidget--window-mode&viewMode=story';
-const layoutsStory = '/iframe.html?id=components-floatywidget--multi-window-layouts&viewMode=story';
+const defaultStory = '/iframe.html?id=floaty-widget--playground&viewMode=story';
+const windowStory = '/iframe.html?id=floaty-desktop-workspace--single-window&viewMode=story';
+const layoutsStory = '/iframe.html?id=floaty-desktop-layouts--free-windows&viewMode=story';
 
 test.describe('Floaty Storybook', () => {
   test.beforeEach(async ({ page }) => {
@@ -59,7 +59,7 @@ test('arranges four windows into a non-overlapping grid', async ({ page }) => {
   const windows = page.locator('.floaty--window');
   await expect(windows).toHaveCount(4);
 
-  await page.getByRole('button', { name: 'Arrange grid' }).click();
+  await page.getByRole('button', { name: 'Grid', exact: true }).click();
 
   await expect
     .poll(() =>
@@ -89,7 +89,7 @@ test.describe('Floaty window mode', () => {
     page,
   }) => {
     const widget = page.locator('.floaty--window');
-    const toolbar = page.getByRole('toolbar', { name: 'Integrated window controls' });
+    const toolbar = page.getByRole('toolbar', { name: 'Notes controls' });
     const initialTransform = await widget.evaluate((element) => element.style.transform);
 
     await expect(toolbar).toHaveCSS('position', 'relative');
@@ -148,7 +148,7 @@ test.describe('Floaty window mode', () => {
     await page
       .getByRole('toolbar', { name: 'Open windows' })
       .getByRole('button', {
-        name: 'Integrated window',
+        name: 'Notes',
         exact: true,
       })
       .click();
@@ -160,19 +160,18 @@ test.describe('Floaty window mode', () => {
     await expect(widget).toBeVisible();
   });
 
-  test('switches between Windows and macOS title bars', async ({ page }) => {
+  test('renders the window chrome selected in Controls', async ({ page }) => {
     const widget = page.locator('.floaty--window');
-    const style = page.getByRole('combobox', { name: 'Window style' });
 
     await expect(widget).toHaveClass(/floaty--window-windows/);
     await expect(widget.locator('.floaty-window-icon')).toBeVisible();
     await expect(widget.getByRole('button', { name: 'Pin' })).toHaveCount(0);
 
-    await style.selectOption('mac');
+    await page.goto(`${windowStory}&args=windowStyle:mac`);
     await expect(widget).toHaveClass(/floaty--window-mac/);
     await expect(widget.getByRole('button', { name: 'Close' })).toBeVisible();
 
-    await style.selectOption('custom');
+    await page.goto(`${windowStory}&args=windowStyle:custom`);
     await expect(widget).toHaveClass(/floaty--window-custom/);
   });
 
@@ -210,7 +209,7 @@ test.describe('Floaty window mode', () => {
     const widget = page.locator('.floaty--window');
     const taskbarButton = page
       .getByRole('toolbar', { name: 'Open windows' })
-      .getByRole('button', { name: 'Integrated window', exact: true });
+      .getByRole('button', { name: 'Notes', exact: true });
 
     await widget.getByRole('button', { name: 'Minimize' }).click();
     await expect(widget).toHaveCount(0);
