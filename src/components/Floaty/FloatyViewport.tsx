@@ -9,7 +9,13 @@ import {
   useMemo,
 } from 'react';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
-import type { FloatyIcons, FloatyTexts, FloatyWidget } from '../../types';
+import type {
+  FloatyIcons,
+  FloatyPosition,
+  FloatyTexts,
+  FloatyWidget,
+  FloatyWindowTab,
+} from '../../types';
 import { Floaty } from './Floaty';
 
 /** Props for the `<FloatyViewport>` component. */
@@ -31,6 +37,11 @@ interface FloatyViewportItemProps {
   onFocus: (id: string) => void;
   onRetry: (widget: FloatyWidget) => void;
   isActive: boolean;
+  /** Set when the widget belongs to a tabbed window group. */
+  tabs?: FloatyWindowTab[];
+  activeTabId?: string;
+  onTabSelect: (id: string) => void;
+  onTabDetach: (id: string, position?: FloatyPosition) => void;
 }
 
 const DefaultLazyFallback = ({ label }: { label: string }) => (
@@ -91,6 +102,10 @@ const FloatyViewportItem = memo(
     onFocus,
     onRetry,
     isActive,
+    tabs,
+    activeTabId,
+    onTabSelect,
+    onTabDetach,
   }: FloatyViewportItemProps) => {
     if (!widget.component || widget.isMinimized) {
       return null;
@@ -130,6 +145,12 @@ const FloatyViewportItem = memo(
         restoreFocus={widget.restoreFocus}
         onClose={() => onClose(widget.id)}
         onFocus={() => onFocus(widget.id)}
+        hidden={Boolean(tabs) && activeTabId !== widget.id}
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabSelect={onTabSelect}
+        onTabClose={onClose}
+        onTabDetach={onTabDetach}
       >
         {widget.loader ? (
           <LazyErrorBoundary labels={labels} onRetry={() => onRetry(widget)}>
@@ -197,9 +218,25 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
     [manager.theme],
   );
 
+  const groupTabs = useMemo(() => {
+    const tabsByGroup = new Map<string, FloatyWindowTab[]>();
+
+    manager.groups.forEach((group) => {
+      tabsByGroup.set(
+        group.id,
+        group.widgetIds.map((id) => ({ id, title: manager.widgets.get(id)?.title })),
+      );
+    });
+
+    return tabsByGroup;
+  }, [manager.groups, manager.widgets]);
+
   return (
     <>
       {widgets.map((widget) => {
+        const group = widget.groupId ? manager.groups.get(widget.groupId) : undefined;
+        const isHiddenTab = Boolean(group && group.activeId !== widget.id);
+
         return (
           <FloatyViewportItem
             key={widget.id}
@@ -216,7 +253,11 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
                 manager.update(retryWidget.id, { loader: retryWidget.loader });
               }
             }}
-            isActive={widget.zIndex === activeZIndex}
+            isActive={!isHiddenTab && widget.zIndex === activeZIndex}
+            tabs={group ? groupTabs.get(group.id) : undefined}
+            activeTabId={group?.activeId}
+            onTabSelect={manager.setActiveTab}
+            onTabDetach={manager.ungroupWindow}
           />
         );
       })}

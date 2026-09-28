@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { FloatyPosition, FloatySize } from './FloatyPosition';
 
 /** Visual chrome for window mode. `custom` uses the consumer's CSS variables. */
@@ -35,6 +36,22 @@ export interface FloatyArrangeOptions {
    * Defaults to the largest current window size along that axis.
    */
   size?: number;
+}
+
+/** Tab shown in the title bar of a tabbed window group. */
+export interface FloatyWindowTab {
+  id: string;
+  title?: ReactNode;
+}
+
+/** Window-mode widgets merged into one tabbed window. */
+export interface FloatyWindowGroup {
+  /** Stable id of the group. */
+  id: string;
+  /** Member widget ids, in tab order. */
+  widgetIds: string[];
+  /** Id of the visible tab. */
+  activeId: string;
 }
 
 /** Arrangement kept active by `setLayout()` and re-applied whenever the windows or viewport change. */

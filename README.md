@@ -380,6 +380,45 @@ the layout is applied and then kept, so opening a larger window does not resize 
 Manually dragging or resizing a window does not release the layout; that window is put back in
 place on the next reflow.
 
+### Tabbed windows
+
+Window-mode widgets can be merged into one tabbed window, like browser tabs. Enable
+drag-and-drop with `windowGrouping`: drop a window on another window's title bar to merge them
+(the target is outlined while you drag), and drag a tab out of the strip to detach it again.
+
+```tsx
+<FloatyProvider windowGrouping>
+  <App />
+  <FloatyViewport />
+</FloatyProvider>
+```
+
+The same operations are available programmatically, with or without `windowGrouping`:
+
+```tsx
+const manager = useFloatyWidgetManager();
+
+manager.groupWindows(['notes', 'chat']); // 'notes' keeps its place, 'chat' joins as the active tab
+manager.setActiveTab('notes');
+manager.ungroupWindow('chat', { x: 400, y: 120 }); // standalone window again
+manager.getGroup('notes'); // { id, widgetIds: ['notes'], activeId } or undefined
+manager.groups; // Map of every group
+```
+
+Inactive tabs stay mounted but hidden, so their content keeps its state (form input, scroll,
+component state) when you switch tabs, merge or detach. Behaviour worth knowing:
+
+- The first id passed to `groupWindows()` is the target: its window keeps its geometry and its
+  existing group. Other ids join with every member of their own groups.
+- Closing the visible tab hands the window to its neighbour; a group left with one tab dissolves.
+- Minimize, maximize, snap, `arrangeWindows()` and `setLayout()` treat a group as one window.
+  `restoreWidget()` and `bringToFront()` on any member show that member's tab.
+- Tab keyboard support: <kbd>←</kbd>/<kbd>→</kbd>/<kbd>Home</kbd>/<kbd>End</kbd> switch tabs,
+  <kbd>Delete</kbd> closes the focused tab and <kbd>Alt</kbd>+<kbd>↓</kbd> detaches it.
+- Groups are not persisted; each widget's own `persistenceKey` still stores its geometry.
+- Set `labels.tabs` to translate the tab strip's accessible name, and `--floaty-merge-color` to
+  change the drop highlight.
+
 ### Desktop taskbar
 
 `FloatyTaskbar` reads the nearest manager and provides accessible focus, restore, and close
@@ -542,6 +581,7 @@ import { Pin, PinFilled } from './icons';
     loading: 'Cargando panel...',
     loadError: 'No se pudo cargar el panel',
     retry: 'Reintentar',
+    tabs: 'Pestañas',
   }}
 >
   <FloatyViewport />

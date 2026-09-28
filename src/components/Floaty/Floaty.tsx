@@ -29,6 +29,7 @@ import type {
   FloatySnapZone,
   FloatyTexts,
   FloatyWindowStyle,
+  FloatyWindowTab,
 } from '../../types';
 import {
   clampPosition,
@@ -42,6 +43,7 @@ import {
   readPersistedState,
   writePersistedState,
 } from '../../utils/windowGeometry';
+import { FloatyTabs } from './FloatyTabs';
 
 /** Props for the `<Floaty>` component. */
 export interface FloatyProps {
@@ -119,6 +121,21 @@ export interface FloatyProps {
   onPositionChange?: (position: FloatyPosition) => void;
   /** Called when maximized state changes. */
   onMaximizeChange?: (maximized: boolean) => void;
+  /**
+   * Keeps the widget mounted, with its content state, but not displayed. Used by
+   * `FloatyViewport` for the inactive tabs of a tabbed window group. @default false
+   */
+  hidden?: boolean;
+  /** Tabs shown in the title bar instead of `title` when there are two or more (window mode). */
+  tabs?: FloatyWindowTab[];
+  /** Id of the selected tab in `tabs`. */
+  activeTabId?: string;
+  /** Called when a tab is selected. */
+  onTabSelect?: (id: string) => void;
+  /** Called when a tab's close button is pressed. If omitted, tabs have no close button. */
+  onTabClose?: (id: string) => void;
+  /** Called when a tab is dragged out of the strip (with the drop point) or detached by keyboard. */
+  onTabDetach?: (id: string, position?: FloatyPosition) => void;
 }
 
 const defaultLabels: FloatyTexts = {
@@ -135,6 +152,7 @@ const defaultLabels: FloatyTexts = {
   loading: 'Loading widget...',
   loadError: 'Could not load widget',
   retry: 'Retry',
+  tabs: 'Tabs',
 };
 
 const KEYBOARD_MOVE_STEP = 10;
@@ -143,6 +161,34 @@ const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 const ARRANGE_FALLBACK_MS = 1000;
+
+/**
+ * Finds the window whose title bar is the topmost thing under the pointer, ignoring `self`.
+ * A title bar covered by another window's body is not a target.
+ */
+const findMergeTarget = (x: number, y: number, self: HTMLElement | null): HTMLElement | null => {
+  if (typeof document.elementsFromPoint !== 'function') {
+    return null;
+  }
+
+  for (const element of document.elementsFromPoint(x, y)) {
+    if (self?.contains(element)) {
+      continue;
+    }
+
+    const root = element.closest<HTMLElement>('.floaty--window[data-floaty-id]');
+
+    if (root && !root.hidden && element.closest('.floaty-header')) {
+      return root;
+    }
+
+    if (element.closest('.floaty')) {
+      return null;
+    }
+  }
+
+  return null;
+};
 const ARRANGE_PROPERTIES = new Set(['transform', 'width', 'height']);
 
 const resolveStateAction = <T,>(action: SetStateAction<T>, previous: T): T =>
@@ -337,6 +383,12 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       onResizeEnd,
       onPositionChange,
       onMaximizeChange,
+      hidden = false,
+      tabs,
+      activeTabId,
+      onTabSelect,
+      onTabClose,
+      onTabDetach,
     }: FloatyProps,
     ref,
   ) => {
@@ -474,6 +526,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const snapZoneRef = useRef(snapZone);
     const snapPreviewRef = useRef<FloatySnapZone | null>(null);
     const sizeConstraintsRef = useRef(sizeConstraints);
+    const mergeTargetRef = useRef<HTMLElement | null>(null);
+    // Read through refs so pointer handlers stay stable while a drag is in progress.
+    const groupWindowsRef = useRef(manager?.groupWindows);
+    const idRef = useRef(id);
+    groupWindowsRef.current = manager?.groupWindows;
+    idRef.current = id;
+    const canMerge = mode === 'window' && Boolean(id) && Boolean(manager?.windowGrouping);
     const Pin = mergedIcons.pin;
     const Unpin = mergedIcons.unpin;
     const Collapse = mergedIcons.collapse;
@@ -747,6 +806,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       });
     }, [isCollapsed, isMaximized, isMinimized, isPinned, persistenceKey, position, size, snapZone]);
 
+    const setMergeTarget = useCallback((element: HTMLElement | null) => {
+      if (mergeTargetRef.current === element) {
+        return;
+      }
+
+      mergeTargetRef.current?.removeAttribute('data-merge-target');
+      element?.setAttribute('data-merge-target', 'true');
+      mergeTargetRef.current = element;
+    }, []);
+
+    useEffect(() => () => setMergeTarget(null), [setMergeTarget]);
+
     const flushPendingFrame = useCallback(() => {
       frameRef.current = null;
 
@@ -804,7 +875,19 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           pendingPositionRef.current = { x: newX, y: newY };
           scheduleVisualUpdate();
 
-          if (mode === 'window' && snap) {
+          const mergeTarget = canMerge
+            ? findMergeTarget(e.clientX, e.clientY, floatyRef.current)
+            : null;
+
+          setMergeTarget(mergeTarget);
+
+          if (mergeTarget) {
+            // Dropping on a title bar merges into tabs, so it wins over edge snapping.
+            if (snapPreviewRef.current) {
+              snapPreviewRef.current = null;
+              setSnapPreview(null);
+            }
+          } else if (mode === 'window' && snap) {
             const nextSnapZone = getSnapZone(
               { x: e.clientX, y: e.clientY },
               window.innerWidth,
@@ -895,7 +978,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           }
         }
       },
-      [mode, scheduleVisualUpdate, snap, snapThreshold],
+      [canMerge, mode, scheduleVisualUpdate, setMergeTarget, snap, snapThreshold],
     );
 
     const handlePointerUp = useCallback(
@@ -913,6 +996,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         const nextSnapZone = snapPreviewRef.current;
         const endedDrag = dragStateRef.current.isDragging;
         const endedResize = resizeStateRef.current.isResizing || endedPinch;
+        const mergeTargetId = endedDrag ? mergeTargetRef.current?.dataset.floatyId : undefined;
+
+        setMergeTarget(null);
 
         if (frameRef.current !== null) {
           cancelAnimationFrame(frameRef.current);
@@ -926,7 +1012,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         snapPreviewRef.current = null;
         setSnapPreview(null);
 
-        if (nextSnapZone && endedDrag) {
+        if (mergeTargetId && idRef.current && groupWindowsRef.current) {
+          // Undo the live drag transform; the group gives this window the target's geometry.
+          if (floatyRef.current) {
+            floatyRef.current.style.transform = `translate(${positionRef.current.x}px, ${positionRef.current.y}px)`;
+          }
+          groupWindowsRef.current([mergeTargetId, idRef.current]);
+        } else if (nextSnapZone && endedDrag) {
           snapWindow(nextSnapZone);
         } else if (nextPosition) {
           positionRef.current = nextPosition;
@@ -956,6 +1048,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         flushPendingFrame,
         handlePointerMove,
         onResizeEnd,
+        setMergeTarget,
         setPosition,
         setSize,
         setSnapZone,
@@ -1279,6 +1372,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       <>
         <section
           ref={floatyRef}
+          hidden={hidden || undefined}
+          data-floaty-id={id}
           aria-label={titleText ?? 'Floaty widget'}
           data-active={isActive || undefined}
           data-maximized={isMaximized || undefined}
@@ -1384,9 +1479,21 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
               </button>
             )}
 
-            <span className="floaty-title" title={titleText}>
-              {title}
-            </span>
+            {mode === 'window' && tabs && tabs.length > 1 ? (
+              <FloatyTabs
+                tabs={tabs}
+                activeId={activeTabId ?? id ?? tabs[0].id}
+                hidden={hidden}
+                labels={labels}
+                onSelect={onTabSelect}
+                onClose={onTabClose}
+                onDetach={onTabDetach}
+              />
+            ) : (
+              <span className="floaty-title" title={titleText}>
+                {title}
+              </span>
+            )}
 
             {mode === 'floating' && (
               <button

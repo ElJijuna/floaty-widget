@@ -53,4 +53,6 @@ export type {
   FloatyWidgetPatch,
   FloatyWidgetState,
   FloatyWindowArrangement,
+  FloatyWindowGroup,
+  FloatyWindowTab,
 } from './types';

@@ -80,6 +80,62 @@ test('arranges four windows into a non-overlapping grid', async ({ page }) => {
     .toBe(true);
 });
 
+test('merges windows into tabs by dropping on a title bar and detaches them again', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=floaty-desktop-tabs--drag-to-merge&viewMode=story');
+  const notes = page.locator('[data-floaty-id="tabs-0"]');
+  const metrics = page.locator('[data-floaty-id="tabs-1"]');
+  await expect(notes).toBeVisible();
+  await expect(metrics).toBeVisible();
+
+  const source = await metrics.locator('.floaty-header').boundingBox();
+  const target = await notes.locator('.floaty-header').boundingBox();
+  const targetWindow = await notes.boundingBox();
+  if (!source || !target || !targetWindow) {
+    throw new Error('Window title bars are not visible');
+  }
+
+  await page.mouse.move(source.x + 120, source.y + source.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x + 140, target.y + target.height / 2, { steps: 8 });
+  await expect(notes).toHaveAttribute('data-merge-target', 'true');
+  await page.mouse.up();
+
+  await expect(notes).toBeHidden();
+  await expect(metrics).toBeVisible();
+  const tabs = metrics.getByRole('tab');
+  await expect(tabs).toHaveText(['Notes', 'Metrics']);
+  // The dropped window takes the target window's place.
+  await expect(metrics).toHaveCSS(
+    'transform',
+    `matrix(1, 0, 0, 1, ${targetWindow.x}, ${targetWindow.y})`,
+  );
+
+  // Tab content keeps its state across switches.
+  await tabs.first().click();
+  await expect(notes).toBeVisible();
+  await notes.getByRole('textbox').fill('kept while hidden');
+  await notes.getByRole('tab', { name: 'Metrics' }).click();
+  await expect(notes).toBeHidden();
+  await metrics.getByRole('tab', { name: 'Notes' }).click();
+  await expect(notes.getByRole('textbox')).toHaveValue('kept while hidden');
+
+  const tab = notes.getByRole('tab', { name: 'Metrics' });
+  const tabBox = await tab.boundingBox();
+  if (!tabBox) {
+    throw new Error('Tab is not visible');
+  }
+  await page.mouse.move(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tabBox.x + 200, tabBox.y + 320, { steps: 6 });
+  await page.mouse.up();
+
+  await expect(notes).toBeVisible();
+  await expect(metrics).toBeVisible();
+  await expect(page.getByRole('tablist')).toHaveCount(0);
+});
+
 test.describe('Floaty window mode', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(windowStory);

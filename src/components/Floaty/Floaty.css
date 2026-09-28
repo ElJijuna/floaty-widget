@@ -20,6 +20,7 @@
   --floaty-transition:
     opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease,
     -webkit-filter 0.16s ease;
+  --floaty-merge-color: var(--gnome-accent-bg-color, #3584e4);
   --floaty-arrange-duration: 0.24s;
   --floaty-arrange-easing: cubic-bezier(0.2, 0, 0, 1);
   --floaty-font-family: var(
@@ -772,6 +773,121 @@
   order: -1;
   margin-left: 12px;
 }
+/* Tab strip of a tabbed window group */
+.floaty-tabs {
+  display: flex;
+  flex: 1;
+  align-self: stretch;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.floaty-tab {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
+  min-width: 32px;
+  max-width: 180px;
+  container-type: inline-size;
+  height: 100%;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+}
+
+.floaty-tab:hover {
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.floaty-tab.active {
+  background: var(--floaty-body-bg);
+  border-color: var(--floaty-border);
+  color: inherit;
+}
+
+.floaty-tab-button {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: default;
+  touch-action: none;
+}
+
+.floaty-tab-button[data-detaching] {
+  cursor: grabbing;
+  opacity: 0.6;
+}
+
+.floaty-tab-button:focus-visible {
+  outline: 2px solid var(--floaty-merge-color);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.floaty-tab-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floaty-tab-close {
+  flex: 0 0 22px;
+  height: 22px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.floaty-tab:hover .floaty-tab-close,
+.floaty-tab.active .floaty-tab-close {
+  opacity: 0.7;
+}
+
+/* Only the selected or hovered tab spends width on its close button. */
+.floaty-tab:not(.active):not(:hover) .floaty-tab-close {
+  display: none;
+}
+
+/* Narrow tabs keep the title readable; closing stays available with the Delete key. */
+@container (max-width: 72px) {
+  .floaty-tab-close {
+    display: none;
+  }
+}
+
+.floaty-tab-close:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  opacity: 1;
+}
+
+/* Auto margins take free space before flex-grow; let the strip fill the title bar instead. */
+.floaty-tabs ~ .floaty-button--minimize {
+  margin-left: 0;
+}
+
+.floaty--window-mac .floaty-tabs {
+  margin-right: 12px;
+}
+
 .floaty--window-mac .floaty-title {
   text-align: center;
   margin-right: 92px;
@@ -926,4 +1042,19 @@
   .floaty-snap-preview {
     animation: none;
   }
+}
+
+/* Inactive tabs of a window group stay mounted (keeping their state) but are not displayed. */
+.floaty[hidden] {
+  display: none;
+}
+
+/* Window under the pointer that a dragged window will merge into as a tab. */
+.floaty--window[data-merge-target] {
+  outline: 2px solid var(--floaty-merge-color);
+  outline-offset: 2px;
+}
+
+.floaty--window[data-merge-target] .floaty-header {
+  background: color-mix(in srgb, var(--floaty-merge-color) 18%, var(--floaty-header-bg));
 }

@@ -21,6 +21,7 @@ import type {
   FloatyOpenOptions,
   FloatyOpenWidget,
   FloatyOpenWidgetBase,
+  FloatyPosition,
   FloatyTexts,
   FloatyWidget,
   FloatyWidgetManagerHandle,
@@ -28,8 +29,10 @@ import type {
   FloatyWidgetPatch,
   FloatyWidgetState,
   FloatyWindowArrangement,
+  FloatyWindowGroup,
 } from '../types';
 import {
+  clampPosition,
   getWindowLayout,
   isDockEdge,
   readPersistedState,
@@ -52,6 +55,7 @@ const defaultLabels: FloatyTexts = {
   loading: 'Loading widget...',
   loadError: 'Could not load widget',
   retry: 'Retry',
+  tabs: 'Tabs',
 };
 
 const createDuplicateId = (id: string, widgets: Map<string, FloatyWidget>) => {
@@ -74,12 +78,35 @@ const normalizeLazyModule = <P,>(loaded: FloatyLazyModule<P>): { default: Compon
   return loaded;
 };
 
-const isArrangeable = (widget: FloatyWidget) =>
-  widget.mode === 'window' && !widget.isMinimized && !widget.isMaximized;
+const findGroup = (groups: Map<string, FloatyWindowGroup>, id: string) => {
+  for (const group of groups.values()) {
+    if (group.widgetIds.includes(id)) {
+      return group;
+    }
+  }
 
-const getArrangedKey = (widgets: Map<string, FloatyWidget>) =>
+  return undefined;
+};
+
+/** Inactive tabs stay mounted but hidden; the group is represented by its active tab. */
+const isHiddenTab = (groups: Map<string, FloatyWindowGroup>, id: string) => {
+  const group = findGroup(groups, id);
+
+  return Boolean(group && group.activeId !== id);
+};
+
+const isArrangeable = (widget: FloatyWidget, groups: Map<string, FloatyWindowGroup>) =>
+  widget.mode === 'window' &&
+  !widget.isMinimized &&
+  !widget.isMaximized &&
+  !isHiddenTab(groups, widget.id);
+
+const getArrangedKey = (
+  widgets: Map<string, FloatyWidget>,
+  groups: Map<string, FloatyWindowGroup>,
+) =>
   Array.from(widgets.values())
-    .filter(isArrangeable)
+    .filter((widget) => isArrangeable(widget, groups))
     .map((widget) => widget.id)
     .join('\u0000');
 
@@ -88,7 +115,7 @@ const createLazyComponent = <P,>(loader: FloatyComponentLoader<P>) => {
 };
 
 export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyWidgetManagerProps>(
-  ({ children, labels: labelsProp, icons = {}, theme }, ref) => {
+  ({ children, labels: labelsProp, icons = {}, theme, windowGrouping = false }, ref) => {
     const widgetHandlesRef = useRef<Map<string, RefObject<FloatyHandle | null>>>(new Map());
     const zIndexRef = useRef(1000);
     const [widgets, setWidgets] = useState<Map<string, FloatyWidget>>(() => new Map());
@@ -96,6 +123,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     const [layout, setLayoutState] = useState<FloatyActiveLayout | null>(null);
     const layoutRef = useRef(layout);
     const arrangedKeyRef = useRef<string | null>(null);
+    const [groups, setGroups] = useState<Map<string, FloatyWindowGroup>>(() => new Map());
+    const groupsRef = useRef(groups);
+    const groupCounterRef = useRef(0);
 
     const updateWidgets = useCallback(
       (updater: (current: Map<string, FloatyWidget>) => Map<string, FloatyWidget>) => {
@@ -114,7 +144,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
     const labels = useMemo(() => ({ ...defaultLabels, ...labelsProp }), [labelsProp]);
 
-    const bringToFront = useCallback(
+    const raise = useCallback(
       (id: string) => {
         updateWidgets((current) => {
           const previous = current.get(id);
@@ -133,6 +163,260 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
       },
       [updateWidgets],
     );
+
+    /** Replaces the group map and mirrors `groupId` onto every widget. */
+    const commitGroups = useCallback(
+      (nextGroups: Map<string, FloatyWindowGroup>) => {
+        groupsRef.current = nextGroups;
+        setGroups(nextGroups);
+        updateWidgets((current) => {
+          let next = current;
+
+          current.forEach((widget, id) => {
+            const groupId = findGroup(nextGroups, id)?.id;
+
+            if (widget.groupId !== groupId) {
+              if (next === current) {
+                next = new Map(current);
+              }
+              next.set(id, { ...widget, groupId });
+            }
+          });
+
+          return next;
+        });
+      },
+      [updateWidgets],
+    );
+
+    /** Gives a tab the geometry and window state of the tab it replaces on screen. */
+    const syncTabGeometry = useCallback(
+      (targetId: string, source: FloatyWidget | undefined) => {
+        if (!source || targetId === source.id) {
+          return;
+        }
+
+        const handle = widgetHandlesRef.current.get(targetId)?.current;
+
+        if (handle) {
+          if (source.isMaximized) {
+            handle.maximize();
+          } else if (source.snapZone) {
+            handle.snapTo(source.snapZone);
+          } else if (source.position) {
+            handle.setGeometry({ position: source.position, size: source.size ?? {} });
+          }
+
+          if (source.isCollapsed) {
+            handle.collapse();
+          }
+        }
+
+        // Keep the manager in sync too, so a tab that is not mounted (minimized) opens in place.
+        updateWidgets((current) => {
+          const target = current.get(targetId);
+
+          if (!target) {
+            return current;
+          }
+
+          const next = new Map(current);
+
+          next.set(targetId, {
+            ...target,
+            position: source.position,
+            size: source.size,
+            isMaximized: source.isMaximized,
+            snapZone: source.snapZone,
+            isCollapsed: source.isCollapsed,
+          });
+
+          return next;
+        });
+      },
+      [updateWidgets],
+    );
+
+    const showWidget = useCallback(
+      (id: string) => {
+        const widget = widgetsRef.current.get(id);
+
+        if (!widget) {
+          return;
+        }
+
+        if (widget.isMinimized) {
+          const persisted = readPersistedState(widget.persistenceKey);
+
+          if (widget.persistenceKey && persisted) {
+            writePersistedState(widget.persistenceKey, { ...persisted, isMinimized: false });
+          }
+          updateWidgets((current) => {
+            const next = new Map(current);
+
+            next.set(id, { ...widget, isMinimized: false });
+
+            return next;
+          });
+        }
+
+        raise(id);
+      },
+      [raise, updateWidgets],
+    );
+
+    const setActiveTab = useCallback(
+      (id: string) => {
+        const group = findGroup(groupsRef.current, id);
+
+        if (group && group.activeId !== id) {
+          syncTabGeometry(id, widgetsRef.current.get(group.activeId));
+          const next = new Map(groupsRef.current);
+
+          next.set(group.id, { ...group, activeId: id });
+          commitGroups(next);
+        }
+
+        showWidget(id);
+      },
+      [commitGroups, showWidget, syncTabGeometry],
+    );
+
+    const bringToFront = useCallback(
+      (id: string) => {
+        if (isHiddenTab(groupsRef.current, id)) {
+          setActiveTab(id);
+        } else {
+          raise(id);
+        }
+      },
+      [raise, setActiveTab],
+    );
+
+    /**
+     * Takes a widget out of its group. When it was the visible tab, its neighbour takes over the
+     * window geometry. A group left with one tab is dissolved.
+     */
+    const removeFromGroup = useCallback(
+      (id: string) => {
+        const group = findGroup(groupsRef.current, id);
+
+        if (!group) {
+          return;
+        }
+
+        const index = group.widgetIds.indexOf(id);
+        const remaining = group.widgetIds.filter((memberId) => memberId !== id);
+        const neighborId =
+          group.activeId === id ? remaining[Math.min(index, remaining.length - 1)] : undefined;
+        const next = new Map(groupsRef.current);
+
+        if (neighborId) {
+          syncTabGeometry(neighborId, widgetsRef.current.get(id));
+        }
+
+        if (remaining.length < 2) {
+          next.delete(group.id);
+        } else {
+          next.set(group.id, {
+            ...group,
+            widgetIds: remaining,
+            activeId: neighborId ?? group.activeId,
+          });
+        }
+
+        commitGroups(next);
+
+        if (neighborId) {
+          raise(neighborId);
+        }
+      },
+      [commitGroups, raise, syncTabGeometry],
+    );
+
+    const groupWindows = useCallback(
+      (ids: string[]) => {
+        const { current } = widgetsRef;
+        const valid = Array.from(new Set(ids)).filter((id) => current.get(id)?.mode === 'window');
+
+        if (valid.length < 2) {
+          return null;
+        }
+
+        const [targetId, ...sourceIds] = valid;
+        const targetGroup = findGroup(groupsRef.current, targetId);
+        const reference = current.get(targetGroup?.activeId ?? targetId);
+        const members = targetGroup ? [...targetGroup.widgetIds] : [targetId];
+        const next = new Map(groupsRef.current);
+
+        sourceIds.forEach((sourceId) => {
+          const sourceGroup = findGroup(next, sourceId);
+
+          if (sourceGroup && sourceGroup.id !== targetGroup?.id) {
+            next.delete(sourceGroup.id);
+          }
+
+          (sourceGroup?.widgetIds ?? [sourceId]).forEach((memberId) => {
+            if (!members.includes(memberId)) {
+              members.push(memberId);
+            }
+          });
+        });
+
+        const activeId = sourceIds[sourceIds.length - 1];
+        const groupId = targetGroup?.id ?? `floaty-group-${++groupCounterRef.current}`;
+
+        next.set(groupId, { id: groupId, widgetIds: members, activeId });
+        syncTabGeometry(activeId, reference);
+        commitGroups(next);
+        showWidget(activeId);
+
+        return groupId;
+      },
+      [commitGroups, showWidget, syncTabGeometry],
+    );
+
+    const ungroupWindow = useCallback(
+      (id: string, position?: FloatyPosition) => {
+        const group = findGroup(groupsRef.current, id);
+        const widget = widgetsRef.current.get(id);
+
+        if (!group || !widget) {
+          return;
+        }
+
+        const reference = widgetsRef.current.get(group.activeId) ?? widget;
+        const isDocked = reference.isMaximized || Boolean(reference.snapZone);
+        const size = (isDocked ? widget.size : reference.size) ?? {};
+        const origin = (isDocked ? widget.position : reference.position) ?? { x: 0, y: 0 };
+
+        removeFromGroup(id);
+
+        const geometry = {
+          position: clampPosition(position ?? { x: origin.x + 32, y: origin.y + 32 }, size),
+          size,
+        };
+
+        widgetHandlesRef.current.get(id)?.current?.setGeometry(geometry);
+        updateWidgets((current) => {
+          const target = current.get(id);
+
+          if (!target) {
+            return current;
+          }
+
+          const next = new Map(current);
+
+          next.set(id, { ...target, ...geometry, isMaximized: false, snapZone: null });
+
+          return next;
+        });
+        showWidget(id);
+      },
+      [removeFromGroup, showWidget, updateWidgets],
+    );
+
+    const getGroup = useCallback((id: string) => findGroup(groupsRef.current, id), []);
 
     const open = useCallback(
       <P,>(widget: FloatyOpenWidget<P>, options: FloatyOpenOptions = {}) => {
@@ -194,6 +478,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
             snapZone: persisted?.snapZone ?? null,
             persistenceKey: widget.persistenceKey,
             zIndex: zIndexRef.current,
+            groupId: currentWidgets.get(widgetId)?.groupId,
           });
 
           return next;
@@ -212,6 +497,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
     const close = useCallback(
       (id: string) => {
+        removeFromGroup(id);
         widgetHandlesRef.current.delete(id);
         updateWidgets((current) => {
           if (!current.has(id)) {
@@ -225,11 +511,13 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           return next;
         });
       },
-      [updateWidgets],
+      [removeFromGroup, updateWidgets],
     );
 
     const closeAll = useCallback(() => {
       widgetHandlesRef.current.clear();
+      groupsRef.current = new Map();
+      setGroups(groupsRef.current);
       updateWidgets((current) => (current.size === 0 ? current : new Map()));
     }, [updateWidgets]);
 
@@ -425,14 +713,19 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     }, [updateWidgets]);
 
     const minimizeAll = useCallback(() => {
-      widgetHandlesRef.current.forEach((ref) => {
-        ref?.current?.minimize();
+      // Hidden tabs stay mounted so their content keeps its state; the visible tab hides the group.
+      widgetHandlesRef.current.forEach((ref, id) => {
+        if (!isHiddenTab(groupsRef.current, id)) {
+          ref?.current?.minimize();
+        }
       });
       updateWidgets((current) => {
         const next = new Map(current);
 
         next.forEach((widget, id) => {
-          next.set(id, { ...widget, isMinimized: true });
+          if (!isHiddenTab(groupsRef.current, id)) {
+            next.set(id, { ...widget, isMinimized: true });
+          }
         });
 
         return next;
@@ -503,14 +796,22 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
 
     const minimizeWidget = useCallback(
       (id: string) => {
-        widgetHandlesRef.current.get(id)?.current?.minimize();
-        updateWidgetState(id, { isMinimized: true });
+        // Minimizing any tab minimizes the tabbed window, which is its visible tab.
+        const targetId = findGroup(groupsRef.current, id)?.activeId ?? id;
+
+        widgetHandlesRef.current.get(targetId)?.current?.minimize();
+        updateWidgetState(targetId, { isMinimized: true });
       },
       [updateWidgetState],
     );
 
     const restoreWidget = useCallback(
       (id: string) => {
+        if (findGroup(groupsRef.current, id)) {
+          setActiveTab(id);
+          return;
+        }
+
         const widget = widgetsRef.current.get(id);
         const persisted = readPersistedState(widget?.persistenceKey);
         if (widget?.persistenceKey && persisted) {
@@ -518,7 +819,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         }
         updateWidgetState(id, { isMinimized: false });
       },
-      [updateWidgetState],
+      [setActiveTab, updateWidgetState],
     );
 
     const pinWidget = useCallback(
@@ -645,7 +946,10 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         }
 
         const visibleWindows = Array.from(widgetsRef.current.values()).filter(
-          (widget) => widget.mode === 'window' && !widget.isMinimized,
+          (widget) =>
+            widget.mode === 'window' &&
+            !widget.isMinimized &&
+            !isHiddenTab(groupsRef.current, widget.id),
         );
         applyArrangement(layout, options, visibleWindows);
         return visibleWindows.length;
@@ -661,7 +965,9 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           return 0;
         }
 
-        const windows = Array.from(widgetsRef.current.values()).filter(isArrangeable);
+        const windows = Array.from(widgetsRef.current.values()).filter((widget) =>
+          isArrangeable(widget, groupsRef.current),
+        );
         const resolvedOptions = applyArrangement(
           active.arrangement,
           active.options,
@@ -669,7 +975,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           animate ?? active.options.animate ?? true,
         );
 
-        arrangedKeyRef.current = getArrangedKey(widgetsRef.current);
+        arrangedKeyRef.current = getArrangedKey(widgetsRef.current, groupsRef.current);
 
         if (resolvedOptions !== active.options) {
           // Freeze the dock thickness so later windows do not resize the whole stack.
@@ -698,10 +1004,10 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     );
 
     useEffect(() => {
-      if (layout && getArrangedKey(widgets) !== arrangedKeyRef.current) {
+      if (layout && getArrangedKey(widgets, groups) !== arrangedKeyRef.current) {
         reflowLayout();
       }
-    }, [layout, widgets, reflowLayout]);
+    }, [layout, widgets, groups, reflowLayout]);
 
     useEffect(() => {
       if (!layout) {
@@ -756,6 +1062,12 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         arrangeWindows,
         setLayout,
         layout,
+        groupWindows,
+        ungroupWindow,
+        setActiveTab,
+        getGroup,
+        groups,
+        windowGrouping,
         getWidgetCount,
         getWidget,
         widgets,
@@ -791,6 +1103,12 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         arrangeWindows,
         setLayout,
         layout,
+        groupWindows,
+        ungroupWindow,
+        setActiveTab,
+        getGroup,
+        groups,
+        windowGrouping,
         getWidgetCount,
         getWidget,
         widgets,

@@ -2,6 +2,7 @@ import type { ComponentType, RefObject } from 'react';
 import type { FloatyHandle } from './FloatyHandle';
 import type { FloatyIcons } from './FloatyIcons';
 import type { FloatyOpenOptions, FloatyOpenWidget, FloatyOpenWidgetBase } from './FloatyOpenWidget';
+import type { FloatyPosition } from './FloatyPosition';
 import type { FloatyTexts } from './FloatyTexts';
 import type { FloatyTheme } from './FloatyTheme';
 import type { FloatyWidget } from './FloatyWidget';
@@ -11,6 +12,7 @@ import type {
   FloatyActiveLayout,
   FloatyArrangeOptions,
   FloatyWindowArrangement,
+  FloatyWindowGroup,
 } from './FloatyWindow';
 
 /** Full API surface returned by `useFloatyWidgetManager()` and exposed via the `FloatyWidgetManager` ref. */
@@ -86,6 +88,26 @@ export interface FloatyWidgetManagerHandle {
   setLayout: (layout: FloatyWindowArrangement | null, options?: FloatyArrangeOptions) => number;
   /** Arrangement currently kept by `setLayout()`, or `null` when windows are free. */
   layout: FloatyActiveLayout | null;
+  /**
+   * Merges window-mode widgets into one tabbed window. The first id is the target: its window
+   * keeps its geometry (and its existing group, if any). The other ids — and every member of
+   * their groups — join as tabs, and the last one becomes the active tab.
+   * @returns The group id, or `null` when fewer than two window-mode widgets were given.
+   */
+  groupWindows: (ids: string[]) => string | null;
+  /**
+   * Removes a widget from its tabbed window so it becomes a standalone window again, optionally
+   * at `position`. A group left with a single tab is dissolved.
+   */
+  ungroupWindow: (id: string, position?: FloatyPosition) => void;
+  /** Shows a grouped widget's tab, bringing its window to the front. */
+  setActiveTab: (id: string) => void;
+  /** Returns the tabbed window group a widget belongs to, if any. */
+  getGroup: (id: string) => FloatyWindowGroup | undefined;
+  /** Live map of tabbed window groups, keyed by group id. */
+  groups: Map<string, FloatyWindowGroup>;
+  /** Whether drag-and-drop grouping is enabled (`windowGrouping` prop). */
+  windowGrouping: boolean;
   /** Returns the total number of registered widgets. */
   getWidgetCount: () => number;
   /** Returns the current state of a widget, or `undefined` if it does not exist. */

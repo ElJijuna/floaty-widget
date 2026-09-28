@@ -17,4 +17,6 @@ export interface FloatyTexts extends FloatyActionTexts {
   loading: string;
   loadError: string;
   retry: string;
+  /** Accessible name of the tab strip in a tabbed window group. */
+  tabs: string;
 }

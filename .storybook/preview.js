@@ -11,7 +11,7 @@ const preview = {
           [
             'Widget',
             'Desktop',
-            ['Workspace', 'Layouts', 'Taskbar & preview'],
+            ['Workspace', 'Layouts', 'Tabs', 'Taskbar & preview'],
             'Manager',
             'Theming',
           ],

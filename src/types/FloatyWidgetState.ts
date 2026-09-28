@@ -33,4 +33,6 @@ export interface FloatyWidgetState {
   zIndex: number;
   /** Optional localStorage key used to persist this widget layout. */
   persistenceKey?: string;
+  /** Id of the tabbed window group this widget belongs to, if any. */
+  groupId?: string;
 }

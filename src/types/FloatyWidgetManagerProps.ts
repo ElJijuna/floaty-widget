@@ -12,4 +12,9 @@ export interface FloatyWidgetManagerProps {
   icons?: FloatyIcons;
   /** Theme tokens applied via CSS custom properties to all widgets inside this provider. */
   theme?: FloatyTheme;
+  /**
+   * Lets users merge window-mode widgets into tabs by dropping one window on another window's
+   * title bar, and detach them again by dragging a tab out. @default false
+   */
+  windowGrouping?: boolean;
 }
