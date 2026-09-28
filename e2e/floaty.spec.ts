@@ -80,6 +80,38 @@ test('arranges four windows into a non-overlapping grid', async ({ page }) => {
     .toBe(true);
 });
 
+test('resizes neighbouring windows by dragging the divider between them', async ({ page }) => {
+  await page.goto(
+    '/iframe.html?id=floaty-desktop-layouts--grid&viewMode=story&args=windowCount:2;arrangement:columns',
+  );
+  const windows = page.locator('.floaty--window');
+  await expect(windows).toHaveCount(2);
+  const divider = page.getByRole('separator', { name: 'Resize windows' });
+  await expect(divider).toHaveCount(1);
+
+  const widths = () =>
+    windows.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().width),
+    );
+  // Measure once the arrange animation has settled.
+  await expect(page.locator('.floaty.arranging')).toHaveCount(0);
+  const [firstBefore, secondBefore] = await widths();
+
+  const box = await divider.boundingBox();
+  if (!box) {
+    throw new Error('Divider is not visible');
+  }
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 150, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+
+  const [firstAfter, secondAfter] = await widths();
+  expect(firstAfter - firstBefore).toBeCloseTo(150, -1);
+  // The two windows trade space; together they fill the same width.
+  expect(firstAfter + secondAfter).toBeCloseTo(firstBefore + secondBefore, 0);
+});
+
 test('merges windows into tabs by dropping on a title bar and detaches them again', async ({
   page,
 }) => {

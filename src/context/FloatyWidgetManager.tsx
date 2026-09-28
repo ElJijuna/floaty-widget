@@ -17,6 +17,7 @@ import type {
   FloatyComponentLoader,
   FloatyDuplicateStrategy,
   FloatyHandle,
+  FloatyLayoutDivider,
   FloatyLazyModule,
   FloatyOpenOptions,
   FloatyOpenWidget,
@@ -33,8 +34,10 @@ import type {
 } from '../types';
 import {
   clampPosition,
+  getLayoutDividers,
   getWindowLayout,
   isDockEdge,
+  moveLayoutBoundary,
   readPersistedState,
   writePersistedState,
 } from '../utils/windowGeometry';
@@ -56,6 +59,7 @@ const defaultLabels: FloatyTexts = {
   loadError: 'Could not load widget',
   retry: 'Retry',
   tabs: 'Tabs',
+  layoutDivider: 'Resize windows',
 };
 
 const createDuplicateId = (id: string, widgets: Map<string, FloatyWidget>) => {
@@ -123,6 +127,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
     const [layout, setLayoutState] = useState<FloatyActiveLayout | null>(null);
     const layoutRef = useRef(layout);
     const arrangedKeyRef = useRef<string | null>(null);
+    const [layoutDividers, setLayoutDividers] = useState<FloatyLayoutDivider[]>([]);
     const [groups, setGroups] = useState<Map<string, FloatyWindowGroup>>(() => new Map());
     const groupsRef = useRef(groups);
     const groupCounterRef = useRef(0);
@@ -962,6 +967,7 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         const active = layoutRef.current;
 
         if (!active || typeof window === 'undefined') {
+          setLayoutDividers((current) => (current.length ? [] : current));
           return 0;
         }
 
@@ -973,6 +979,17 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
           active.options,
           windows,
           animate ?? active.options.animate ?? true,
+        );
+
+        setLayoutDividers(
+          resolvedOptions.resizable === false
+            ? []
+            : getLayoutDividers(
+                windows.length,
+                active.arrangement,
+                { width: window.innerWidth, height: window.innerHeight },
+                resolvedOptions,
+              ),
         );
 
         arrangedKeyRef.current = getArrangedKey(widgetsRef.current, groupsRef.current);
@@ -999,6 +1016,38 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         setLayoutState(nextLayout);
 
         return reflowLayout();
+      },
+      [reflowLayout],
+    );
+
+    const moveLayoutDivider = useCallback(
+      (id: string, coordinate: number) => {
+        const active = layoutRef.current;
+
+        if (!active || typeof window === 'undefined') {
+          return;
+        }
+
+        const windows = Array.from(widgetsRef.current.values()).filter((widget) =>
+          isArrangeable(widget, groupsRef.current),
+        );
+        const options = moveLayoutBoundary(
+          windows.length,
+          active.arrangement,
+          { width: window.innerWidth, height: window.innerHeight },
+          active.options,
+          id,
+          coordinate,
+        );
+
+        if (options === active.options) {
+          return;
+        }
+
+        layoutRef.current = { ...active, options };
+        setLayoutState(layoutRef.current);
+        // Follow the pointer directly; animating each step would lag behind it.
+        reflowLayout(false);
       },
       [reflowLayout],
     );
@@ -1062,6 +1111,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         arrangeWindows,
         setLayout,
         layout,
+        layoutDividers,
+        moveLayoutDivider,
         groupWindows,
         ungroupWindow,
         setActiveTab,
@@ -1103,6 +1154,8 @@ export const FloatyWidgetManager = forwardRef<FloatyWidgetManagerHandle, FloatyW
         arrangeWindows,
         setLayout,
         layout,
+        layoutDividers,
+        moveLayoutDivider,
         groupWindows,
         ungroupWindow,
         setActiveTab,

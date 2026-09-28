@@ -32,6 +32,21 @@ export interface FloatyArrangeOptions {
   /** Animate windows into their new geometry. Defaults to `true`. */
   animate?: boolean;
   /**
+   * Relative sizes of the column tracks (`grid`, `columns`, `rows`) or of the windows stacked
+   * side by side in a `top`/`bottom` dock, e.g. `[2, 1, 1]`. Missing tracks use the average.
+   */
+  columnWeights?: number[];
+  /**
+   * Relative sizes of the row tracks (`grid`, `columns`, `rows`) or of the windows stacked
+   * in a `left`/`right` dock.
+   */
+  rowWeights?: number[];
+  /**
+   * Show draggable dividers between neighbouring windows while `setLayout()` keeps the layout.
+   * Dragging one updates `columnWeights`, `rowWeights` or the dock `size`. @default true
+   */
+  resizable?: boolean;
+  /**
    * Thickness of a docked stack: width for `left`/`right`, height for `top`/`bottom`.
    * Defaults to the largest current window size along that axis.
    */
@@ -52,6 +67,18 @@ export interface FloatyWindowGroup {
   widgetIds: string[];
   /** Id of the visible tab. */
   activeId: string;
+}
+
+/** Draggable boundary between neighbouring windows of an active layout. */
+export interface FloatyLayoutDivider {
+  /** `column:<index>` or `row:<index>` between tracks `index` and `index + 1`, or `size` for a dock's inner edge. */
+  id: string;
+  /** `vertical` dividers move along x, `horizontal` ones along y. */
+  orientation: 'vertical' | 'horizontal';
+  /** Hit area in viewport pixels. */
+  rect: { x: number; y: number; width: number; height: number };
+  /** Position as a percentage (0-100), announced by assistive technology. */
+  value: number;
 }
 
 /** Arrangement kept active by `setLayout()` and re-applied whenever the windows or viewport change. */

@@ -1,6 +1,6 @@
 import { Button, Card } from '@gnome-ui/react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useArgs } from 'storybook/preview-api';
 import { FloatyTaskbar } from '../components/Floaty/FloatyTaskbar';
 import { FloatyViewport } from '../components/Floaty/FloatyViewport';
@@ -23,6 +23,7 @@ interface LayoutArgs {
   insetLeft: number;
   size: number;
   animate: boolean;
+  resizable: boolean;
   showUsableArea: boolean;
 }
 
@@ -70,7 +71,19 @@ const LayoutWorkspace = ({
     insetLeft,
     size,
     animate,
+    resizable,
   } = args;
+  const layoutRef = useRef(manager.layout);
+  layoutRef.current = manager.layout;
+  const draggedSize = manager.layout?.options.size;
+
+  // Dragging the inner edge of a dock changes its thickness; mirror it into the `size` control.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only react to the dragged size
+  useEffect(() => {
+    if (draggedSize !== undefined && DOCKS.includes(arrangement) && draggedSize !== size) {
+      updateArgs({ size: draggedSize });
+    }
+  }, [draggedSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     for (let index = 0; index < MAX_WINDOWS; index += 1) {
@@ -102,12 +115,18 @@ const LayoutWorkspace = ({
       return;
     }
 
+    // Keep the splits made by dragging dividers while the arrangement stays the same.
+    const previous = layoutRef.current;
+    const sameArrangement = previous?.arrangement === arrangement;
     const options: FloatyArrangeOptions = {
       gap,
       margin,
       animate,
+      resizable,
       insets: { top: insetTop, right: insetRight, bottom: insetBottom, left: insetLeft },
       size: DOCKS.includes(arrangement) ? size : undefined,
+      columnWeights: sameArrangement ? previous.options.columnWeights : undefined,
+      rowWeights: sameArrangement ? previous.options.rowWeights : undefined,
     };
 
     if (keepLayout) {
@@ -128,6 +147,7 @@ const LayoutWorkspace = ({
     insetLeft,
     size,
     animate,
+    resizable,
     setLayout,
     arrangeWindows,
   ]);
@@ -222,7 +242,7 @@ const meta = {
     docs: {
       description: {
         component:
-          '`manager.arrangeWindows()` arranges visible windows once; `manager.setLayout()` keeps the arrangement and re-applies it when windows open, close, minimize, maximize or the viewport resizes. Every option is a control — enable **showUsableArea** to see the space left by `margin` and `insets`.',
+          '`manager.arrangeWindows()` arranges visible windows once; `manager.setLayout()` keeps the arrangement and re-applies it when windows open, close, minimize, maximize or the viewport resizes. Drag the gap between two windows (or the inner edge of a dock) to resize them together; double-click it to even the split. Every option is a control — enable **showUsableArea** to see the space left by `margin` and `insets`.',
       },
     },
   },
@@ -238,6 +258,7 @@ const meta = {
     insetLeft: 0,
     size: 360,
     animate: true,
+    resizable: true,
     showUsableArea: false,
   },
   argTypes: {
@@ -264,6 +285,13 @@ const meta = {
       table: { category: 'Layout' },
     },
     animate: { control: 'boolean', table: { category: 'Layout' } },
+    resizable: {
+      control: 'boolean',
+      description:
+        'Draggable dividers between windows (only with `keepLayout`). Double-click one to even the split again.',
+      if: { arg: 'keepLayout' },
+      table: { category: 'Layout' },
+    },
     gap: { control: { type: 'range', min: 0, max: 48, step: 2 }, table: { category: 'Spacing' } },
     margin: {
       control: { type: 'range', min: 0, max: 64, step: 2 },

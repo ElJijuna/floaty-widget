@@ -1058,3 +1058,64 @@
 .floaty--window[data-merge-target] .floaty-header {
   background: color-mix(in srgb, var(--floaty-merge-color) 18%, var(--floaty-header-bg));
 }
+
+/* Draggable boundary between the windows of a layout kept by setLayout(). */
+/* While one is dragged, windows follow it instantly instead of easing their position. */
+body:has(.floaty-layout-divider[data-dragging]) .floaty {
+  transition: none;
+}
+
+.floaty-layout-divider {
+  position: fixed;
+  touch-action: none;
+}
+
+.floaty-layout-divider--vertical {
+  cursor: col-resize;
+}
+
+.floaty-layout-divider--horizontal {
+  cursor: row-resize;
+}
+
+.floaty-layout-divider::after {
+  content: "";
+  position: absolute;
+  border-radius: 2px;
+  /* Dividers live outside any .floaty, where the Floaty tokens are defined. */
+  background: var(--floaty-merge-color, var(--gnome-accent-bg-color, #3584e4));
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.floaty-layout-divider--vertical::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+}
+
+.floaty-layout-divider--horizontal::after {
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  transform: translateY(-50%);
+}
+
+.floaty-layout-divider:hover::after,
+.floaty-layout-divider:focus-visible::after,
+.floaty-layout-divider[data-dragging]::after {
+  opacity: 1;
+}
+
+.floaty-layout-divider:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floaty-layout-divider::after {
+    transition: none;
+  }
+}

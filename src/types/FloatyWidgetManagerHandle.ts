@@ -11,6 +11,7 @@ import type { FloatyWidgetState } from './FloatyWidgetState';
 import type {
   FloatyActiveLayout,
   FloatyArrangeOptions,
+  FloatyLayoutDivider,
   FloatyWindowArrangement,
   FloatyWindowGroup,
 } from './FloatyWindow';
@@ -88,6 +89,13 @@ export interface FloatyWidgetManagerHandle {
   setLayout: (layout: FloatyWindowArrangement | null, options?: FloatyArrangeOptions) => number;
   /** Arrangement currently kept by `setLayout()`, or `null` when windows are free. */
   layout: FloatyActiveLayout | null;
+  /** Draggable boundaries of the active layout (empty without `setLayout()` or with `resizable: false`). */
+  layoutDividers: FloatyLayoutDivider[];
+  /**
+   * Moves a layout divider to `coordinate` (x for vertical dividers, y for horizontal ones),
+   * resizing the windows on both sides. Used by the dividers `FloatyViewport` renders.
+   */
+  moveLayoutDivider: (id: string, coordinate: number) => void;
   /**
    * Merges window-mode widgets into one tabbed window. The first id is the target: its window
    * keeps its geometry (and its existing group, if any). The other ids — and every member of

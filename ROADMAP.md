@@ -29,6 +29,7 @@
 - [x] Arrange de ventanas: grid, columnas y filas
 - [x] Dock de ventanas a un borde (`left`/`right`/`top`/`bottom`) y layout persistente con `setLayout()` que se recalcula al abrir/cerrar/minimizar/maximizar y al redimensionar el viewport
 - [x] Ventanas con pestañas: soltar una ventana sobre la barra de título de otra las une (`windowGrouping`), arrastrar una pestaña fuera la separa; las pestañas inactivas siguen montadas y conservan su estado
+- [x] Divisores redimensionables entre ventanas de un layout activo (`setLayout`): arrastre, teclado y doble clic para igualar; tamaños como `columnWeights`/`rowWeights` y grosor del dock
 - [x] Controlled state management con manejo de estado externo
 - [x] Taskbar y preview de widgets colapsados
 - [x] Carga perezosa de contenido (loader/fallback)

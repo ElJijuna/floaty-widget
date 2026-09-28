@@ -380,6 +380,30 @@ the layout is applied and then kept, so opening a larger window does not resize 
 Manually dragging or resizing a window does not release the layout; that window is put back in
 place on the next reflow.
 
+#### Resize windows together
+
+While `setLayout()` keeps a layout, `FloatyViewport` draws a divider in each gap between
+neighbouring windows, and on the inner edge of a dock. Dragging one resizes the windows on both
+sides at once; neither goes below its minimum size. Dividers are focusable separators: the arrow
+keys move them (<kbd>Shift</kbd> for larger steps) and a double-click evens the split again.
+
+The split is stored as weights, which you can also set yourself:
+
+```tsx
+manager.setLayout('columns', { columnWeights: [2, 1, 1] }); // first column twice as wide
+manager.setLayout('right', { size: 420, rowWeights: [1, 3] }); // bottom window three times taller
+manager.setLayout('grid', { resizable: false }); // no dividers
+```
+
+- `columnWeights` sizes grid/columns/rows columns and the windows of a `top`/`bottom` dock.
+- `rowWeights` sizes grid/columns/rows rows and the windows of a `left`/`right` dock.
+- Dragging a dock's inner edge updates `size`. Docks that wrap into several lanes only expose
+  that edge.
+- Weights are kept when windows open or close; new tracks take the average weight. Calling
+  `setLayout()` again replaces them with the options you pass.
+- `manager.layout.options` always reflects the current split, so you can persist it yourself.
+- Set `labels.layoutDivider` to translate the dividers' accessible name.
+
 ### Tabbed windows
 
 Window-mode widgets can be merged into one tabbed window, like browser tabs. Enable
@@ -582,6 +606,7 @@ import { Pin, PinFilled } from './icons';
     loadError: 'No se pudo cargar el panel',
     retry: 'Reintentar',
     tabs: 'Pestañas',
+    layoutDivider: 'Redimensionar ventanas',
   }}
 >
   <FloatyViewport />

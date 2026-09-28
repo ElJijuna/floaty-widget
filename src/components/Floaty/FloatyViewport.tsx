@@ -17,6 +17,7 @@ import type {
   FloatyWindowTab,
 } from '../../types';
 import { Floaty } from './Floaty';
+import { FloatyLayoutDividers } from './FloatyLayoutDividers';
 
 /** Props for the `<FloatyViewport>` component. */
 export interface FloatyViewportProps {
@@ -261,6 +262,7 @@ export const FloatyViewport = ({ className, style }: FloatyViewportProps) => {
           />
         );
       })}
+      <FloatyLayoutDividers />
     </>
   );
 };

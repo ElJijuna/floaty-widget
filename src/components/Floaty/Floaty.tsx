@@ -153,6 +153,7 @@ const defaultLabels: FloatyTexts = {
   loadError: 'Could not load widget',
   retry: 'Retry',
   tabs: 'Tabs',
+  layoutDivider: 'Resize windows',
 };
 
 const KEYBOARD_MOVE_STEP = 10;

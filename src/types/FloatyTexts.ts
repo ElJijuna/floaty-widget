@@ -19,4 +19,6 @@ export interface FloatyTexts extends FloatyActionTexts {
   retry: string;
   /** Accessible name of the tab strip in a tabbed window group. */
   tabs: string;
+  /** Accessible name of the dividers between windows of an active layout. */
+  layoutDivider: string;
 }

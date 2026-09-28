@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   clampPosition,
   constrainSize,
+  getLayoutDividers,
   getSnapGeometry,
   getSnapZone,
   getWindowLayout,
+  moveLayoutBoundary,
   readPersistedState,
   writePersistedState,
 } from './windowGeometry';
@@ -146,6 +148,90 @@ describe('window geometry utilities', () => {
       { position: { x: 20, y: 530 }, size: { width: 475, height: 200 } },
       { position: { x: 505, y: 530 }, size: { width: 475, height: 200 } },
     ]);
+  });
+
+  it('sizes tracks by weight and places a divider in each gap', () => {
+    const viewport = { width: 1000, height: 800 };
+    const options = { margin: 0, gap: 10, columnWeights: [3, 1] };
+
+    expect(getWindowLayout(2, 'columns', viewport, options).map(({ size }) => size.width)).toEqual([
+      747, 243,
+    ]);
+    expect(getLayoutDividers(2, 'columns', viewport, options)).toEqual([
+      {
+        id: 'column:0',
+        orientation: 'vertical',
+        rect: { x: 747, y: 0, width: 10, height: 800 },
+        value: 75,
+      },
+    ]);
+    // Rows get horizontal dividers; a single window has none.
+    expect(
+      getLayoutDividers(3, 'rows', viewport, { margin: 0, gap: 0 }).map(({ id, rect }) => [
+        id,
+        rect.height,
+      ]),
+    ).toEqual([
+      ['row:0', 8],
+      ['row:1', 8],
+    ]);
+    expect(getLayoutDividers(1, 'grid', viewport)).toEqual([]);
+    expect(getLayoutDividers(0, 'grid', viewport)).toEqual([]);
+  });
+
+  it('moves a boundary so both tracks trade space within their minimum size', () => {
+    const viewport = { width: 1000, height: 800 };
+    const options = { margin: 0, gap: 10 };
+    const moved = moveLayoutBoundary(2, 'columns', viewport, options, 'column:0', 505 + 5);
+
+    expect(getWindowLayout(2, 'columns', viewport, moved).map(({ size }) => size.width)).toEqual([
+      505, 485,
+    ]);
+    // The divider lands under the pointer.
+    const [divider] = getLayoutDividers(2, 'columns', viewport, moved);
+    expect(divider.rect.x + divider.rect.width / 2).toBe(510);
+
+    const squeezed = moveLayoutBoundary(2, 'columns', viewport, options, 'column:0', 20);
+    expect(getWindowLayout(2, 'columns', viewport, squeezed)[0].size.width).toBe(240);
+
+    const rows = moveLayoutBoundary(2, 'rows', viewport, options, 'row:0', 205);
+    expect(getWindowLayout(2, 'rows', viewport, rows)[0].size.height).toBe(200);
+
+    // Unknown or out-of-range dividers leave the options untouched.
+    expect(moveLayoutBoundary(2, 'columns', viewport, options, 'column:4', 10)).toBe(options);
+    expect(moveLayoutBoundary(2, 'columns', viewport, options, 'size', 10)).toBe(options);
+    expect(moveLayoutBoundary(2, 'columns', viewport, options, 'lane:0', 10)).toBe(options);
+  });
+
+  it('resizes docks from their inner edge and between stacked windows', () => {
+    const viewport = { width: 1000, height: 800 };
+    const options = { margin: 0, gap: 10, size: 300 };
+    const dividers = getLayoutDividers(2, 'right', viewport, options);
+
+    expect(dividers.map(({ id, orientation }) => [id, orientation])).toEqual([
+      ['size', 'vertical'],
+      ['row:0', 'horizontal'],
+    ]);
+    expect(dividers[0].rect).toEqual({ x: 690, y: 0, width: 10, height: 800 });
+
+    const wider = moveLayoutBoundary(2, 'right', viewport, options, 'size', 600);
+    expect(wider.size).toBe(395);
+    expect(getWindowLayout(2, 'right', viewport, wider)[0]).toMatchObject({
+      position: { x: 605 },
+      size: { width: 395 },
+    });
+    expect(moveLayoutBoundary(2, 'left', viewport, options, 'size', 5000).size).toBe(1000);
+
+    const taller = moveLayoutBoundary(2, 'right', viewport, options, 'row:0', 605);
+    expect(getWindowLayout(2, 'right', viewport, taller)[0].size.height).toBe(600);
+    const top = moveLayoutBoundary(2, 'top', viewport, { margin: 0, gap: 0 }, 'column:0', 700);
+    expect(getWindowLayout(2, 'top', viewport, top)[0].size.width).toBe(700);
+    // Multi-lane docks only expose their thickness.
+    expect(
+      getLayoutDividers(3, 'right', { width: 1000, height: 200 }, { margin: 0, gap: 0 }).map(
+        ({ id }) => id,
+      ),
+    ).toEqual(['size']);
   });
 
   it('wraps docked windows into inward lanes and clamps thickness', () => {

@@ -83,15 +83,13 @@ const TabsWorkspace = ({ windowStyle, windowCount, startGrouped }: TabsArgs) => 
           </Button>
           <Button
             size="sm"
-            onClick={() =>
-              groups.forEach((group) =>
-                group.widgetIds
-                  .slice(1)
-                  .forEach((id, index) =>
-                    manager.ungroupWindow(id, { x: 420 + index * 40, y: 80 + index * 40 }),
-                  ),
-              )
-            }
+            onClick={() => {
+              for (const group of groups) {
+                group.widgetIds.slice(1).forEach((id, index) => {
+                  manager.ungroupWindow(id, { x: 420 + index * 40, y: 80 + index * 40 });
+                });
+              }
+            }}
           >
             Ungroup all
           </Button>

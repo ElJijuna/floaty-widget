@@ -44,7 +44,7 @@ body {
 }
 
 /* Ensure content is visible */
-#storybook-root > :not(.floaty) {
+#storybook-root > :not(.floaty):not(.floaty-layout-divider) {
   position: relative;
 }
 

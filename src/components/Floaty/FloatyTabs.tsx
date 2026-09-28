@@ -41,6 +41,8 @@ export const FloatyTabs = ({
   const dragRef = useRef<{ id: string; pointerId: number; detaching: boolean } | null>(null);
   const suppressClickRef = useRef(false);
 
+  // `tabs.length` re-runs the scroll when tabs are added or removed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional re-run trigger
   useLayoutEffect(() => {
     if (hidden) {
       return;
