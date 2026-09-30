@@ -7,6 +7,7 @@ export interface FloatyActionTexts {
   minimize: string;
   restore: string;
   close: string;
+  /** Accessible name of the resize handle, announced as `"<resize> handle"`. */
   resize: string;
   maximize: string;
   unmaximize: string;

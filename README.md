@@ -173,7 +173,9 @@ openFloaty({ id: 'panel', component: MyPanel, props: {} });
 
 ### 4. Standalone `<Floaty>` component
 
-Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse. At rest only the content shows; moving the pointer to its top edge reveals a frame with the controls, and every edge and corner resizes it, as in window mode.
+Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse.
+
+Floating mode behaves like a device in the iOS Simulator: at rest only the content shows. Moving the pointer to its top edge grows a frame outward from the content on every side, with a taller top band that holds the controls. The frame stays open while dragging, resizing, or while focus is inside, and closes shortly after the pointer leaves. On touch screens it is always open. Drag the widget by the frame or the header, and resize it from any edge or corner, as in window mode. Positions are clamped so the frame and its controls always stay on screen.
 
 ```tsx
 import { Floaty } from 'floaty-widget';
@@ -488,8 +490,7 @@ Floaty can be operated without a pointer:
 - In floating mode, focus the header and press `Enter` or `Space` to collapse/expand.
 - In window mode, `Enter`, `Space`, or a header double-click maximizes/restores the window.
 - Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
-- Both modes resize from any edge or corner; Tab to the resize handle and use the arrow keys to resize from the keyboard.
-- Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. In window mode the bottom-right handle is always in the tab order and only becomes visible on keyboard focus; edges and corners can also be dragged. Each key press emits `onResizeStart` and `onResizeEnd`.
+- Both modes resize by dragging any edge or corner. From the keyboard, focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. The bottom-right handle is always in the tab order and only becomes visible on keyboard focus. Each key press emits `onResizeStart` and `onResizeEnd`.
 - Drag a window header to a viewport edge or corner to preview and apply snap geometry.
 - With `autoFocus`, focus moves to the widget header when it opens or is restored. When a widget closes or minimizes while focus is inside it, focus returns to the element that was focused before it appeared (disable with `restoreFocus={false}`). Focus that already moved elsewhere is never taken. Both options are also accepted by `openFloaty()` and `manager.open()`.
 
@@ -564,8 +565,17 @@ Or use CSS variables directly:
   --floaty-body-padding: 12px;
   --floaty-button-radius: 4px;
   --floaty-button-hover-bg: rgba(255, 255, 255, 0.1);
+
+  /* Floating mode frame */
+  --floaty-frame-bg: #181825; /* defaults to --floaty-header-bg */
+  --floaty-frame-top: 46px; /* height of the top band that holds the controls */
+  --floaty-frame-inset: 6px; /* thickness of the sides and bottom */
+  --floaty-reveal-duration: 0.32s;
+  --floaty-reveal-easing: cubic-bezier(0.32, 0.72, 0, 1);
 }
 ```
+
+Set `--floaty-frame-top` and `--floaty-frame-inset` in pixels: they also define how much space floating widgets keep from the viewport edges.
 
 When widget content overflows, `.floaty-body` uses a themed thin native scrollbar. Override `--floaty-scrollbar-thumb`, `--floaty-scrollbar-thumb-hover`, or `--floaty-scrollbar-track` to tune that overflow treatment.
 
@@ -581,7 +591,6 @@ import { Pin, PinFilled } from './icons';
     collapse: ChevronUp,
     expand: ChevronDown,
     minimize: Minus,
-    resize: Maximize,
     close: X,
   }}
 >
