@@ -232,17 +232,18 @@
     transform var(--floaty-reveal-duration) var(--floaty-reveal-easing);
 }
 
-.floaty--floating.chrome-revealed .floaty-header,
-.floaty--floating:focus-within .floaty-header,
-.floaty--floating.dragging .floaty-header,
-.floaty--floating.resizing .floaty-header,
-.floaty--floating.collapsed .floaty-header {
+/* :where() keeps the specificity of `.floaty--floating .floaty-header`, which this overrides by
+   coming later, so window-mode header rules further down don't need to outrank it. */
+.floaty--floating:where(.chrome-revealed, :focus-within, .dragging, .resizing, .collapsed)
+.floaty-header {
   opacity: 1;
   pointer-events: auto;
   transform: none;
 }
 
-.floaty.collapsed .floaty-header {
+/* A collapsed floating widget is only its title bar, so the header joins the layout. Window mode
+   headers are always in the layout. */
+.floaty--floating:where(.collapsed) .floaty-header {
   position: relative;
   right: auto;
   bottom: auto;
@@ -254,6 +255,8 @@
 }
 
 .floaty-header.pinned {
+  --floaty-header-fg: var(--floaty-pinned-header-fg);
+
   background: var(--floaty-pinned-header-bg);
   border-color: var(--floaty-pinned-border);
   color: var(--floaty-pinned-header-fg);
@@ -280,10 +283,6 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.floaty-header.pinned .floaty-button {
-  color: var(--floaty-pinned-header-fg);
 }
 
 .floaty-button svg {
@@ -378,8 +377,7 @@
   box-shadow: var(--floaty-shadow);
 }
 
-.floaty-body *,
-.floaty-body {
+.floaty-body * {
   scrollbar-color: var(--floaty-scrollbar-thumb) var(--floaty-scrollbar-track);
   scrollbar-width: thin;
 }
@@ -591,16 +589,16 @@
     transform: none;
   }
 
-  /* Keep the floating top handle a thin strip so it never covers the header buttons. */
-  .floaty--floating .floaty-resize-handle--n {
-    height: 8px;
-  }
-
   /* Only grow the narrow axis of edge handles so they stay full-strip and
      don't collapse into a small square stuck against the header buttons. */
   .floaty-resize-handle--n,
   .floaty-resize-handle--s {
     height: 36px;
+  }
+
+  /* Keep the floating top handle a thin strip so it never covers the header buttons. */
+  .floaty--floating .floaty-resize-handle--n {
+    height: 8px;
   }
 
   .floaty-resize-handle--e,
