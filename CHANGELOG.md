@@ -1,3 +1,28 @@
+## [2.0.0](https://github.com/ElJijuna/floaty-widget/compare/v1.11.0...v2.0.0) (2026-09-30)
+
+### ⚠ BREAKING CHANGES
+
+* enhance floating widget resize functionality and update documentation
+
+### Features
+
+* add --floaty-reveal-zone CSS variable and update Floaty component to utilize it for frame visibility ([1cbed07](https://github.com/ElJijuna/floaty-widget/commit/1cbed077949e25e5a69eb8d1da465243eb67e885))
+* add chrome insets handling for floating widget positioning and update tests ([c9e586c](https://github.com/ElJijuna/floaty-widget/commit/c9e586c042fd078cce4fb23692b4bd3f4cb8bac0))
+* add docking options for window arrangement in Floaty widget ([5ad2192](https://github.com/ElJijuna/floaty-widget/commit/5ad219215057bd14dcaad89b3abf63141771057a))
+* enhance floating widget resize functionality and update documentation ([fd33329](https://github.com/ElJijuna/floaty-widget/commit/fd333291b064a4172980f7d4d09db901b691b73f))
+* enhance widget movement functionality with dedicated move handle and keyboard controls ([eb4848a](https://github.com/ElJijuna/floaty-widget/commit/eb4848a916e6a3c30788b1c6a841a84a60b33aef))
+* enhance window arrangement with animated transitions and new geometry options ([e1b1f61](https://github.com/ElJijuna/floaty-widget/commit/e1b1f61053d3cecba5ebb4b01c8648815d4a4429))
+* implement floating chrome functionality and add built-in SVG icons for header buttons ([372e3cd](https://github.com/ElJijuna/floaty-widget/commit/372e3cda18f5c3c142a6da34cd860503d6793529))
+* implement grace period for floating frame visibility to prevent flickering ([e98b846](https://github.com/ElJijuna/floaty-widget/commit/e98b8468e699701f66a2cd8d3800067ab4db9029))
+* implement persistent window layout management with setLayout() and update related tests ([c7feacc](https://github.com/ElJijuna/floaty-widget/commit/c7feacce3663b462ab1ab3e0f004bf7868a3f237))
+* merge windows into tabs by dragging onto a title bar ([a75d99b](https://github.com/ElJijuna/floaty-widget/commit/a75d99b8c29b65b0503d7d7c6c55fb89d4e6e7ae))
+* resizable dividers between windows of an active layout ([9cb040b](https://github.com/ElJijuna/floaty-widget/commit/9cb040bb32f8a5c6957c685043d6a8509f715e14))
+* reveal floating widget frame and controls on pointer hover near top edge ([6fe6239](https://github.com/ElJijuna/floaty-widget/commit/6fe6239171c8054a1d81407a4bd2769aa30dfdfb))
+* update move handle functionality and improve keyboard accessibility in Floaty component ([bb021bc](https://github.com/ElJijuna/floaty-widget/commit/bb021bc030bf9ddc9885aa560e2774bdef6aafbc))
+* update README and CSS for floating mode enhancements; adjust component imports in stories ([d0ea7d0](https://github.com/ElJijuna/floaty-widget/commit/d0ea7d051450c1a50a5d478cc4dec4ef9f587179))
+* update semantic release configuration to use conventional commits preset and enhance documentation for Floaty component ([8bd243b](https://github.com/ElJijuna/floaty-widget/commit/8bd243b9214180b35ccc99e6e0284c8934de3625))
+* update window arrangement options to use insets instead of bottomInset for better layout management ([754960f](https://github.com/ElJijuna/floaty-widget/commit/754960f96eed3e963f7ef203c510444e9f040832))
+
 # [1.11.0](https://github.com/ElJijuna/floaty-widget/compare/v1.10.0...v1.11.0) (2026-09-25)
 
 
