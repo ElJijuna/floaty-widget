@@ -177,6 +177,8 @@ Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no 
 
 Floating mode behaves like a device in the iOS Simulator: at rest only the content shows. Moving the pointer to its top edge grows a frame outward from the content on every side, with a taller top band that holds the controls. The frame stays open while dragging, resizing, or while focus is inside, and closes shortly after the pointer leaves. On touch screens it is always open. Drag the widget by the frame or the header, and resize it from any edge or corner, as in window mode. Positions are clamped so the frame and its controls always stay on screen.
 
+The body is the device screen: it paints `--floaty-body-bg` with `--floaty-body-padding`, `--floaty-border`, `--floaty-radius` and `--floaty-shadow`, and always fills the widget. Render your content directly inside it; there is no need to wrap it in your own card.
+
 ```tsx
 import { Floaty } from 'floaty-widget';
 

@@ -1,5 +1,5 @@
 import { Badge, Button, Card, ProgressBar, Separator } from '@gnome-ui/react';
-import { type ComponentType, type CSSProperties, type ReactNode, useState } from 'react';
+import { type CSSProperties, type ReactNode, useState } from 'react';
 import '@gnome-ui/core/styles';
 import '@gnome-ui/react/styles';
 
@@ -77,40 +77,6 @@ export const ButtonRow = ({ children }: { children: ReactNode }) => (
  * Floating-mode widgets have a transparent body: the content provides its own surface.
  * This one reads the Floaty tokens so it follows the active theme.
  */
-export const Surface = ({ children }: { children: ReactNode }) => (
-  <div
-    style={{
-      padding: 14,
-      background: 'var(--floaty-body-bg)',
-      color: 'var(--floaty-fg)',
-      border: '1px solid var(--floaty-border)',
-      borderRadius: 'var(--floaty-radius)',
-      boxShadow: 'var(--floaty-shadow)',
-    }}
-  >
-    {children}
-  </div>
-);
-
-const surfacedCache = new WeakMap<ComponentType<object>, ComponentType<object>>();
-
-/** Wraps a widget body in `Surface` (stable identity per component). */
-export const surfaced = <P extends object>(Component: ComponentType<P>): ComponentType<P> => {
-  const key = Component as ComponentType<object>;
-  let wrapped = surfacedCache.get(key);
-
-  if (!wrapped) {
-    wrapped = (props: object) => (
-      <Surface>
-        <Component {...(props as P)} />
-      </Surface>
-    );
-    surfacedCache.set(key, wrapped);
-  }
-
-  return wrapped as ComponentType<P>;
-};
-
 // ─── Sample widget bodies ────────────────────────────────────────────────────
 
 export const NotesContent = ({ label = 'Notes' }: { label?: string }) => (

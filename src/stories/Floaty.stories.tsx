@@ -4,14 +4,7 @@ import { useState } from 'react';
 import { fn } from 'storybook/test';
 import { Floaty, type FloatyProps } from '../components/Floaty/Floaty';
 import type { FloatyControlledState } from '../types';
-import {
-  ActivityContent,
-  ButtonRow,
-  SettingsContent,
-  StateGrid,
-  StoryHint,
-  Surface,
-} from './shared';
+import { ActivityContent, ButtonRow, SettingsContent, StateGrid, StoryHint } from './shared';
 
 /** Flattened geometry args so position and size are editable as plain number controls. */
 type WidgetArgs = FloatyProps & {
@@ -84,7 +77,7 @@ const WidgetRender = ({
           : undefined
       }
     >
-      {props.mode === 'window' ? props.children : <Surface>{props.children}</Surface>}
+      {props.children}
     </Floaty>
   );
 };
@@ -414,7 +407,7 @@ const ControlledRender = (args: WidgetArgs) => {
           setValue(next);
         }}
       >
-        {args.mode === 'window' ? args.children : <Surface>{args.children}</Surface>}
+        {args.children}
       </Floaty>
     </>
   );

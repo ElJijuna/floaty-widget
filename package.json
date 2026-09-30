@@ -66,9 +66,9 @@
   "devDependencies": {
     "@api-hooks/gh": "^2.2.0",
     "@biomejs/biome": "^2.5.11",
-    "@gnome-ui/core": "^1.42.3",
-    "@gnome-ui/icons": "^1.42.0",
-    "@gnome-ui/react": "^1.45.0",
+    "@gnome-ui/core": "^1.43.0",
+    "@gnome-ui/icons": "^1.45.0",
+    "@gnome-ui/react": "^1.69.0",
     "@microsoft/api-extractor": "^7.59.2",
     "@playwright/test": "^1.62.1",
     "@storybook/addon-docs": "^10.5.10",

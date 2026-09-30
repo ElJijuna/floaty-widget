@@ -365,6 +365,17 @@
   opacity: 1;
 }
 
+/* Floating mode: the body is the device screen. It always fills the widget, so the frame never
+   shows a gap below short content. */
+.floaty--floating .floaty-body {
+  box-sizing: border-box;
+  padding: var(--floaty-body-padding);
+  background: var(--floaty-body-bg);
+  border: 1px solid var(--floaty-border);
+  border-radius: var(--floaty-radius);
+  box-shadow: var(--floaty-shadow);
+}
+
 .floaty-body *,
 .floaty-body {
   scrollbar-color: var(--floaty-scrollbar-thumb) var(--floaty-scrollbar-track);

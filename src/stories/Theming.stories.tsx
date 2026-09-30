@@ -4,9 +4,7 @@ import { FloatyViewport } from '../components/Floaty/FloatyViewport';
 import { FloatyWidgetManager } from '../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
 import type { FloatyTheme } from '../types';
-import { ChatContent, MetricsContent, StoryHint, surfaced } from './shared';
-
-const FloatingMetrics = surfaced(MetricsContent);
+import { ChatContent, MetricsContent, StoryHint } from './shared';
 
 type ThemeArgs = Required<{ [K in keyof FloatyTheme]: string }>;
 
@@ -20,7 +18,7 @@ const ThemedWidgets = () => {
     open({
       id: 'theme-floating',
       title: 'Floating widget',
-      component: FloatingMetrics,
+      component: MetricsContent,
       props: {},
       position: { x: 400, y: 80 },
       size: { width: 320 },
@@ -38,7 +36,7 @@ const ThemedWidgets = () => {
     open({
       id: 'theme-pinned',
       title: 'Pinned widget',
-      component: FloatingMetrics,
+      component: MetricsContent,
       props: { label: 'Pinned' },
       position: { x: 400, y: 360 },
       size: { width: 320 },

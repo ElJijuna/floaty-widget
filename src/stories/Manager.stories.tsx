@@ -7,7 +7,7 @@ import { FloatyViewport } from '../components/Floaty/FloatyViewport';
 import { FloatyWidgetManager } from '../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
 import type { FloatyDuplicateStrategy, FloatyMode, FloatyWidget } from '../types';
-import { ButtonRow, getSampleWindow, StateGrid, StoryHint, surfaced } from './shared';
+import { ButtonRow, getSampleWindow, StateGrid, StoryHint } from './shared';
 
 interface ManagerArgs {
   mode: FloatyMode;
@@ -125,7 +125,7 @@ const ManagerApiDemo = ({ mode, duplicateStrategy, openCollapsed, openPinned }: 
         id: 'demo',
         mode,
         title: sample.title,
-        component: mode === 'window' ? sample.component : surfaced(sample.component),
+        component: sample.component,
         props: {},
         position: { x: 400 + (openedRef.current % 5) * 40, y: 80 + (openedRef.current % 5) * 40 },
         size: { width: 340, height: mode === 'window' ? 240 : undefined },
@@ -320,7 +320,7 @@ const RepositoryDemo = ({ mode, owner, repo }: ManagerArgs) => {
               id: `repo-${owner}-${repo}`,
               mode,
               title: `${owner}/${repo}`,
-              component: mode === 'window' ? RepositoryWidget : surfaced(RepositoryWidget),
+              component: RepositoryWidget,
               props: { owner, repo },
               position: { x: 400 + manager.widgets.size * 40, y: 80 + manager.widgets.size * 40 },
               size: { width: 420, height: mode === 'window' ? 360 : undefined },
