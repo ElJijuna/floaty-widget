@@ -168,6 +168,105 @@ test('merges windows into tabs by dropping on a title bar and detaches them agai
   await expect(page.getByRole('tablist')).toHaveCount(0);
 });
 
+test.describe('Floaty floating frame', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(defaultStory);
+    // Start with the pointer away from the widget so the frame is closed.
+    await page.mouse.move(5, 5);
+  });
+
+  test('opens from the top edge only and closes after leaving', async ({ page }) => {
+    const widget = page.locator('.floaty');
+    const frame = page.locator('.floaty-frame');
+    const toolbar = page.getByRole('toolbar', { name: 'Floaty controls' });
+    const box = await widget.boundingBox();
+    if (!box) {
+      throw new Error('Widget is not visible');
+    }
+
+    await expect(frame).toHaveCSS('opacity', '0');
+    await expect(toolbar).toHaveCSS('opacity', '0');
+
+    // Lower part of the content: nothing appears.
+    await page.mouse.move(box.x + 100, box.y + box.height - 10);
+    await expect(widget).not.toHaveClass(/chrome-revealed/);
+    await expect(toolbar).toHaveCSS('opacity', '0');
+
+    // Near the top edge: the frame grows outward, taller on top for the controls.
+    await page.mouse.move(box.x + 100, box.y + 10);
+    await expect(toolbar).toHaveCSS('opacity', '1');
+    await expect(frame).toHaveCSS('opacity', '1');
+    await expect
+      .poll(async () => {
+        const frameBox = await frame.boundingBox();
+        return frameBox && { x: frameBox.x - box.x, y: frameBox.y - box.y };
+      })
+      .toEqual({ x: -6, y: -46 });
+
+    await page.mouse.move(5, 5);
+    await expect(widget).not.toHaveClass(/chrome-revealed/);
+    await expect(toolbar).toHaveCSS('opacity', '0');
+  });
+
+  test('resizes from the content edge and from the open frame edge', async ({ page }) => {
+    const widget = page.locator('.floaty');
+    const size = () =>
+      widget.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { width: rect.width, height: rect.height, top: rect.top };
+      });
+    const box = await widget.boundingBox();
+    if (!box) {
+      throw new Error('Widget is not visible');
+    }
+
+    // East edge with the frame closed.
+    const eastX = box.x + box.width - 2;
+    const middleY = box.y + box.height - 20;
+    await page.mouse.move(eastX, middleY);
+    await page.mouse.down();
+    await page.mouse.move(eastX + 80, middleY, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(async () => (await size()).width).toBeGreaterThan(box.width);
+
+    // North edge sits on top of the open frame, above the controls.
+    const before = await size();
+    await page.mouse.move(box.x + 150, box.y + 10);
+    await expect(page.getByRole('toolbar', { name: 'Floaty controls' })).toHaveCSS('opacity', '1');
+    const northY = before.top - 46 + 2;
+    await page.mouse.move(box.x + 150, northY);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 150, northY - 40, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(async () => (await size()).height).toBeGreaterThan(before.height);
+  });
+
+  test('keeps the frame and its controls on screen when dragged to a corner', async ({ page }) => {
+    const widget = page.locator('.floaty');
+    const toolbar = page.getByRole('toolbar', { name: 'Floaty controls' });
+    const box = await widget.boundingBox();
+    if (!box) {
+      throw new Error('Widget is not visible');
+    }
+
+    await page.mouse.move(box.x + 150, box.y + 10);
+    await expect(toolbar).toHaveCSS('opacity', '1');
+    const toolbarBox = await toolbar.boundingBox();
+    if (!toolbarBox) {
+      throw new Error('Toolbar is not visible');
+    }
+
+    await page.mouse.move(toolbarBox.x + 20, toolbarBox.y + toolbarBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(-200, -200, { steps: 8 });
+    await page.mouse.up();
+
+    await expect.poll(async () => (await page.locator('.floaty-frame').boundingBox())?.y).toBe(0);
+    await expect.poll(async () => (await toolbar.boundingBox())?.y).toBe(0);
+    await expect(toolbar).toBeInViewport({ ratio: 1 });
+  });
+});
+
 test.describe('Floaty window mode', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(windowStory);

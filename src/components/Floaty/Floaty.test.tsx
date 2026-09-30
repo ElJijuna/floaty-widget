@@ -576,6 +576,39 @@ describe('Floaty', () => {
       expect(root).toHaveClass('chrome-revealed');
     });
 
+    it('ignores touch pointers, which always see the frame through CSS', () => {
+      const root = renderFloating();
+
+      fireEvent.pointerMove(root, { clientX: 200, clientY: 110, pointerType: 'touch' });
+      expect(root).not.toHaveClass('chrome-revealed');
+    });
+
+    it('never reveals a frame in window mode', () => {
+      const { container } = render(<Floaty mode="window" />);
+      const root = container.firstElementChild as HTMLElement;
+
+      expect(container.querySelector('.floaty-frame')).not.toBeInTheDocument();
+      fireEvent.pointerMove(root, { clientX: 110, clientY: 110 });
+      expect(root).not.toHaveClass('chrome-revealed');
+    });
+
+    it('drags the widget by its frame', () => {
+      const root = renderFloating();
+      const frame = root.querySelector('.floaty-frame') as HTMLElement;
+      frame.setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(frame, { clientX: 98, clientY: 150, pointerId: 1 });
+      expect(root).toHaveClass('dragging');
+      fireEvent.pointerMove(globalThis as unknown as Window, {
+        clientX: 148,
+        clientY: 180,
+        pointerId: 1,
+      });
+      fireEvent.pointerUp(globalThis as unknown as Window, { pointerId: 1 });
+
+      expect(root).toHaveStyle({ transform: 'translate(150px, 130px)' });
+    });
+
     it('keeps the frame and its controls on screen while dragging', () => {
       const root = renderFloating();
       const header = root.querySelector('.floaty-header') as HTMLElement;
