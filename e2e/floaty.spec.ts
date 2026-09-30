@@ -7,7 +7,8 @@ const layoutsStory = '/iframe.html?id=floaty-desktop-layouts--free-windows&viewM
 test.describe('Floaty Storybook', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(defaultStory);
-    await page.locator('.floaty').hover();
+    // The floating frame and its controls appear when the pointer nears the top edge.
+    await page.locator('.floaty').hover({ position: { x: 40, y: 12 } });
     await expect(page.getByRole('toolbar', { name: 'Floaty controls' })).toHaveCSS('opacity', '1');
   });
 

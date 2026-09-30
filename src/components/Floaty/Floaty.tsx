@@ -162,6 +162,8 @@ const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 const ARRANGE_FALLBACK_MS = 1000;
+/** Distance from the top edge of a floating widget that reveals its frame and controls. */
+const CHROME_REVEAL_ZONE = 48;
 
 /**
  * Finds the window whose title bar is the topmost thing under the pointer, ignoring `self`.
@@ -474,6 +476,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isArranging, setIsArranging] = useState(false);
     const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isResizeEnabled, setIsResizeEnabled] = useState(false);
+    const [isChromeRevealed, setIsChromeRevealed] = useState(false);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
     const hasFocusRef = useRef(false);
@@ -1379,8 +1382,25 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-active={isActive || undefined}
           data-maximized={isMaximized || undefined}
           data-snap-zone={snapZone ?? undefined}
-          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
+          onPointerMove={(event) => {
+            // Like a device in the iOS Simulator: the frame appears only near the top edge.
+            if (mode !== 'floating' || isChromeRevealed || event.pointerType === 'touch') {
+              return;
+            }
+
+            const rect = event.currentTarget.getBoundingClientRect();
+
+            if (event.clientY - rect.top <= CHROME_REVEAL_ZONE) {
+              setIsChromeRevealed(true);
+            }
+          }}
+          onPointerLeave={(event) => {
+            if (event.pointerType !== 'touch') {
+              setIsChromeRevealed(false);
+            }
+          }}
           onTransitionEnd={(event) => {
             if (
               isArranging &&
@@ -1416,6 +1436,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             zIndex,
           }}
         >
+          {mode === 'floating' && (
+            <div
+              className="floaty-frame"
+              aria-hidden="true"
+              onPointerDown={handlePointerDown}
+              onDoubleClick={handleHeaderDoubleClick}
+            />
+          )}
+
           <div
             role="toolbar"
             className={`floaty-header ${isPinned ? 'pinned' : ''}`}

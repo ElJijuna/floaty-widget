@@ -44,6 +44,11 @@
   --floaty-button-hover-bg: color-mix(in srgb, currentColor 14%, transparent);
   --floaty-min-width: 240px;
   --floaty-min-height: 96px;
+  --floaty-frame-bg: var(--floaty-header-bg);
+  --floaty-frame-inset: 6px;
+  --floaty-frame-top: 46px;
+  --floaty-reveal-duration: 0.32s;
+  --floaty-reveal-easing: cubic-bezier(0.32, 0.72, 0, 1);
 
   position: fixed;
   box-sizing: border-box;
@@ -64,47 +69,55 @@
   transition: var(--floaty-transition);
 }
 
-.floaty::before {
+/* Floating mode: like a device in the iOS Simulator, only the content shows at rest. Near the
+   top edge a frame grows outward from the content on every side, with a taller top band that
+   holds the controls. */
+.floaty-frame {
   position: absolute;
-  right: 0;
-  bottom: 100%;
-  left: 0;
-  z-index: 1;
-  height: calc(52px + var(--gnome-space-2, 8px));
-  content: "";
+  inset: 0;
+  z-index: -1;
+  box-sizing: border-box;
+  background: var(--floaty-frame-bg);
+  border: 1px solid var(--floaty-border);
+  border-radius: var(--floaty-radius);
+  box-shadow: var(--floaty-shadow);
+  cursor: grab;
+  opacity: 0;
   pointer-events: none;
+  touch-action: none;
+  transition:
+    inset var(--floaty-reveal-duration) var(--floaty-reveal-easing),
+    border-radius var(--floaty-reveal-duration) var(--floaty-reveal-easing),
+    opacity 0.2s ease,
+    background-color 0.16s ease;
 }
 
-.floaty::after {
-  position: absolute;
-  right: calc(50% - 18px);
-  bottom: calc(100% + 6px);
-  z-index: 1;
-  width: 36px;
-  height: 4px;
-  content: "";
-  background: color-mix(in srgb, var(--floaty-fg) 34%, transparent);
-  border-radius: 999px;
-  opacity: 0.56;
-  pointer-events: none;
-  transition: var(--floaty-transition);
+.floaty-frame:active {
+  cursor: grabbing;
 }
 
-.floaty:hover::before,
-.floaty:focus-within::before,
-.floaty.dragging::before,
-.floaty.resizing::before {
+.floaty--floating.chrome-revealed .floaty-frame,
+.floaty--floating:focus-within .floaty-frame,
+.floaty--floating.dragging .floaty-frame,
+.floaty--floating.resizing .floaty-frame {
+  inset: calc(-1 * var(--floaty-frame-top)) calc(-1 * var(--floaty-frame-inset))
+    calc(-1 * var(--floaty-frame-inset));
+  border-radius: calc(var(--floaty-radius) + var(--floaty-frame-inset));
+  opacity: 1;
   pointer-events: auto;
 }
 
-.floaty:hover::after,
-.floaty:focus-within::after,
-.floaty.active::after,
-.floaty.dragging::after,
-.floaty.resizing::after,
-.floaty.collapsed::after {
-  opacity: 0;
-  transform: translateY(-4px);
+/* A collapsed widget is only its title bar, so the frame wraps it without growing. */
+.floaty--floating.collapsed .floaty-frame {
+  inset: 0;
+  border-radius: var(--floaty-radius);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.floaty--floating.pinned .floaty-frame {
+  background: var(--floaty-pinned-header-bg);
+  border-color: var(--floaty-pinned-border);
 }
 
 .floaty.dragging {
@@ -137,7 +150,7 @@
 
 .floaty.collapsed {
   min-width: auto;
-  min-height: 52px;
+  min-height: var(--floaty-frame-top);
 }
 
 .floaty-header {
@@ -165,16 +178,6 @@
   transition: var(--floaty-transition);
   user-select: none;
   touch-action: none;
-}
-
-.floaty.active .floaty-header {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.floaty.active:not(.dragging):not(.resizing) .floaty-header {
-  box-shadow: none;
 }
 
 .floaty-header:focus-visible {
@@ -212,14 +215,28 @@
   border-radius: 999px;
 }
 
-.floaty:hover .floaty-header,
-.floaty:focus-within .floaty-header,
-.floaty.dragging .floaty-header,
-.floaty.resizing .floaty-header,
-.floaty.collapsed .floaty-header {
+.floaty--floating .floaty-header {
+  bottom: 100%;
+  box-sizing: border-box;
+  height: var(--floaty-frame-top);
+  padding-block: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  transform: translateY(calc(var(--floaty-frame-top) / 2)) scale(0.96);
+  transition:
+    opacity 0.2s ease,
+    transform var(--floaty-reveal-duration) var(--floaty-reveal-easing);
+}
+
+.floaty--floating.chrome-revealed .floaty-header,
+.floaty--floating:focus-within .floaty-header,
+.floaty--floating.dragging .floaty-header,
+.floaty--floating.resizing .floaty-header,
+.floaty--floating.collapsed .floaty-header {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: none;
 }
 
 .floaty.collapsed .floaty-header {
@@ -237,6 +254,11 @@
   background: var(--floaty-pinned-header-bg);
   border-color: var(--floaty-pinned-border);
   color: var(--floaty-pinned-header-fg);
+}
+
+/* In floating mode the frame paints the pinned color behind the header. */
+.floaty--floating .floaty-header.pinned {
+  background: transparent;
 }
 
 .floaty-button {
@@ -497,14 +519,20 @@
 }
 
 @media (hover: none), (pointer: coarse) {
-  .floaty::after {
-    opacity: 0;
-  }
-
-  .floaty-header {
+  /* Without hover there is no way to reveal the frame, so it stays open. */
+  .floaty--floating .floaty-frame {
+    inset: calc(-1 * var(--floaty-frame-top)) calc(-1 * var(--floaty-frame-inset))
+      calc(-1 * var(--floaty-frame-inset));
+    border-radius: calc(var(--floaty-radius) + var(--floaty-frame-inset));
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
+  }
+
+  .floaty-header,
+  .floaty--floating .floaty-header {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
   }
 
   .floaty-resize-handle {
@@ -542,8 +570,9 @@
 @media (prefers-reduced-motion: reduce) {
   .floaty,
   .floaty.arranging:not(.dragging):not(.resizing),
-  .floaty::after,
+  .floaty-frame,
   .floaty-header,
+  .floaty--floating .floaty-header,
   .floaty-header-grip,
   .floaty-button,
   .floaty-resize-handle,
@@ -649,11 +678,6 @@
   --floaty-body-bg: #fff;
   --floaty-border: #d6d6d6;
   --floaty-font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.floaty--window::before,
-.floaty--window::after {
-  display: none;
 }
 
 .floaty--window .floaty-header {
