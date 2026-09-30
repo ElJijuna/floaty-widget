@@ -984,7 +984,7 @@ describe('FloatyWidgetManager', () => {
       trigger.focus();
       act(() => trigger.click());
 
-      expect(screen.getByRole('toolbar', { name: 'Focus widget controls' })).toHaveFocus();
+      expect(screen.getByRole('button', { name: 'Move Focus widget' })).toHaveFocus();
 
       const close = screen.getByRole('button', { name: 'Close' });
       close.focus();

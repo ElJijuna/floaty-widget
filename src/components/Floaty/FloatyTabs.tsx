@@ -41,16 +41,20 @@ export const FloatyTabs = ({
   const dragRef = useRef<{ id: string; pointerId: number; detaching: boolean } | null>(null);
   const suppressClickRef = useRef(false);
 
-  // `tabs.length` re-runs the scroll when tabs are added or removed.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional re-run trigger
+  // Primitives, not `tabs`: the array is rebuilt on every widget change (a drag, for instance),
+  // and re-running on each one would keep pulling the strip back to the selected tab.
+  const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
+  const tabCount = tabs.length;
+
   useLayoutEffect(() => {
-    if (hidden) {
+    if (hidden || activeIndex < 0) {
       return;
     }
 
-    const activeTab = stripRef.current?.querySelector<HTMLElement>(
-      '[role="tab"][aria-selected="true"]',
-    );
+    // Adding or removing tabs changes the strip layout, so the selected tab is found again by
+    // its position once the strip shows every tab.
+    const tabElements = stripRef.current?.querySelectorAll<HTMLElement>('[role="tab"]');
+    const activeTab = tabElements?.length === tabCount ? tabElements[activeIndex] : undefined;
 
     // Narrow windows scroll the strip; keep the selected tab in view.
     activeTab?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
@@ -59,7 +63,7 @@ export const FloatyTabs = ({
       pendingTabFocusId = null;
       activeTab?.focus({ preventScroll: true });
     }
-  }, [activeId, hidden, tabs.length]);
+  }, [activeId, activeIndex, hidden, tabCount]);
 
   const select = (id: string) => {
     if (id !== activeId) {

@@ -64,7 +64,7 @@ export const FloatyLayoutDividers = () => {
   const zIndex = Math.max(1000, ...visibleWindows.map((widget) => widget.zIndex)) + 1;
 
   const handlePointerDown = (
-    event: ReactPointerEvent<HTMLDivElement>,
+    event: ReactPointerEvent<HTMLHRElement>,
     divider: FloatyLayoutDivider,
   ) => {
     if (event.button !== 0) {
@@ -85,7 +85,7 @@ export const FloatyLayoutDividers = () => {
   };
 
   const handlePointerMove = (
-    event: ReactPointerEvent<HTMLDivElement>,
+    event: ReactPointerEvent<HTMLHRElement>,
     divider: FloatyLayoutDivider,
   ) => {
     const drag = dragRef.current;
@@ -102,7 +102,7 @@ export const FloatyLayoutDividers = () => {
     frameRef.current ??= requestAnimationFrame(flush);
   };
 
-  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLHRElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) {
       return;
     }
@@ -117,7 +117,7 @@ export const FloatyLayoutDividers = () => {
   };
 
   const handleKeyDown = (
-    event: ReactKeyboardEvent<HTMLDivElement>,
+    event: ReactKeyboardEvent<HTMLHRElement>,
     divider: FloatyLayoutDivider,
   ) => {
     const [decrease, increase] =
@@ -148,10 +148,9 @@ export const FloatyLayoutDividers = () => {
   return (
     <>
       {layoutDividers.map((divider) => (
-        // biome-ignore lint/a11y/useSemanticElements: <hr> cannot be focused and dragged
-        <div
+        // A focusable <hr> is an interactive separator: arrow keys move it, like a splitter.
+        <hr
           key={divider.id}
-          role="separator"
           tabIndex={0}
           aria-label={labels.layoutDivider}
           aria-orientation={divider.orientation}

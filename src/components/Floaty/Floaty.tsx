@@ -152,6 +152,7 @@ const defaultLabels: FloatyTexts = {
   restore: 'Restore',
   close: 'Close',
   resize: 'Resize widget',
+  move: 'Move',
   maximize: 'Maximize',
   unmaximize: 'Restore window',
   loading: 'Loading widget...',
@@ -161,6 +162,7 @@ const defaultLabels: FloatyTexts = {
   layoutDivider: 'Resize windows',
 };
 
+const MOVE_KEY_SHORTCUTS = 'ArrowUp ArrowRight ArrowDown ArrowLeft';
 const KEYBOARD_MOVE_STEP = 10;
 const KEYBOARD_MOVE_LARGE_STEP = 50;
 const KEYBOARD_RESIZE_STEP = 16;
@@ -592,62 +594,52 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
 
+    const widgetState = useMemo(
+      () => ({
+        isCollapsed,
+        isMinimized,
+        isPinned,
+        isMaximized,
+        snapZone,
+        position,
+        size,
+        mode,
+        windowStyle,
+        windowIcon,
+        zIndex,
+        persistenceKey,
+      }),
+      [
+        isCollapsed,
+        isMinimized,
+        isPinned,
+        isMaximized,
+        snapZone,
+        position,
+        size,
+        mode,
+        windowStyle,
+        windowIcon,
+        zIndex,
+        persistenceKey,
+      ],
+    );
+    // Registration reads the state at mount time; later changes go through updateWidgetState.
+    const widgetStateRef = useRef(widgetState);
+    widgetStateRef.current = widgetState;
+
     // Register with manager using internal ref that always has methods.
-    // Initial state values are only used for setup — internalHandleRef always reflects latest state.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — re-registering on every state change would break the widget lifecycle
     useEffect(() => {
       if (id && registerFloaty) {
-        return registerFloaty(id, internalHandleRef, {
-          isCollapsed,
-          isMinimized,
-          isPinned,
-          isMaximized,
-          snapZone,
-          position,
-          size,
-          mode,
-          windowStyle,
-          windowIcon,
-          zIndex,
-          persistenceKey,
-        });
+        return registerFloaty(id, internalHandleRef, widgetStateRef.current);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, registerFloaty]);
 
     useEffect(() => {
       if (id) {
-        updateWidgetState?.(id, {
-          isCollapsed,
-          isMinimized,
-          isPinned,
-          isMaximized,
-          snapZone,
-          position,
-          size,
-          mode,
-          windowStyle,
-          windowIcon,
-          zIndex,
-          persistenceKey,
-        });
+        updateWidgetState?.(id, widgetState);
       }
-    }, [
-      id,
-      isCollapsed,
-      isMaximized,
-      isMinimized,
-      isPinned,
-      mode,
-      windowStyle,
-      windowIcon,
-      persistenceKey,
-      position,
-      size,
-      snapZone,
-      updateWidgetState,
-      zIndex,
-    ]);
+    }, [id, updateWidgetState, widgetState]);
 
     useEffect(() => {
       onFocusChange?.(isActive);
@@ -950,7 +942,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         return;
       }
 
-      if ((e.target as HTMLElement).closest('button')) {
+      // Other buttons act on click; the move handle is also a drag handle.
+      const button = (e.target as HTMLElement).closest('button');
+
+      if (button && !button.classList.contains('floaty-move-handle')) {
         return;
       }
 
@@ -1059,22 +1054,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       }
     };
 
-    const handleHeaderKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
-      if ((e.target as HTMLElement).closest('button')) {
-        return;
-      }
-
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        if (mode === 'window') {
-          handleMethods.toggleMaximized();
-        } else {
-          setIsCollapsed((collapsed) => !collapsed);
-        }
-
-        return;
-      }
-
+    const handleMoveKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
       if (
         !isPinned &&
         !isMaximized &&
@@ -1141,6 +1121,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     };
 
     const titleText = typeof title === 'string' ? title : undefined;
+    const moveLabel = titleText ? `${labels.move} ${titleText}` : labels.move;
 
     useEffect(() => {
       return () => {
@@ -1153,39 +1134,47 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       };
     }, [handlePointerMove, handlePointerUp]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — collapsing or switching mode changes the chrome insets, so the position is re-checked
-    useEffect(() => {
-      const handleViewportResize = () => {
-        if (isMaximizedRef.current) {
-          commitGeometry(getSnapGeometry('top'));
-          return;
-        }
+    const reclampToViewport = useCallback(() => {
+      if (isMaximizedRef.current) {
+        commitGeometry(getSnapGeometry('top'));
+        return;
+      }
 
-        if (snapZoneRef.current) {
-          commitGeometry(getSnapGeometry(snapZoneRef.current));
-          return;
-        }
+      if (snapZoneRef.current) {
+        commitGeometry(getSnapGeometry(snapZoneRef.current));
+        return;
+      }
 
-        const rect = floatyRef.current?.getBoundingClientRect();
-        const measuredSize = {
-          width: numericSize(sizeRef.current.width, rect?.width ?? 320),
-          height: numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT),
-        };
-
-        setPosition((current) => {
-          const clamped = clampToViewport(current, measuredSize);
-          return clamped.x === current.x && clamped.y === current.y ? current : clamped;
-        });
+      const rect = floatyRef.current?.getBoundingClientRect();
+      const measuredSize = {
+        width: numericSize(sizeRef.current.width, rect?.width ?? 320),
+        height: numericSize(sizeRef.current.height, rect?.height ?? DEFAULT_MIN_HEIGHT),
       };
 
-      handleViewportResize();
+      setPosition((current) => {
+        const clamped = clampToViewport(current, measuredSize);
+        return clamped.x === current.x && clamped.y === current.y ? current : clamped;
+      });
+    }, [clampToViewport, commitGeometry, setPosition]);
 
-      globalThis.addEventListener('resize', handleViewportResize);
+    useEffect(() => {
+      reclampToViewport();
+
+      globalThis.addEventListener('resize', reclampToViewport);
 
       return () => {
-        globalThis.removeEventListener('resize', handleViewportResize);
+        globalThis.removeEventListener('resize', reclampToViewport);
       };
-    }, [clampToViewport, commitGeometry, setPosition, isCollapsed, mode]);
+    }, [reclampToViewport]);
+
+    // Expanding or switching to floating mode adds the frame, which needs room on screen.
+    const hasFloatingChrome = mode === 'floating' && !isCollapsed;
+
+    useEffect(() => {
+      if (hasFloatingChrome) {
+        reclampToViewport();
+      }
+    }, [hasFloatingChrome, reclampToViewport]);
 
     // Focus management runs whenever the section appears (mount or restore from minimized).
     // A layout-effect cleanup covers both ways it disappears: on unmount it runs before the DOM
@@ -1204,7 +1193,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           : null;
 
       if (autoFocusRef.current) {
-        node.querySelector<HTMLElement>('.floaty-header')?.focus({ preventScroll: true });
+        node.querySelector<HTMLElement>('.floaty-move-handle')?.focus({ preventScroll: true });
       }
 
       return () => {
@@ -1289,20 +1278,24 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             className={`floaty-header ${isPinned ? 'pinned' : ''}`}
             onPointerDown={handlePointerDown}
             onDoubleClick={handleHeaderDoubleClick}
-            onKeyDown={handleHeaderKeyDown}
             aria-label={`${titleText ?? 'Floaty widget'} controls`}
-            aria-keyshortcuts="Enter Space ArrowUp ArrowRight ArrowDown ArrowLeft"
-            tabIndex={0}
           >
             {mode === 'floating' && (
-              <span className="floaty-header-grip" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </span>
+              <button
+                type="button"
+                className="floaty-move-handle floaty-header-grip"
+                onKeyDown={handleMoveKeyDown}
+                title={moveLabel}
+                aria-label={moveLabel}
+                aria-keyshortcuts={MOVE_KEY_SHORTCUTS}
+              >
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+                <span aria-hidden="true" />
+              </button>
             )}
 
             {mode === 'floating' && (
@@ -1324,9 +1317,18 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             )}
 
             {mode === 'window' && (
-              <span className="floaty-window-icon" aria-hidden="true">
-                {windowIcon ?? <span className="floaty-window-icon-default" />}
-              </span>
+              <button
+                type="button"
+                className="floaty-move-handle floaty-window-icon"
+                onKeyDown={handleMoveKeyDown}
+                title={moveLabel}
+                aria-label={moveLabel}
+                aria-keyshortcuts={MOVE_KEY_SHORTCUTS}
+              >
+                <span className="floaty-window-icon-graphic" aria-hidden="true">
+                  {windowIcon ?? <span className="floaty-window-icon-default" />}
+                </span>
+              </button>
             )}
 
             {mode === 'window' && (

@@ -68,7 +68,7 @@ describe('Floaty', () => {
       expect(screen.getByTestId('app-icon')).toBeInTheDocument();
       expect(
         screen.getAllByRole('button').map((button) => button.getAttribute('aria-label')),
-      ).toEqual(['Maximize', 'Minimize', 'Close', 'Resize widget handle']);
+      ).toEqual(['Move Floaty', 'Maximize', 'Minimize', 'Close', 'Resize widget handle']);
       expect(screen.queryByRole('button', { name: 'Pin' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Collapse' })).not.toBeInTheDocument();
       expect(container.querySelectorAll('.floaty-resize-handle')).toHaveLength(8);
@@ -132,42 +132,60 @@ describe('Floaty', () => {
       expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
     });
 
-    it('makes the header keyboard focusable and toggles collapse with Enter', () => {
-      const { container } = render(<Floaty title="Keyboard widget">Child content</Floaty>);
-      const header = container.querySelector('.floaty-header') as HTMLElement;
+    it('moves from a labelled move handle instead of a focusable header', () => {
+      render(<Floaty title="Keyboard widget">Child content</Floaty>);
+      const header = screen.getByRole('toolbar', { name: 'Keyboard widget controls' });
+      const moveHandle = screen.getByRole('button', { name: 'Move Keyboard widget' });
 
-      expect(header).toHaveAttribute('tabindex', '0');
-      expect(header).toHaveAttribute('aria-label', 'Keyboard widget controls');
-
-      fireEvent.keyDown(header, { key: 'Enter' });
-
-      expect(screen.queryByText('Child content')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Expand' })).toBeInTheDocument();
+      expect(header).not.toHaveAttribute('tabindex');
+      expect(moveHandle).toHaveAttribute(
+        'aria-keyshortcuts',
+        'ArrowUp ArrowRight ArrowDown ArrowLeft',
+      );
     });
 
-    it('moves with arrow keys when the header is focused', () => {
+    it('offers the window icon as the move handle in window mode', () => {
+      render(<Floaty mode="window" title="Editor" windowIcon={<span data-testid="app-icon" />} />);
+
+      expect(screen.getByRole('button', { name: 'Move Editor' })).toContainElement(
+        screen.getByTestId('app-icon'),
+      );
+    });
+
+    it('moves with arrow keys when the move handle is focused', () => {
       const { container } = render(
         <Floaty initialPosition={{ x: 100, y: 100 }}>Child content</Floaty>,
       );
       const root = container.firstElementChild as HTMLElement;
-      const header = container.querySelector('.floaty-header') as HTMLElement;
+      const moveHandle = screen.getByRole('button', { name: 'Move Floaty' });
 
-      fireEvent.keyDown(header, { key: 'ArrowRight' });
+      fireEvent.keyDown(moveHandle, { key: 'ArrowRight' });
       expect(root).toHaveStyle({ transform: 'translate(110px, 100px)' });
 
-      fireEvent.keyDown(header, { key: 'ArrowDown', shiftKey: true });
+      fireEvent.keyDown(moveHandle, { key: 'ArrowDown', shiftKey: true });
       expect(root).toHaveStyle({ transform: 'translate(110px, 150px)' });
 
-      fireEvent.keyDown(header, { key: 'ArrowLeft', altKey: true });
+      fireEvent.keyDown(moveHandle, { key: 'ArrowLeft', altKey: true });
       expect(root).toHaveStyle({ transform: 'translate(109px, 150px)' });
+    });
+
+    it('drags the widget from the move handle', () => {
+      const { container } = render(<Floaty initialPosition={{ x: 100, y: 100 }} />);
+      const root = container.firstElementChild as HTMLElement;
+      const moveHandle = screen.getByRole('button', { name: 'Move Floaty' });
+      // The drag handler lives on the header, which captures the pointer.
+      screen.getByRole('toolbar').setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(moveHandle, { clientX: 110, clientY: 80, pointerId: 1 });
+      expect(root).toHaveClass('dragging');
+      fireEvent.pointerUp(globalThis as unknown as Window, { pointerId: 1 });
     });
 
     it('does not move with arrow keys when pinned', () => {
       const { container } = render(<Floaty defaultPinned initialPosition={{ x: 100, y: 100 }} />);
       const root = container.firstElementChild as HTMLElement;
-      const header = container.querySelector('.floaty-header') as HTMLElement;
 
-      fireEvent.keyDown(header, { key: 'ArrowRight' });
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Move Floaty' }), { key: 'ArrowRight' });
 
       expect(root).toHaveStyle({ transform: 'translate(100px, 100px)' });
     });
@@ -968,7 +986,7 @@ describe('Floaty', () => {
   });
 
   describe('focus management', () => {
-    const header = () => screen.getByRole('toolbar', { name: 'Floaty controls' });
+    const moveHandle = () => screen.getByRole('button', { name: 'Move Floaty' });
 
     it('does not move focus on mount by default', () => {
       render(<Floaty />);
@@ -976,17 +994,17 @@ describe('Floaty', () => {
       expect(document.body).toHaveFocus();
     });
 
-    it('focuses the header on mount and on restore with autoFocus', () => {
+    it('focuses the move handle on mount and on restore with autoFocus', () => {
       const ref = createRef<FloatyHandle>();
       render(<Floaty ref={ref} autoFocus />);
 
-      expect(header()).toHaveFocus();
+      expect(moveHandle()).toHaveFocus();
 
       act(() => ref.current?.minimize());
       act(() => (document.activeElement as HTMLElement | null)?.blur());
       act(() => ref.current?.restore());
 
-      expect(header()).toHaveFocus();
+      expect(moveHandle()).toHaveFocus();
     });
 
     it('returns focus to the opener when the widget unmounts with focus inside', () => {
@@ -1000,7 +1018,7 @@ describe('Floaty', () => {
           <Floaty autoFocus />
         </>,
       );
-      expect(header()).toHaveFocus();
+      expect(moveHandle()).toHaveFocus();
 
       rerender(<button type="button">Open</button>);
       expect(opener).toHaveFocus();
@@ -1064,7 +1082,7 @@ describe('Floaty', () => {
           <Floaty autoFocus restoreFocus={false} />
         </>,
       );
-      expect(header()).toHaveFocus();
+      expect(moveHandle()).toHaveFocus();
 
       rerender(<button type="button">Open</button>);
       expect(opener).not.toHaveFocus();

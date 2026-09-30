@@ -53,6 +53,7 @@ const defaultLabels: FloatyTexts = {
   restore: 'Restore',
   close: 'Close',
   resize: 'Resize widget',
+  move: 'Move',
   maximize: 'Maximize',
   unmaximize: 'Restore window',
   loading: 'Loading widget...',

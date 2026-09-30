@@ -15,7 +15,7 @@ export const StoryHint = ({
 }: {
   title: string;
   description?: ReactNode;
-  tips?: ReactNode[];
+  tips?: string[];
   children?: ReactNode;
   placement?: 'top-left' | 'top-right';
 }) => (
@@ -37,9 +37,8 @@ export const StoryHint = ({
     {description && <p style={muted}>{description}</p>}
     {tips && tips.length > 0 && (
       <ul style={{ ...muted, display: 'grid', gap: 4, paddingLeft: 18 }}>
-        {tips.map((tip, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static list
-          <li key={index}>{tip}</li>
+        {tips.map((tip) => (
+          <li key={tip}>{tip}</li>
         ))}
       </ul>
     )}
@@ -119,7 +118,10 @@ export const MetricsContent = ({ label = 'Metrics' }: { label?: string }) => (
 );
 
 export const ChatContent = ({ label = 'Chat' }: { label?: string }) => {
-  const [messages, setMessages] = useState(['Hey! Is the build green?', 'Yes, all checks passed.']);
+  const [messages, setMessages] = useState([
+    { id: 0, text: 'Hey! Is the build green?' },
+    { id: 1, text: 'Yes, all checks passed.' },
+  ]);
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
@@ -127,8 +129,7 @@ export const ChatContent = ({ label = 'Chat' }: { label?: string }) => {
       <div style={{ display: 'grid', gap: 6 }}>
         {messages.map((message, index) => (
           <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: append-only demo list
-            key={index}
+            key={message.id}
             style={{
               justifySelf: index % 2 ? 'end' : 'start',
               padding: '6px 10px',
@@ -138,11 +139,16 @@ export const ChatContent = ({ label = 'Chat' }: { label?: string }) => {
               fontSize: 13,
             }}
           >
-            {message}
+            {message.text}
           </span>
         ))}
       </div>
-      <Button size="sm" onClick={() => setMessages((current) => [...current, 'Great 🎉'])}>
+      <Button
+        size="sm"
+        onClick={() =>
+          setMessages((current) => [...current, { id: current.length, text: 'Great 🎉' }])
+        }
+      >
         Send reply
       </Button>
     </div>

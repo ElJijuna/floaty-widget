@@ -181,9 +181,25 @@
   touch-action: none;
 }
 
-.floaty-header:focus-visible {
+/* Grip (floating) or window icon (window): drag it, or focus it and use the arrow keys. */
+.floaty-move-handle {
+  box-sizing: border-box;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--floaty-button-radius);
+  cursor: grab;
+  touch-action: none;
+}
+
+.floaty-move-handle:active {
+  cursor: grabbing;
+}
+
+.floaty-move-handle:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--floaty-header-bg) 70%, white);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .floaty-header-grip {
@@ -203,7 +219,7 @@
 }
 
 .floaty-header:hover .floaty-header-grip,
-.floaty-header:focus-visible .floaty-header-grip,
+.floaty-header-grip:focus-visible,
 .floaty.dragging .floaty-header-grip {
   opacity: 1;
   transform: translateY(-1px);
@@ -767,8 +783,16 @@
   order: -1;
 }
 
-.floaty-window-icon > svg,
-.floaty-window-icon > img {
+.floaty-window-icon-graphic {
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.floaty-window-icon-graphic > svg,
+.floaty-window-icon-graphic > img {
   width: 100%;
   height: 100%;
 }
@@ -1120,6 +1144,11 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
 
 .floaty-layout-divider {
   position: fixed;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   touch-action: none;
 }
 

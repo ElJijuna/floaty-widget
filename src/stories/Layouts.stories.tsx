@@ -77,13 +77,22 @@ const LayoutWorkspace = ({
   layoutRef.current = manager.layout;
   const draggedSize = manager.layout?.options.size;
 
+  // Only a drag should sync the control, so the current args are read, not depended on.
+  const dockArgsRef = useRef({ arrangement, size });
+  dockArgsRef.current = { arrangement, size };
+
   // Dragging the inner edge of a dock changes its thickness; mirror it into the `size` control.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only react to the dragged size
   useEffect(() => {
-    if (draggedSize !== undefined && DOCKS.includes(arrangement) && draggedSize !== size) {
+    const { current } = dockArgsRef;
+
+    if (
+      draggedSize !== undefined &&
+      DOCKS.includes(current.arrangement) &&
+      draggedSize !== current.size
+    ) {
       updateArgs({ size: draggedSize });
     }
-  }, [draggedSize]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draggedSize, updateArgs]);
 
   useEffect(() => {
     for (let index = 0; index < MAX_WINDOWS; index += 1) {
@@ -107,11 +116,14 @@ const LayoutWorkspace = ({
     }
   }, [windowCount, open, close, getWidget]);
 
-  // `windowCount` re-runs the one-shot arrangeWindows() after windows are added or removed.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional re-run trigger
+  // Re-runs the one-shot arrangeWindows() after windows are added or removed.
   useEffect(() => {
     if (arrangement === 'none') {
       setLayout(null);
+      return;
+    }
+
+    if (windowCount === 0) {
       return;
     }
 

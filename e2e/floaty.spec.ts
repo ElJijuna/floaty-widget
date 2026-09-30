@@ -29,16 +29,16 @@ test.describe('Floaty Storybook', () => {
 
   test('pins movement and resizes with keyboard controls', async ({ page }) => {
     const widget = page.locator('.floaty');
-    const toolbar = page.getByRole('toolbar', { name: 'Floaty controls' });
+    const moveHandle = page.getByRole('button', { name: 'Move Floaty' });
     const initialTransform = await widget.evaluate((element) => element.style.transform);
 
     await page.getByRole('button', { name: 'Pin' }).click();
     await expect(widget).toHaveClass(/pinned/);
-    await toolbar.press('ArrowRight');
+    await moveHandle.press('ArrowRight');
     await expect(widget).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 100, 100)');
 
     await page.getByRole('button', { name: 'Unpin' }).click();
-    await toolbar.press('ArrowRight');
+    await moveHandle.press('ArrowRight');
     await expect
       .poll(() => widget.evaluate((element) => element.style.transform))
       .not.toBe(initialTransform);
@@ -286,7 +286,7 @@ test.describe('Floaty window mode', () => {
     await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
     await expect(page.getByRole('toolbar', { name: 'Open windows' })).toBeVisible();
 
-    await toolbar.press('ArrowRight');
+    await page.getByRole('button', { name: 'Move Notes' }).press('ArrowRight');
     await expect
       .poll(() => widget.evaluate((element) => element.style.transform))
       .not.toBe(initialTransform);

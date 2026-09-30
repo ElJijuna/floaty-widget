@@ -290,7 +290,7 @@ All props are optional.
 | `persistenceKey` | `string` | — | Persist geometry and window state in localStorage |
 | `zIndex` | `number` | — | CSS z-index |
 | `isActive` | `boolean` | `false` | Marks this widget as the front-most; reveals the header without requiring hover |
-| `autoFocus` | `boolean` | `false` | Moves keyboard focus to the header when the widget appears (mount or restore) |
+| `autoFocus` | `boolean` | `false` | Moves keyboard focus to the move handle when the widget appears (mount or restore) |
 | `restoreFocus` | `boolean` | `true` | Returns focus to the previously focused element when the widget closes or minimizes with focus inside |
 | `labels` | `Partial<FloatyTexts>` | — | Override button, resize, loading, and error labels |
 | `icons` | `FloatyIcons` | — | Override button icons |
@@ -489,12 +489,11 @@ ref.current.snapTo('left')
 
 Floaty can be operated without a pointer:
 
-- In floating mode, focus the header and press `Enter` or `Space` to collapse/expand.
-- In window mode, `Enter`, `Space`, or a header double-click maximizes/restores the window.
-- Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
+- Every action in the header is a button: collapse/expand in floating mode, maximize/restore in window mode. A header double-click does the same.
+- The move handle, the grip in floating mode or the window icon in window mode, is a button named `Move <title>`. Focus it and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps. It also works as a drag handle.
 - Both modes resize by dragging any edge or corner. From the keyboard, focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. The bottom-right handle is always in the tab order and only becomes visible on keyboard focus. Each key press emits `onResizeStart` and `onResizeEnd`.
 - Drag a window header to a viewport edge or corner to preview and apply snap geometry.
-- With `autoFocus`, focus moves to the widget header when it opens or is restored. When a widget closes or minimizes while focus is inside it, focus returns to the element that was focused before it appeared (disable with `restoreFocus={false}`). Focus that already moved elsewhere is never taken. Both options are also accepted by `openFloaty()` and `manager.open()`.
+- With `autoFocus`, focus moves to the move handle when the widget opens or is restored. When a widget closes or minimizes while focus is inside it, focus returns to the element that was focused before it appeared (disable with `restoreFocus={false}`). Focus that already moved elsewhere is never taken. Both options are also accepted by `openFloaty()` and `manager.open()`.
 
 Widget positions are clamped into the visible viewport on initial render, during drag, and after viewport resize/orientation changes.
 
@@ -614,6 +613,7 @@ import { Pin, PinFilled } from './icons';
     restore: 'Restaurar',
     close: 'Cerrar',
     resize: 'Cambiar tamano',
+    move: 'Mover',
     loading: 'Cargando panel...',
     loadError: 'No se pudo cargar el panel',
     retry: 'Reintentar',
