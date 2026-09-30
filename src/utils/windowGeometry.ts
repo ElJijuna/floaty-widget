@@ -351,18 +351,33 @@ export const moveLayoutBoundary = (
 export const numericSize = (value: number | string | undefined, fallback: number) =>
   typeof value === 'number' ? value : fallback;
 
+/** Space a widget draws outside its own box, such as the floating frame and its controls. */
+export interface ChromeInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export const NO_CHROME_INSETS: ChromeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/**
+ * Keeps a widget inside the viewport, including anything it draws outside its box (`insets`).
+ * When the viewport is too small, the top-left wins so the controls stay reachable.
+ */
 export const clampPosition = (
   position: FloatyPosition,
   size: FloatySize | undefined,
   viewportWidth = typeof window === 'undefined' ? Number.POSITIVE_INFINITY : window.innerWidth,
   viewportHeight = typeof window === 'undefined' ? Number.POSITIVE_INFINITY : window.innerHeight,
+  insets: ChromeInsets = NO_CHROME_INSETS,
 ): FloatyPosition => {
   const width = numericSize(size?.width, 320);
   const height = numericSize(size?.height, DEFAULT_MIN_HEIGHT);
 
   return {
-    x: Math.max(0, Math.min(position.x, Math.max(0, viewportWidth - width))),
-    y: Math.max(0, Math.min(position.y, Math.max(0, viewportHeight - height))),
+    x: Math.max(insets.left, Math.min(position.x, viewportWidth - width - insets.right)),
+    y: Math.max(insets.top, Math.min(position.y, viewportHeight - height - insets.bottom)),
   };
 };
 

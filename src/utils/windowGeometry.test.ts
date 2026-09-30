@@ -35,6 +35,18 @@ describe('window geometry utilities', () => {
       x: 700,
       y: 0,
     });
+    const insets = { top: 46, right: 6, bottom: 6, left: 6 };
+    expect(clampPosition({ x: -10, y: 0 }, { width: 300, height: 200 }, 1000, 800, insets)).toEqual(
+      { x: 6, y: 46 },
+    );
+    expect(
+      clampPosition({ x: 900, y: 900 }, { width: 300, height: 200 }, 1000, 800, insets),
+    ).toEqual({ x: 694, y: 594 });
+    // Too small to fit: the top-left wins so the controls stay reachable.
+    expect(clampPosition({ x: 50, y: 50 }, { width: 300, height: 200 }, 200, 150, insets)).toEqual({
+      x: 6,
+      y: 46,
+    });
     expect(
       constrainSize(
         { width: 900, height: 40 },

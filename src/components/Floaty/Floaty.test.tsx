@@ -88,8 +88,9 @@ describe('Floaty', () => {
         <Floaty initialPosition={{ x: 1000, y: -20 }} initialSize={{ width: 200, height: 100 }} />,
       );
 
+      // Floating mode keeps room for its frame: 46px above for the controls, 6px on the sides.
       expect(container.firstChild).toHaveStyle({
-        transform: 'translate(300px, 0px)',
+        transform: 'translate(294px, 46px)',
       });
 
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
@@ -575,6 +576,23 @@ describe('Floaty', () => {
       expect(root).toHaveClass('chrome-revealed');
     });
 
+    it('keeps the frame and its controls on screen while dragging', () => {
+      const root = renderFloating();
+      const header = root.querySelector('.floaty-header') as HTMLElement;
+      header.setPointerCapture = vi.fn();
+
+      fireEvent.pointerDown(header, { clientX: 200, clientY: 80, pointerId: 1 });
+      fireEvent.pointerMove(globalThis as unknown as Window, {
+        clientX: -500,
+        clientY: -500,
+        pointerId: 1,
+      });
+      fireEvent.pointerUp(globalThis as unknown as Window, { pointerId: 1 });
+
+      // 46px above for the controls band, 6px for the side of the frame.
+      expect(root).toHaveStyle({ transform: 'translate(6px, 46px)' });
+    });
+
     it('waits before closing and stays open when the pointer returns', () => {
       vi.useFakeTimers();
 
@@ -880,7 +898,8 @@ describe('Floaty', () => {
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
       fireEvent(window, new Event('resize'));
 
-      expect(root).toHaveStyle({ transform: 'translate(200px, 280px)' });
+      // 500 - 300 - 6 and 400 - 120 - 6: the floating frame stays on screen.
+      expect(root).toHaveStyle({ transform: 'translate(194px, 274px)' });
 
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalHeight });

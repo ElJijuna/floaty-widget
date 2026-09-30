@@ -32,6 +32,7 @@ import type {
   FloatyWindowTab,
 } from '../../types';
 import {
+  type ChromeInsets,
   clampPosition,
   constrainSize,
   DEFAULT_MIN_HEIGHT,
@@ -39,6 +40,7 @@ import {
   DEFAULT_SNAP_THRESHOLD,
   getSnapGeometry,
   getSnapZone,
+  NO_CHROME_INSETS,
   numericSize,
   readPersistedState,
   writePersistedState,
@@ -164,6 +166,23 @@ const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', '
 const ARRANGE_FALLBACK_MS = 1000;
 /** Distance from the top edge of a floating widget that reveals its frame and controls. */
 const CHROME_REVEAL_ZONE = 48;
+/** Fallbacks for `--floaty-frame-top` and `--floaty-frame-inset` when they can't be read. */
+const DEFAULT_FRAME_TOP = 46;
+const DEFAULT_FRAME_INSET = 6;
+
+const floatingChromeInsets = (top: number, side: number): ChromeInsets => ({
+  top,
+  right: side,
+  bottom: side,
+  left: side,
+});
+
+const readPixels = (style: CSSStyleDeclaration, property: string, fallback: number) => {
+  const value = Number.parseFloat(style.getPropertyValue(property));
+
+  return Number.isFinite(value) ? value : fallback;
+};
+
 /** Grace period before the frame closes, so briefly overshooting the edge doesn't flicker it. */
 const CHROME_HIDE_DELAY_MS = 300;
 
@@ -385,6 +404,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       position: clampPosition(
         persistedState?.position ?? initialPosition,
         persistedState?.size ?? initialSize,
+        undefined,
+        undefined,
+        mode === 'floating' && !(persistedState?.isCollapsed ?? defaultCollapsed)
+          ? floatingChromeInsets(DEFAULT_FRAME_TOP, DEFAULT_FRAME_INSET)
+          : NO_CHROME_INSETS,
       ),
       size: persistedState?.size ?? initialSize ?? {},
     }));
@@ -467,6 +491,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       baseTop: 0,
       width: 0,
       height: 0,
+      insets: NO_CHROME_INSETS,
     });
     const resizeStateRef = useRef({
       isResizing: false,
@@ -480,6 +505,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       direction: 'se' as FloatyResizeDirection,
       startX: 0,
       startY: 0,
+      insets: NO_CHROME_INSETS,
     });
     const pinchStateRef = useRef({
       isPinching: false,
@@ -519,6 +545,51 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const Unmaximize = mergedIcons.unmaximize;
 
     sizeConstraintsRef.current = sizeConstraints;
+    const modeRef = useRef(mode);
+    modeRef.current = mode;
+
+    /**
+     * Space the floating frame takes outside the widget box. It is reserved even while the frame
+     * is closed, so opening it never pushes the controls off screen.
+     */
+    const getChromeInsets = useCallback((): ChromeInsets => {
+      // stateRef, not a render value: an imperative collapse() right before moveTo() must count.
+      if (modeRef.current !== 'floating' || stateRef.current.isCollapsed) {
+        return NO_CHROME_INSETS;
+      }
+
+      const element = floatyRef.current;
+
+      if (!element) {
+        return floatingChromeInsets(DEFAULT_FRAME_TOP, DEFAULT_FRAME_INSET);
+      }
+
+      const style = getComputedStyle(element);
+
+      return floatingChromeInsets(
+        readPixels(style, '--floaty-frame-top', DEFAULT_FRAME_TOP),
+        readPixels(style, '--floaty-frame-inset', DEFAULT_FRAME_INSET),
+      );
+    }, []);
+
+    const clampToViewport = useCallback(
+      (nextPosition: FloatyPosition, nextSize: FloatySize | undefined) =>
+        clampPosition(nextPosition, nextSize, undefined, undefined, getChromeInsets()),
+      [getChromeInsets],
+    );
+
+    /** Largest size that fits between `origin` and the viewport's far edges. */
+    const getAvailableSize = useCallback(
+      (origin: FloatyPosition) => {
+        const insets = getChromeInsets();
+
+        return {
+          width: window.innerWidth - origin.x - insets.right,
+          height: window.innerHeight - origin.y - insets.bottom,
+        };
+      },
+      [getChromeInsets],
+    );
 
     const commitGeometry = useCallback(
       (geometry: { position: FloatyPosition; size: FloatySize }) => {
@@ -588,7 +659,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         toggle: () => setIsCollapsed((prev) => !prev),
         toggleMinimized: () => setIsMinimized((prev) => !prev),
         moveTo: (nextPosition) => {
-          const clampedPosition = clampPosition(nextPosition, sizeRef.current);
+          const clampedPosition = clampToViewport(nextPosition, sizeRef.current);
 
           positionRef.current = clampedPosition;
           setPosition(clampedPosition);
@@ -604,16 +675,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
               height: nextSize.height ?? sizeRef.current.height ?? DEFAULT_MIN_HEIGHT,
             },
             sizeConstraintsRef.current,
-            {
-              width: window.innerWidth - positionRef.current.x,
-              height: window.innerHeight - positionRef.current.y,
-            },
+            getAvailableSize(positionRef.current),
           );
 
           sizeRef.current = constrained;
           setSize(constrained);
           setPosition((current) => {
-            const clampedPosition = clampPosition(current, constrained);
+            const clampedPosition = clampToViewport(current, constrained);
 
             positionRef.current = clampedPosition;
 
@@ -658,6 +726,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         snapTo: snapWindow,
       }),
       [
+        clampToViewport,
+        getAvailableSize,
         maximizeWindow,
         setIsCollapsed,
         setIsMaximized,
@@ -849,10 +919,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           let newX = dragState.startX + e.clientX - dragState.startPointerX;
           let newY = dragState.startY + e.clientY - dragState.startPointerY;
 
-          const minX = -dragState.baseLeft;
-          const minY = -dragState.baseTop;
-          const maxX = window.innerWidth - dragState.width - dragState.baseLeft;
-          const maxY = window.innerHeight - dragState.height - dragState.baseTop;
+          const { insets } = dragState;
+          const minX = insets.left - dragState.baseLeft;
+          const minY = insets.top - dragState.baseTop;
+          const maxX = window.innerWidth - dragState.width - dragState.baseLeft - insets.right;
+          const maxY = window.innerHeight - dragState.height - dragState.baseTop - insets.bottom;
 
           newX = Math.max(minX, Math.min(newX, maxX));
           newY = Math.max(minY, Math.min(newY, maxY));
@@ -906,11 +977,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             sizeConstraintsRef.current,
             {
               width: fromWest
-                ? resizeState.startX + resizeState.startWidth
-                : window.innerWidth - resizeState.startX,
+                ? resizeState.startX + resizeState.startWidth - resizeState.insets.left
+                : window.innerWidth - resizeState.startX - resizeState.insets.right,
               height: fromNorth
-                ? resizeState.startY + resizeState.startHeight
-                : window.innerHeight - resizeState.startY,
+                ? resizeState.startY + resizeState.startHeight - resizeState.insets.top
+                : window.innerHeight - resizeState.startY - resizeState.insets.bottom,
             },
           );
 
@@ -952,10 +1023,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
                 height: pinchState.startHeight * scale,
               },
               sizeConstraintsRef.current,
-              {
-                width: window.innerWidth - positionRef.current.x,
-                height: window.innerHeight - positionRef.current.y,
-              },
+              getAvailableSize(positionRef.current),
             );
 
             pendingSizeRef.current = constrained;
@@ -963,7 +1031,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           }
         }
       },
-      [canMerge, mode, scheduleVisualUpdate, setMergeTarget, snap, snapThreshold],
+      [canMerge, getAvailableSize, mode, scheduleVisualUpdate, setMergeTarget, snap, snapThreshold],
     );
 
     const handlePointerUp = useCallback(
@@ -1115,6 +1183,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           baseTop: rect.top - positionRef.current.y,
           width: rect.width,
           height: rect.height,
+          insets: getChromeInsets(),
         };
         startGlobalPointerListeners();
         setIsDragging(true);
@@ -1148,6 +1217,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           startX: positionRef.current.x,
           startY: positionRef.current.y,
           direction,
+          insets: getChromeInsets(),
         };
         onResizeStart?.({ width: rect.width, height: rect.height });
         startGlobalPointerListeners();
@@ -1202,7 +1272,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         )[e.key] ?? { x: 0, y: 0 };
 
         setPosition((current) =>
-          clampPosition({ x: current.x + delta.x, y: current.y + delta.y }, sizeRef.current),
+          clampToViewport({ x: current.x + delta.x, y: current.y + delta.y }, sizeRef.current),
         );
       }
     };
@@ -1232,12 +1302,13 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           ArrowLeft: { width: -step, height: 0 },
         } as Record<string, { width: number; height: number }>
       )[e.key] ?? { width: 0, height: 0 };
-      const baseLeft = rect?.left ?? positionRef.current.x;
-      const baseTop = rect?.top ?? positionRef.current.y;
       const nextSize = constrainSize(
         { width: currentWidth + delta.width, height: currentHeight + delta.height },
         sizeConstraintsRef.current,
-        { width: window.innerWidth - baseLeft, height: window.innerHeight - baseTop },
+        getAvailableSize({
+          x: rect?.left ?? positionRef.current.x,
+          y: rect?.top ?? positionRef.current.y,
+        }),
       );
 
       // Each key press is a complete resize, so it reports the same lifecycle as a pointer gesture.
@@ -1260,6 +1331,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       };
     }, [handlePointerMove, handlePointerUp]);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — collapsing or switching mode changes the chrome insets, so the position is re-checked
     useEffect(() => {
       const handleViewportResize = () => {
         if (isMaximizedRef.current) {
@@ -1279,7 +1351,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         };
 
         setPosition((current) => {
-          const clamped = clampPosition(current, measuredSize);
+          const clamped = clampToViewport(current, measuredSize);
           return clamped.x === current.x && clamped.y === current.y ? current : clamped;
         });
       };
@@ -1291,7 +1363,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       return () => {
         globalThis.removeEventListener('resize', handleViewportResize);
       };
-    }, [commitGeometry, setPosition]);
+    }, [clampToViewport, commitGeometry, setPosition, isCollapsed, mode]);
 
     // Focus management runs whenever the section appears (mount or restore from minimized).
     // A layout-effect cleanup covers both ways it disappears: on unmount it runs before the DOM
