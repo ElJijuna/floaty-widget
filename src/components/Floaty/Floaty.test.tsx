@@ -169,8 +169,8 @@ describe('Floaty', () => {
       expect(root).toHaveStyle({ transform: 'translate(109px, 150px)' });
     });
 
-    it('drags the widget from the move handle', () => {
-      const { container } = render(<Floaty initialPosition={{ x: 100, y: 100 }} />);
+    it('drags the window from its icon, which is the move handle', () => {
+      const { container } = render(<Floaty mode="window" initialPosition={{ x: 100, y: 100 }} />);
       const root = container.firstElementChild as HTMLElement;
       const moveHandle = screen.getByRole('button', { name: 'Move Floaty' });
       // The drag handler lives on the header, which captures the pointer.

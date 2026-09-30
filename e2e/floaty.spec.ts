@@ -256,7 +256,11 @@ test.describe('Floaty floating frame', () => {
       throw new Error('Toolbar is not visible');
     }
 
-    await page.mouse.move(toolbarBox.x + 20, toolbarBox.y + toolbarBox.height / 2);
+    // Grab the title, away from the header buttons.
+    await page.mouse.move(
+      toolbarBox.x + toolbarBox.width / 2,
+      toolbarBox.y + toolbarBox.height / 2,
+    );
     await page.mouse.down();
     await page.mouse.move(-200, -200, { steps: 8 });
     await page.mouse.up();

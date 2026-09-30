@@ -202,34 +202,20 @@
   outline-offset: 2px;
 }
 
-.floaty-header-grip {
-  display: grid;
-  grid-template-columns: repeat(2, 3px);
-  gap: 3px;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  min-width: 18px;
-  height: 24px;
-  order: -2;
-  opacity: 0.68;
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease;
+/* Floating mode drags from the whole header, so its move handle has no visual of its own: it
+   stays hidden without taking space, and while it has keyboard focus the header shows the ring. */
+.floaty-move-handle--keyboard {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.floaty-header:hover .floaty-header-grip,
-.floaty-header-grip:focus-visible,
-.floaty.dragging .floaty-header-grip {
-  opacity: 1;
-  transform: translateY(-1px);
-}
-
-.floaty-header-grip span {
-  width: 3px;
-  height: 3px;
-  background: currentColor;
-  border-radius: 999px;
+.floaty-header:has(.floaty-move-handle--keyboard:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--floaty-header-bg) 70%, white);
+  outline-offset: 2px;
 }
 
 .floaty--floating .floaty-header {
@@ -644,7 +630,6 @@
   .floaty-frame,
   .floaty-header,
   .floaty--floating .floaty-header,
-  .floaty-header-grip,
   .floaty-button,
   .floaty-resize-handle,
   .chevron {

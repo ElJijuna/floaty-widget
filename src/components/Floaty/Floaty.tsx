@@ -1283,19 +1283,11 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             {mode === 'floating' && (
               <button
                 type="button"
-                className="floaty-move-handle floaty-header-grip"
+                className="floaty-move-handle floaty-move-handle--keyboard"
                 onKeyDown={handleMoveKeyDown}
-                title={moveLabel}
                 aria-label={moveLabel}
                 aria-keyshortcuts={MOVE_KEY_SHORTCUTS}
-              >
-                <span aria-hidden="true" />
-                <span aria-hidden="true" />
-                <span aria-hidden="true" />
-                <span aria-hidden="true" />
-                <span aria-hidden="true" />
-                <span aria-hidden="true" />
-              </button>
+              />
             )}
 
             {mode === 'floating' && (
