@@ -45,7 +45,10 @@ import {
   readPersistedState,
   writePersistedState,
 } from '../../utils/windowGeometry';
+import { ChevronIcon, CloseIcon, MaximizeIcon, MinusIcon, PinIcon } from './FloatyDefaultIcons';
 import { FloatyTabs } from './FloatyTabs';
+import { findMergeTarget, getKeyboardStep, resolveStateAction } from './floatyHelpers';
+import { readFloatingChromeInsets, useFloatingChrome } from './useFloatingChrome';
 
 /** Props for the `<Floaty>` component. */
 export interface FloatyProps {
@@ -164,165 +167,7 @@ const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 const ARRANGE_FALLBACK_MS = 1000;
-/** Fallbacks for `--floaty-reveal-zone`, `--floaty-frame-top` and `--floaty-frame-inset`. */
-const DEFAULT_REVEAL_ZONE = 48;
-const DEFAULT_FRAME_TOP = 46;
-const DEFAULT_FRAME_INSET = 6;
-
-const floatingChromeInsets = (top: number, side: number): ChromeInsets => ({
-  top,
-  right: side,
-  bottom: side,
-  left: side,
-});
-
-const readPixels = (style: CSSStyleDeclaration, property: string, fallback: number) => {
-  const value = Number.parseFloat(style.getPropertyValue(property));
-
-  return Number.isFinite(value) ? value : fallback;
-};
-
-/** Grace period before the frame closes, so briefly overshooting the edge doesn't flicker it. */
-const CHROME_HIDE_DELAY_MS = 300;
-
-/**
- * Finds the window whose title bar is the topmost thing under the pointer, ignoring `self`.
- * A title bar covered by another window's body is not a target.
- */
-const findMergeTarget = (x: number, y: number, self: HTMLElement | null): HTMLElement | null => {
-  if (typeof document.elementsFromPoint !== 'function') {
-    return null;
-  }
-
-  for (const element of document.elementsFromPoint(x, y)) {
-    if (self?.contains(element)) {
-      continue;
-    }
-
-    const root = element.closest<HTMLElement>('.floaty--window[data-floaty-id]');
-
-    if (root && !root.hidden && element.closest('.floaty-header')) {
-      return root;
-    }
-
-    if (element.closest('.floaty')) {
-      return null;
-    }
-  }
-
-  return null;
-};
 const ARRANGE_PROPERTIES = new Set(['transform', 'width', 'height']);
-
-const resolveStateAction = <T,>(action: SetStateAction<T>, previous: T): T =>
-  typeof action === 'function' ? (action as (value: T) => T)(previous) : action;
-
-const getKeyboardStep = (
-  e: ReactKeyboardEvent<HTMLElement>,
-  baseStep: number,
-  largeStep: number,
-) => {
-  if (e.altKey) {
-    return 1;
-  }
-
-  if (e.shiftKey) {
-    return largeStep;
-  }
-
-  return baseStep;
-};
-
-const PinIcon = ({ pinned }: { pinned: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    {pinned ? (
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m3-13h-2v4h-2v-4h-2v2h4v2h-4v2h6v-6" />
-    ) : (
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m3.5-9h-7v2h7v-2" />
-    )}
-  </svg>
-);
-
-const ChevronIcon = ({ collapsed }: { collapsed: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={`chevron ${collapsed ? 'collapsed' : ''}`}
-    aria-hidden="true"
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M18 6 6 18" />
-    <path d="m6 6 12 12" />
-  </svg>
-);
-
-const MinusIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M5 12h14" />
-  </svg>
-);
-
-const MaximizeIcon = ({ maximized }: { maximized: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
-    {maximized ? (
-      <>
-        <rect x="4" y="8" width="12" height="12" rx="1" />
-        <path d="M8 8V4h12v12h-4" />
-      </>
-    ) : (
-      <rect x="4" y="4" width="16" height="16" rx="1" />
-    )}
-  </svg>
-);
 
 /**
  * A draggable, resizable, collapsible floating widget.
@@ -406,7 +251,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         undefined,
         undefined,
         mode === 'floating' && !(persistedState?.isCollapsed ?? defaultCollapsed)
-          ? floatingChromeInsets(DEFAULT_FRAME_TOP, DEFAULT_FRAME_INSET)
+          ? readFloatingChromeInsets(null)
           : NO_CHROME_INSETS,
       ),
       size: persistedState?.size ?? initialSize ?? {},
@@ -470,10 +315,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isResizing, setIsResizing] = useState(false);
     const [isArranging, setIsArranging] = useState(false);
     const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [isChromeRevealed, setIsChromeRevealed] = useState(false);
-    const chromeHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    // Distance from the top edge that reveals the frame, read from CSS when the pointer enters.
-    const revealZoneRef = useRef(DEFAULT_REVEAL_ZONE);
+    const { isChromeRevealed, chromeHandlers } = useFloatingChrome(mode);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
     const hasFocusRef = useRef(false);
@@ -559,18 +401,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         return NO_CHROME_INSETS;
       }
 
-      const element = floatyRef.current;
-
-      if (!element) {
-        return floatingChromeInsets(DEFAULT_FRAME_TOP, DEFAULT_FRAME_INSET);
-      }
-
-      const style = getComputedStyle(element);
-
-      return floatingChromeInsets(
-        readPixels(style, '--floaty-frame-top', DEFAULT_FRAME_TOP),
-        readPixels(style, '--floaty-frame-inset', DEFAULT_FRAME_INSET),
-      );
+      return readFloatingChromeInsets(floatyRef.current);
     }, []);
 
     const clampToViewport = useCallback(
@@ -754,19 +585,9 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         if (arrangeTimeoutRef.current) {
           clearTimeout(arrangeTimeoutRef.current);
         }
-        if (chromeHideTimeoutRef.current) {
-          clearTimeout(chromeHideTimeoutRef.current);
-        }
       },
       [],
     );
-
-    const cancelChromeHide = () => {
-      if (chromeHideTimeoutRef.current) {
-        clearTimeout(chromeHideTimeoutRef.current);
-        chromeHideTimeoutRef.current = null;
-      }
-    };
 
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
@@ -1418,47 +1239,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-snap-zone={snapZone ?? undefined}
           className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
-          onPointerEnter={(event) => {
-            cancelChromeHide();
-
-            if (mode === 'floating') {
-              revealZoneRef.current = readPixels(
-                getComputedStyle(event.currentTarget),
-                '--floaty-reveal-zone',
-                DEFAULT_REVEAL_ZONE,
-              );
-            }
-          }}
-          onPointerMove={(event) => {
-            // Like a device in the iOS Simulator: the frame appears only near the top edge.
-            if (mode !== 'floating' || event.pointerType === 'touch') {
-              return;
-            }
-
-            // Coming back before the grace period ends keeps the open frame.
-            cancelChromeHide();
-
-            if (isChromeRevealed) {
-              return;
-            }
-
-            const rect = event.currentTarget.getBoundingClientRect();
-
-            if (event.clientY - rect.top <= revealZoneRef.current) {
-              setIsChromeRevealed(true);
-            }
-          }}
-          onPointerLeave={(event) => {
-            if (event.pointerType === 'touch' || !isChromeRevealed) {
-              return;
-            }
-
-            cancelChromeHide();
-            chromeHideTimeoutRef.current = setTimeout(() => {
-              chromeHideTimeoutRef.current = null;
-              setIsChromeRevealed(false);
-            }, CHROME_HIDE_DELAY_MS);
-          }}
+          {...chromeHandlers}
           onTransitionEnd={(event) => {
             if (
               isArranging &&
