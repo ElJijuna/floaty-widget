@@ -576,6 +576,16 @@ describe('Floaty', () => {
       expect(root).toHaveClass('chrome-revealed');
     });
 
+    it('reads the reveal zone from --floaty-reveal-zone', () => {
+      const root = renderFloating();
+      root.style.setProperty('--floaty-reveal-zone', '120px');
+
+      // React derives pointerenter from pointerover.
+      fireEvent.pointerOver(root);
+      fireEvent.pointerMove(root, { clientX: 200, clientY: 200 });
+      expect(root).toHaveClass('chrome-revealed');
+    });
+
     it('ignores touch pointers, which always see the frame through CSS', () => {
       const root = renderFloating();
 

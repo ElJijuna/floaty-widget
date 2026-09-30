@@ -44,6 +44,7 @@
   --floaty-button-hover-bg: color-mix(in srgb, currentColor 14%, transparent);
   --floaty-min-width: 240px;
   --floaty-min-height: 96px;
+  --floaty-reveal-zone: 48px;
   --floaty-frame-bg: var(--floaty-header-bg);
   --floaty-frame-inset: 6px;
   --floaty-frame-top: 46px;

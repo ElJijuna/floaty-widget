@@ -567,6 +567,7 @@ Or use CSS variables directly:
   --floaty-button-hover-bg: rgba(255, 255, 255, 0.1);
 
   /* Floating mode frame */
+  --floaty-reveal-zone: 48px; /* distance from the top edge that reveals the frame */
   --floaty-frame-bg: #181825; /* defaults to --floaty-header-bg */
   --floaty-frame-top: 46px; /* height of the top band that holds the controls */
   --floaty-frame-inset: 6px; /* thickness of the sides and bottom */
@@ -575,7 +576,7 @@ Or use CSS variables directly:
 }
 ```
 
-Set `--floaty-frame-top` and `--floaty-frame-inset` in pixels: they also define how much space floating widgets keep from the viewport edges.
+Set `--floaty-reveal-zone`, `--floaty-frame-top` and `--floaty-frame-inset` in pixels. The frame sizes also define how much space floating widgets keep from the viewport edges. A reveal zone taller than the widget reveals the frame when hovering anywhere over it.
 
 When widget content overflows, `.floaty-body` uses a themed thin native scrollbar. Override `--floaty-scrollbar-thumb`, `--floaty-scrollbar-thumb-hover`, or `--floaty-scrollbar-track` to tune that overflow treatment.
 

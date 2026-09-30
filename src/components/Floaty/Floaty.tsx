@@ -164,9 +164,8 @@ const KEYBOARD_RESIZE_STEP = 16;
 const KEYBOARD_RESIZE_LARGE_STEP = 64;
 const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 const ARRANGE_FALLBACK_MS = 1000;
-/** Distance from the top edge of a floating widget that reveals its frame and controls. */
-const CHROME_REVEAL_ZONE = 48;
-/** Fallbacks for `--floaty-frame-top` and `--floaty-frame-inset` when they can't be read. */
+/** Fallbacks for `--floaty-reveal-zone`, `--floaty-frame-top` and `--floaty-frame-inset`. */
+const DEFAULT_REVEAL_ZONE = 48;
 const DEFAULT_FRAME_TOP = 46;
 const DEFAULT_FRAME_INSET = 6;
 
@@ -473,6 +472,8 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isChromeRevealed, setIsChromeRevealed] = useState(false);
     const chromeHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Distance from the top edge that reveals the frame, read from CSS when the pointer enters.
+    const revealZoneRef = useRef(DEFAULT_REVEAL_ZONE);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
     const hasFocusRef = useRef(false);
@@ -1417,7 +1418,17 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-snap-zone={snapZone ?? undefined}
           className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
-          onPointerEnter={cancelChromeHide}
+          onPointerEnter={(event) => {
+            cancelChromeHide();
+
+            if (mode === 'floating') {
+              revealZoneRef.current = readPixels(
+                getComputedStyle(event.currentTarget),
+                '--floaty-reveal-zone',
+                DEFAULT_REVEAL_ZONE,
+              );
+            }
+          }}
           onPointerMove={(event) => {
             // Like a device in the iOS Simulator: the frame appears only near the top edge.
             if (mode !== 'floating' || event.pointerType === 'touch') {
@@ -1433,7 +1444,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
 
             const rect = event.currentTarget.getBoundingClientRect();
 
-            if (event.clientY - rect.top <= CHROME_REVEAL_ZONE) {
+            if (event.clientY - rect.top <= revealZoneRef.current) {
               setIsChromeRevealed(true);
             }
           }}
