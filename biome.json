@@ -1,16 +1,16 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
-  "extends": ["super-configs/biome"],
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "linter": {
-    "rules": {
-      "a11y": {
-        "noNoninteractiveTabindex": "off"
-      }
+    "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+    "extends": ["super-configs/biome"],
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "linter": {
+        "rules": {
+            "a11y": {
+                "noNoninteractiveTabindex": "off"
+            }
+        }
     }
-  }
 }
