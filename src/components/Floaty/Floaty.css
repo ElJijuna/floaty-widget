@@ -329,10 +329,6 @@
   order: 2;
 }
 
-.floaty-button--resize {
-  order: 2;
-}
-
 .floaty-button--maximize {
   order: 2;
 }
@@ -425,12 +421,10 @@
   border: 0;
   background: transparent;
   cursor: nwse-resize;
-  opacity: 0.78;
+  /* Invisible hit areas on every edge and corner; only the cursor shows them. */
+  opacity: 0;
   pointer-events: auto;
   touch-action: none;
-  transition:
-    opacity 0.16s ease,
-    transform 0.16s ease;
 }
 
 .floaty-resize-handle--n,
@@ -501,10 +495,58 @@
   cursor: nesw-resize;
 }
 
-.floaty.resize-enabled .floaty-resize-handle,
-.floaty.resizing .floaty-resize-handle {
+/* The top handle sits over the controls band, so floating handles stack above the header. */
+.floaty--floating .floaty-resize-handle {
+  z-index: 3;
+}
+
+/* With the frame open, the handles sit on its outer edges instead of the content's. */
+.floaty--floating.chrome-revealed .floaty-resize-handle,
+.floaty--floating:focus-within .floaty-resize-handle,
+.floaty--floating.resizing .floaty-resize-handle {
+  --floaty-handle-top: calc(-1 * var(--floaty-frame-top));
+  --floaty-handle-side: calc(-1 * var(--floaty-frame-inset));
+}
+
+.floaty--floating .floaty-resize-handle--n,
+.floaty--floating .floaty-resize-handle--ne,
+.floaty--floating .floaty-resize-handle--nw {
+  top: var(--floaty-handle-top, 0);
+}
+
+.floaty--floating .floaty-resize-handle--s,
+.floaty--floating .floaty-resize-handle--se,
+.floaty--floating .floaty-resize-handle--sw {
+  bottom: var(--floaty-handle-side, 0);
+}
+
+.floaty--floating .floaty-resize-handle--e,
+.floaty--floating .floaty-resize-handle--ne,
+.floaty--floating .floaty-resize-handle--se {
+  right: var(--floaty-handle-side, 0);
+}
+
+.floaty--floating .floaty-resize-handle--w,
+.floaty--floating .floaty-resize-handle--nw,
+.floaty--floating .floaty-resize-handle--sw {
+  left: var(--floaty-handle-side, 0);
+}
+
+.floaty--floating .floaty-resize-handle--n,
+.floaty--floating .floaty-resize-handle--s {
+  right: calc(10px + var(--floaty-handle-side, 0px));
+  left: calc(10px + var(--floaty-handle-side, 0px));
+}
+
+.floaty--floating .floaty-resize-handle--e,
+.floaty--floating .floaty-resize-handle--w {
+  top: calc(10px + var(--floaty-handle-top, 0px));
+  bottom: calc(10px + var(--floaty-handle-side, 0px));
+}
+
+/* Keyboard resize: the SE handle stays invisible until it receives keyboard focus. */
+.floaty-resize-handle--se:focus-visible {
   opacity: 1;
-  transform: scale(1.04);
 }
 
 .floaty-resize-handle--se::before {
@@ -535,8 +577,9 @@
     transform: none;
   }
 
-  .floaty-resize-handle {
-    opacity: 0.86;
+  /* Keep the floating top handle a thin strip so it never covers the header buttons. */
+  .floaty--floating .floaty-resize-handle--n {
+    height: 8px;
   }
 
   /* Only grow the narrow axis of edge handles so they stay full-strip and
@@ -915,32 +958,6 @@
 .floaty--window-mac .floaty-title {
   text-align: center;
   margin-right: 92px;
-}
-
-.floaty--window .floaty-resize-handle {
-  opacity: 0;
-}
-.floaty--window .floaty-resize-handle--se::before {
-  display: none;
-}
-.floaty--window.resize-enabled .floaty-resize-handle,
-.floaty--window.resizing .floaty-resize-handle {
-  opacity: 0;
-  transform: none;
-}
-
-/* Keyboard resize: the SE handle stays invisible until it receives keyboard focus. */
-.floaty--window .floaty-resize-handle--se:focus-visible {
-  opacity: 1;
-}
-.floaty--window .floaty-resize-handle--se:focus-visible::before {
-  display: block;
-}
-
-@media (hover: none), (pointer: coarse) {
-  .floaty--window .floaty-resize-handle {
-    opacity: 0;
-  }
 }
 
 .floaty--window .floaty-body {

@@ -43,7 +43,6 @@ test.describe('Floaty Storybook', () => {
       .poll(() => widget.evaluate((element) => element.style.transform))
       .not.toBe(initialTransform);
 
-    await page.getByRole('button', { name: 'Resize widget' }).click();
     const resizeHandle = page.getByRole('button', { name: 'Resize widget handle' });
     const widthBefore = await widget.evaluate((element) => element.getBoundingClientRect().width);
 

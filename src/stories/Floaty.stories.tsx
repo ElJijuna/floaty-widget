@@ -236,7 +236,7 @@ export const Playground: Story = {
     docs: {
       description: {
         story:
-          'Floating mode: the header appears on hover or focus. Use the arrow keys on the focused header to move it, and the resize button to resize from the keyboard.',
+          'Floating mode: the frame and controls appear when the pointer nears the top edge, or on focus. Drag any edge or corner to resize. Use the arrow keys on the focused header to move it, and on the focused resize handle to resize.',
       },
     },
   },

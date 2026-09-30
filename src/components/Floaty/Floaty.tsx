@@ -283,36 +283,6 @@ const MinusIcon = () => (
   </svg>
 );
 
-const ResizeIcon = ({ active }: { active?: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.25"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    {active ? (
-      <>
-        <path d="M4 14v6h6" />
-        <path d="M20 10V4h-6" />
-        <path d="M14 10 20 4" />
-        <path d="M10 14 4 20" />
-      </>
-    ) : (
-      <>
-        <path d="M15 3h6v6" />
-        <path d="M21 3 14 10" />
-        <path d="M9 21H3v-6" />
-        <path d="M3 21l7-7" />
-      </>
-    )}
-  </svg>
-);
-
 const MaximizeIcon = ({ maximized }: { maximized: boolean }) => (
   <svg
     width="16"
@@ -475,7 +445,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isResizing, setIsResizing] = useState(false);
     const [isArranging, setIsArranging] = useState(false);
     const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [isResizeEnabled, setIsResizeEnabled] = useState(false);
     const [isChromeRevealed, setIsChromeRevealed] = useState(false);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
@@ -543,7 +512,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const Expand = mergedIcons.expand;
     const Minimize = mergedIcons.minimize;
     const Close = mergedIcons.close;
-    const Resize = mergedIcons.resize;
     const Maximize = mergedIcons.maximize;
     const Unmaximize = mergedIcons.unmaximize;
 
@@ -1088,9 +1056,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         pinchStateRef.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (pinchStateRef.current.pointers.size >= 2) {
-          const resizeEnabled = mode === 'window' || isResizeEnabled;
-
-          if (!pinchStateRef.current.isPinching && resizeEnabled && !isCollapsed) {
+          if (!pinchStateRef.current.isPinching && !isCollapsed) {
             dragStateRef.current.isDragging = false;
             setIsDragging(false);
 
@@ -1146,9 +1112,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       e: ReactPointerEvent<HTMLElement>,
       direction: FloatyResizeDirection,
     ) => {
-      const resizeEnabled = mode === 'window' || isResizeEnabled;
-
-      if (isCollapsed || !resizeEnabled || isMaximized) {
+      if (isCollapsed || isMaximized) {
         return;
       }
 
@@ -1231,7 +1195,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     };
 
     const handleResizeKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
-      if ((mode !== 'window' && !isResizeEnabled) || isMaximized) {
+      if (isMaximized) {
         return;
       }
 
@@ -1268,15 +1232,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       sizeRef.current = nextSize;
       setSize(nextSize);
       onResizeEnd?.(nextSize);
-    };
-
-    const toggleResizeEnabled = () => {
-      if (isCollapsed) {
-        return;
-      }
-
-      onFocus?.();
-      setIsResizeEnabled((enabled) => !enabled);
     };
 
     const titleText = typeof title === 'string' ? title : undefined;
@@ -1325,12 +1280,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       };
     }, [commitGeometry, setPosition]);
 
-    useEffect(() => {
-      if (isCollapsed || isMinimized) {
-        setIsResizeEnabled(false);
-      }
-    }, [isCollapsed, isMinimized]);
-
     // Focus management runs whenever the section appears (mount or restore from minimized).
     // A layout-effect cleanup covers both ways it disappears: on unmount it runs before the DOM
     // is removed, on minimize it runs after, so "focus inside" is tracked by focus events too.
@@ -1368,7 +1317,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
       return null;
     }
 
-    const resizeEnabled = mode === 'window' || isResizeEnabled;
     const previewGeometry = snapPreview ? getSnapGeometry(snapPreview) : null;
     const isDocked = isMaximized || Boolean(snapZone);
 
@@ -1382,7 +1330,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-active={isActive || undefined}
           data-maximized={isMaximized || undefined}
           data-snap-zone={snapZone ?? undefined}
-          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${resizeEnabled ? 'resize-enabled' : ''} ${className ?? ''}`}
+          className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
           onPointerMove={(event) => {
             // Like a device in the iOS Simulator: the frame appears only near the top edge.
@@ -1543,31 +1491,10 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
               </button>
             )}
 
-            {mode === 'floating' && (
-              <button
-                type="button"
-                className="floaty-button floaty-button--resize"
-                onClick={toggleResizeEnabled}
-                title={labels.resize}
-                aria-label={labels.resize}
-                aria-pressed={isResizeEnabled}
-                disabled={isCollapsed}
-              >
-                {Resize ? (
-                  <Resize active={isResizeEnabled} />
-                ) : (
-                  <ResizeIcon active={isResizeEnabled} />
-                )}
-              </button>
-            )}
-
             <button
               type="button"
               className="floaty-button floaty-button--minimize"
-              onClick={() => {
-                setIsResizeEnabled(false);
-                setIsMinimized(true);
-              }}
+              onClick={() => setIsMinimized(true)}
               title={labels.minimize}
               aria-label={labels.minimize}
             >
@@ -1590,7 +1517,6 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           {!isCollapsed && <div className="floaty-body">{children}</div>}
 
           {!isCollapsed &&
-            resizeEnabled &&
             !isMaximized &&
             RESIZE_DIRECTIONS.map((direction) =>
               direction === 'se' ? (

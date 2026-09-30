@@ -307,28 +307,21 @@ describe('Floaty', () => {
   });
 
   describe('resize', () => {
-    it('shows the resize handle only after enabling resize mode', () => {
-      render(<Floaty />);
+    it('resizes floating mode from every edge and corner, like window mode', () => {
+      const { container } = render(<Floaty />);
 
-      expect(
-        screen.queryByRole('button', { name: 'Resize widget handle' }),
-      ).not.toBeInTheDocument();
-
-      const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
-
-      expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
-
-      fireEvent.click(resizeToggle);
-
-      expect(resizeToggle).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('button', { name: 'Resize widget' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Resize widget handle' })).toBeInTheDocument();
+      expect(
+        Array.from(container.querySelectorAll('.floaty-resize-handle'), (handle) =>
+          handle.className.replace('floaty-resize-handle floaty-resize-handle--', ''),
+        ),
+      ).toEqual(['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']);
     });
 
     it('resizes with arrow keys from the resize handle', () => {
       const { container } = render(<Floaty initialSize={{ width: 320, height: 160 }} />);
       const root = container.firstElementChild as HTMLElement;
-
-      fireEvent.click(screen.getByRole('button', { name: 'Resize widget' }));
       const resizeHandle = screen.getByRole('button', {
         name: 'Resize widget handle',
       });
@@ -389,12 +382,9 @@ describe('Floaty', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('disables resize mode when the widget collapses', () => {
+    it('removes the resize handles while the widget is collapsed', () => {
       render(<Floaty />);
 
-      const resizeToggle = screen.getByRole('button', { name: 'Resize widget' });
-
-      fireEvent.click(resizeToggle);
       expect(screen.getByRole('button', { name: 'Resize widget handle' })).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
@@ -402,7 +392,6 @@ describe('Floaty', () => {
       expect(
         screen.queryByRole('button', { name: 'Resize widget handle' }),
       ).not.toBeInTheDocument();
-      expect(resizeToggle).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('resizes from the west edge and emits lifecycle callbacks', () => {
@@ -523,9 +512,13 @@ describe('Floaty', () => {
       expect(onResizeEnd).toHaveBeenCalledWith({ width: 900, height: 600 });
     });
 
-    it('ignores a second touch pointer when resizing is disabled', () => {
+    it('ignores a second touch pointer while collapsed', () => {
       const { container } = render(
-        <Floaty initialPosition={{ x: 100, y: 100 }} initialSize={{ width: 300, height: 200 }} />,
+        <Floaty
+          defaultCollapsed
+          initialPosition={{ x: 100, y: 100 }}
+          initialSize={{ width: 300, height: 200 }}
+        />,
       );
       const root = container.firstElementChild as HTMLElement;
       const header = container.querySelector('.floaty-header') as HTMLElement;
@@ -853,7 +846,7 @@ describe('Floaty', () => {
       );
       expect(screen.getByRole('button', { name: 'Ocultar' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Minimizar' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Cambiar tamano' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Cambiar tamano handle' })).toBeInTheDocument();
     });
   });
 

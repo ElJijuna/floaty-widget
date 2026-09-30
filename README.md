@@ -173,7 +173,7 @@ openFloaty({ id: 'panel', component: MyPanel, props: {} });
 
 ### 4. Standalone `<Floaty>` component
 
-Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse. The resize handle is opt-in from the header resize button, keeping the widget clean until the user wants to resize it.
+Drop a `<Floaty>` directly anywhere for a self-contained floating panel with no manager. Double-clicking the header toggles collapse. At rest only the content shows; moving the pointer to its top edge reveals a frame with the controls, and every edge and corner resizes it, as in window mode.
 
 ```tsx
 import { Floaty } from 'floaty-widget';
@@ -488,7 +488,7 @@ Floaty can be operated without a pointer:
 - In floating mode, focus the header and press `Enter` or `Space` to collapse/expand.
 - In window mode, `Enter`, `Space`, or a header double-click maximizes/restores the window.
 - Focus the header and use arrow keys to move the widget. Hold `Shift` for larger steps or `Alt` for 1px steps.
-- In floating mode, press the resize button in the header to reveal the resize handle; window mode keeps edge handles available.
+- Both modes resize from any edge or corner; Tab to the resize handle and use the arrow keys to resize from the keyboard.
 - Focus the resize handle and use arrow keys to resize. Hold `Shift` for larger steps or `Alt` for 1px steps. In window mode the bottom-right handle is always in the tab order and only becomes visible on keyboard focus; edges and corners can also be dragged. Each key press emits `onResizeStart` and `onResizeEnd`.
 - Drag a window header to a viewport edge or corner to preview and apply snap geometry.
 - With `autoFocus`, focus moves to the widget header when it opens or is restored. When a widget closes or minimizes while focus is inside it, focus returns to the element that was focused before it appeared (disable with `restoreFocus={false}`). Focus that already moved elsewhere is never taken. Both options are also accepted by `openFloaty()` and `manager.open()`.
