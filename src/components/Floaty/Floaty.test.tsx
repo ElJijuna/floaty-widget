@@ -545,6 +545,61 @@ describe('Floaty', () => {
     });
   });
 
+  describe('floating frame', () => {
+    const renderFloating = () => {
+      const { container } = render(<Floaty initialSize={{ width: 320, height: 200 }} />);
+      const root = container.firstElementChild as HTMLElement;
+
+      vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({
+        x: 100,
+        y: 100,
+        top: 100,
+        right: 420,
+        bottom: 300,
+        left: 100,
+        width: 320,
+        height: 200,
+        toJSON: () => {},
+      } as DOMRect);
+
+      return root;
+    };
+
+    it('reveals only when the pointer nears the top edge', () => {
+      const root = renderFloating();
+
+      fireEvent.pointerMove(root, { clientX: 200, clientY: 220 });
+      expect(root).not.toHaveClass('chrome-revealed');
+
+      fireEvent.pointerMove(root, { clientX: 200, clientY: 130 });
+      expect(root).toHaveClass('chrome-revealed');
+    });
+
+    it('waits before closing and stays open when the pointer returns', () => {
+      vi.useFakeTimers();
+
+      try {
+        const root = renderFloating();
+
+        fireEvent.pointerMove(root, { clientX: 200, clientY: 110 });
+        fireEvent.pointerLeave(root);
+        act(() => vi.advanceTimersByTime(299));
+        expect(root).toHaveClass('chrome-revealed');
+
+        // Returning anywhere inside, not just the top zone, cancels the close.
+        fireEvent.pointerMove(root, { clientX: 200, clientY: 250 });
+        act(() => vi.advanceTimersByTime(1000));
+        expect(root).toHaveClass('chrome-revealed');
+
+        fireEvent.pointerLeave(root);
+        act(() => vi.advanceTimersByTime(300));
+        expect(root).not.toHaveClass('chrome-revealed');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('window management', () => {
     it('maximizes and restores the previous geometry', () => {
       const { container } = render(

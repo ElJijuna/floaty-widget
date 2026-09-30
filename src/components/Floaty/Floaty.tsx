@@ -164,6 +164,8 @@ const RESIZE_DIRECTIONS: FloatyResizeDirection[] = ['n', 'ne', 'e', 'se', 's', '
 const ARRANGE_FALLBACK_MS = 1000;
 /** Distance from the top edge of a floating widget that reveals its frame and controls. */
 const CHROME_REVEAL_ZONE = 48;
+/** Grace period before the frame closes, so briefly overshooting the edge doesn't flicker it. */
+const CHROME_HIDE_DELAY_MS = 300;
 
 /**
  * Finds the window whose title bar is the topmost thing under the pointer, ignoring `self`.
@@ -446,6 +448,7 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
     const [isArranging, setIsArranging] = useState(false);
     const arrangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isChromeRevealed, setIsChromeRevealed] = useState(false);
+    const chromeHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const floatyRef = useRef<HTMLElement>(null);
     const openerRef = useRef<HTMLElement | null>(null);
     const hasFocusRef = useRef(false);
@@ -680,9 +683,19 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
         if (arrangeTimeoutRef.current) {
           clearTimeout(arrangeTimeoutRef.current);
         }
+        if (chromeHideTimeoutRef.current) {
+          clearTimeout(chromeHideTimeoutRef.current);
+        }
       },
       [],
     );
+
+    const cancelChromeHide = () => {
+      if (chromeHideTimeoutRef.current) {
+        clearTimeout(chromeHideTimeoutRef.current);
+        chromeHideTimeoutRef.current = null;
+      }
+    };
 
     // Expose imperative methods via forward ref
     useImperativeHandle(ref, () => handleMethods, [handleMethods]);
@@ -1332,9 +1345,17 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
           data-snap-zone={snapZone ?? undefined}
           className={`floaty floaty--${mode} ${mode === 'window' ? `floaty--window-${windowStyle}` : ''} ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''} ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''} ${snapZone ? 'snapped' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''} ${isArranging ? 'arranging' : ''} ${isChromeRevealed ? 'chrome-revealed' : ''} ${className ?? ''}`}
           onPointerDown={onFocus}
+          onPointerEnter={cancelChromeHide}
           onPointerMove={(event) => {
             // Like a device in the iOS Simulator: the frame appears only near the top edge.
-            if (mode !== 'floating' || isChromeRevealed || event.pointerType === 'touch') {
+            if (mode !== 'floating' || event.pointerType === 'touch') {
+              return;
+            }
+
+            // Coming back before the grace period ends keeps the open frame.
+            cancelChromeHide();
+
+            if (isChromeRevealed) {
               return;
             }
 
@@ -1345,9 +1366,15 @@ export const Floaty = forwardRef<FloatyHandle, FloatyProps>(
             }
           }}
           onPointerLeave={(event) => {
-            if (event.pointerType !== 'touch') {
-              setIsChromeRevealed(false);
+            if (event.pointerType === 'touch' || !isChromeRevealed) {
+              return;
             }
+
+            cancelChromeHide();
+            chromeHideTimeoutRef.current = setTimeout(() => {
+              chromeHideTimeoutRef.current = null;
+              setIsChromeRevealed(false);
+            }, CHROME_HIDE_DELAY_MS);
           }}
           onTransitionEnd={(event) => {
             if (
