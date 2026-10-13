@@ -1,0 +1,25 @@
+/* Keep the camera and hover space, but remove the gutter against the viewport edge. */
+.minimized-stack-story[data-position="left"] .floaty-minimized-stack-list {
+  padding-left: 0;
+}
+
+.minimized-stack-story[data-position="right"] .floaty-minimized-stack-list {
+  padding-right: 0;
+}
+
+.minimized-stack-story[data-position="top"] .floaty-minimized-stack-list {
+  padding-top: 0;
+}
+
+.minimized-stack-story[data-position="bottom"] .floaty-minimized-stack-list {
+  padding-bottom: 0;
+}
+
+.minimized-stack-story-controls {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(240px, 50vw);
+  text-align: center;
+}

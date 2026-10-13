@@ -82,6 +82,32 @@ for (const position of ['left', 'right', 'top', 'bottom']) {
     );
     const cards = page.locator('.floaty-minimized-card');
     await expect(cards).toHaveCount(4);
+    await page.mouse.move(0, 0);
+    const geometry = await cards.evaluateAll((elements) => {
+      const bounds = elements.map((element) => element.getBoundingClientRect());
+      return {
+        left: Math.min(...bounds.map((bound) => bound.left)),
+        right: Math.max(...bounds.map((bound) => bound.right)),
+        top: Math.min(...bounds.map((bound) => bound.top)),
+        bottom: Math.max(...bounds.map((bound) => bound.bottom)),
+        width: innerWidth,
+        height: innerHeight,
+      };
+    });
+    const vertical = position === 'left' || position === 'right';
+    const center = vertical
+      ? (geometry.top + geometry.bottom) / 2
+      : (geometry.left + geometry.right) / 2;
+    expect(Math.abs(center - (vertical ? geometry.height : geometry.width) / 2)).toBeLessThan(2);
+    const edge =
+      position === 'left'
+        ? geometry.left
+        : position === 'right'
+          ? geometry.width - geometry.right
+          : position === 'top'
+            ? geometry.top
+            : geometry.height - geometry.bottom;
+    expect(Math.abs(edge)).toBeLessThan(2);
     const depth = (card: typeof cards) =>
       card.evaluate((element) => {
         const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
@@ -96,6 +122,40 @@ for (const position of ['left', 'right', 'top', 'bottom']) {
       await card.locator('button').focus();
       await page.mouse.move(0, 0);
       await expect.poll(() => depth(card)).toBeGreaterThan(0.1);
+    }
+  });
+}
+
+for (const position of ['left', 'right', 'top', 'bottom']) {
+  test(`large hovered previews are not clipped at ${position}`, async ({ page }) => {
+    await page.goto(
+      `/iframe.html?id=floaty-minimized-stack--playground&viewMode=story&args=position:${position};windowCount:4;thumbnailWidth:300;thumbnailHeight:200;hoverScale:1.5`,
+    );
+    const cards = page.locator('.floaty-minimized-card');
+    await expect(cards).toHaveCount(4);
+    for (const card of [cards.first(), cards.last()]) {
+      const button = card.locator('button');
+      await button.focus();
+      await button.hover();
+      await expect(card).toHaveCSS('opacity', '0.96');
+      await expect
+        .poll(() =>
+          card.evaluate((element) => {
+            const bounds = element.getBoundingClientRect();
+            const root = element.closest('.floaty-minimized-stack');
+            if (!root) {
+              return false;
+            }
+            const clip = root.getBoundingClientRect();
+            const vertical =
+              root.getAttribute('data-position') === 'left' ||
+              root.getAttribute('data-position') === 'right';
+            return vertical
+              ? bounds.left >= clip.left - 1 && bounds.right <= clip.right + 1
+              : bounds.top >= clip.top - 1 && bounds.bottom <= clip.bottom + 1;
+          }),
+        )
+        .toBe(true);
     }
   });
 }

@@ -4,10 +4,10 @@ import {
   FloatyMinimizedStack,
   type FloatyMinimizedStackProps,
 } from '../components/Floaty/FloatyMinimizedStack';
-import { FloatyTaskbar } from '../components/Floaty/FloatyTaskbar';
 import { FloatyViewport } from '../components/Floaty/FloatyViewport';
 import { FloatyWidgetManager } from '../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../hooks/useFloatyWidgetManager';
+import './MinimizedStack.css';
 
 const Content = ({ index }: { index: number }) => (
   <div style={{ padding: 20, background: `hsl(${index * 47} 65% 90%)`, minHeight: 220 }}>
@@ -43,24 +43,29 @@ const Workspace = ({
     };
   }, [open, close, minimizeWidget, windowCount]);
   return (
-    <>
-      <p style={{ textAlign: 'center' }}>
-        Hover or focus a thumbnail to enlarge it while keeping its perspective. Activate it to
-        restore the window.
-      </p>
-      <button type="button" onClick={() => manager.minimizeAll()}>
-        Minimize all
-      </button>
+    <div className="minimized-stack-workspace">
+      <div className="minimized-stack-story-controls">
+        <p>
+          Hover or focus a thumbnail to enlarge it while keeping its perspective. Activate it to
+          restore the window.
+        </p>
+        <button type="button" onClick={() => manager.minimizeAll()}>
+          Minimize all
+        </button>
+      </div>
       <FloatyViewport />
-      <FloatyTaskbar />
-      <FloatyMinimizedStack {...props} />
-    </>
+      <FloatyMinimizedStack
+        {...props}
+        className={`minimized-stack-story ${props.className ?? ''}`}
+      />
+    </div>
   );
 };
 
 const meta = {
   title: 'Floaty/Minimized Stack',
   component: FloatyMinimizedStack,
+  parameters: { layout: 'fullscreen' },
   args: {
     position: 'left',
     thumbnailWidth: 160,

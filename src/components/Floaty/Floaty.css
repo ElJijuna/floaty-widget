@@ -1201,6 +1201,7 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   transform: translateY(-50%);
   --floaty-stack-transform: rotateY(var(--floaty-stack-rotation));
   --floaty-stack-origin: left center;
+  width: 100vw;
 }
 
 .floaty-minimized-stack[data-position="right"] {
@@ -1209,6 +1210,7 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   transform: translateY(-50%);
   --floaty-stack-transform: rotateY(calc(-1 * var(--floaty-stack-rotation)));
   --floaty-stack-origin: right center;
+  width: 100vw;
 }
 
 .floaty-minimized-stack[data-position="top"] {
@@ -1217,6 +1219,9 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   transform: translateX(-50%);
   --floaty-stack-transform: rotateX(calc(-1 * var(--floaty-stack-rotation)));
   --floaty-stack-origin: center top;
+  height: 100dvh;
+  display: flex;
+  align-items: flex-start;
 }
 
 .floaty-minimized-stack[data-position="bottom"] {
@@ -1225,6 +1230,9 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   transform: translateX(-50%);
   --floaty-stack-transform: rotateX(var(--floaty-stack-rotation));
   --floaty-stack-origin: center bottom;
+  height: 100dvh;
+  display: flex;
+  align-items: flex-end;
 }
 
 .floaty-minimized-stack-list {
@@ -1236,6 +1244,10 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   flex-direction: column;
   padding: var(--floaty-stack-room);
   width: max-content;
+}
+
+.floaty-minimized-stack[data-position="right"] .floaty-minimized-stack-list {
+  margin-left: auto;
 }
 
 .floaty-minimized-stack[data-position="top"] .floaty-minimized-stack-list,
