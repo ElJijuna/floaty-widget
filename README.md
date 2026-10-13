@@ -655,3 +655,40 @@ This project uses [Semantic Release](https://semantic-release.gitbook.io) with [
 ## License
 
 MIT © [ElJijuna](https://github.com/ElJijuna)
+
+## Minimized thumbnail stack
+
+Add the optional `FloatyMinimizedStack` beside your viewport to display only
+minimized widgets. Hovering or focusing a card enlarges it while preserving its perspective;
+clicking, tapping, Enter or Space restores the widget and brings it to the front.
+
+```tsx
+import { FloatyProvider, FloatyViewport, FloatyMinimizedStack } from 'floaty-widget';
+
+<FloatyProvider>
+  <App />
+  <FloatyViewport />
+  <FloatyMinimizedStack position="left" rotation={32} hoverScale={1.15} />
+</FloatyProvider>
+```
+
+| Prop | Default | Description |
+| --- | --- | --- |
+| `position` | `left` | `left`, `right`, `top` or `bottom`; cards grow toward the screen interior |
+| `thumbnailWidth` / `thumbnailHeight` | `160` / `100` | Preview dimensions in pixels, excluding the title |
+| `previewScale` | `0.4` | Scale of the independent `FloatyPreview` instance |
+| `rotation` | `32` | Perspective angle in degrees, limited to −60 through 60 |
+| `overlap` | `24` | Card overlap in pixels, limited to leave at least 32 px exposed |
+| `hoverScale` | `1.15` | Enlargement on hover or keyboard focus, minimum 1 |
+| `ariaLabel` | `Minimized windows` | Accessible name of the stack |
+| `className` / `style` | — | Root styling overrides |
+
+The stack preserves manager registration order, scrolls when necessary, and
+supports reduced motion. It can coexist with `FloatyTaskbar`. Applications can
+expose these props through their own preference controls; the **Minimized Stack**
+Storybook playground demonstrates interactive configuration.
+
+Previews mount separate component instances: external state is reflected, while
+internal component state is independent of the actual window. Widgets without a
+previewable component show their title instead. Preview content is inert and
+excluded from keyboard navigation.
