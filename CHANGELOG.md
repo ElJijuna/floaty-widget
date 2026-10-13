@@ -1,3 +1,11 @@
+## [2.1.0](https://github.com/ElJijuna/floaty-widget/compare/v2.0.0...v2.1.0) (2026-10-13)
+
+### Features
+
+* add FloatyMinimizedStack component with styling and tests for minimized widget functionality ([0ee8c2b](https://github.com/ElJijuna/floaty-widget/commit/0ee8c2b81554604d15a5d85d1efc996aad89d165))
+* enhance FloatyMinimizedStack with perspective updates and resize handling ([d334739](https://github.com/ElJijuna/floaty-widget/commit/d3347391fcbfa9ab21629082b197a75b9d15882f))
+* enhance MinimizedStack with improved layout and padding adjustments for viewport edges ([6154ad5](https://github.com/ElJijuna/floaty-widget/commit/6154ad5590e43bffbe316cadf8c2d6a168e62665))
+
 ## [2.0.0](https://github.com/ElJijuna/floaty-widget/compare/v1.11.0...v2.0.0) (2026-09-30)
 
 ### ⚠ BREAKING CHANGES
