@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatyWidgetManager } from '../../context/FloatyWidgetManager';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
 import { Floaty } from './Floaty';
@@ -47,6 +47,16 @@ const setup = () =>
   );
 
 describe('FloatyMinimizedStack', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
   it('filters minimized widgets and reacts to external restore and close', () => {
     setup();
     expect(screen.queryByRole('group', { name: 'Minimized windows' })).not.toBeInTheDocument();

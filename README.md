@@ -683,7 +683,9 @@ import { FloatyProvider, FloatyViewport, FloatyMinimizedStack } from 'floaty-wid
 | `ariaLabel` | `Minimized windows` | Accessible name of the stack |
 | `className` / `style` | — | Root styling overrides |
 
-The stack preserves manager registration order, scrolls when necessary, and
+All cards share a perspective origin at the viewport center, updated when the
+viewport resizes or the stack scrolls. The stack preserves manager registration
+order, scrolls when necessary, and
 supports reduced motion. It can coexist with `FloatyTaskbar`. Applications can
 expose these props through their own preference controls; the **Minimized Stack**
 Storybook playground demonstrates interactive configuration.

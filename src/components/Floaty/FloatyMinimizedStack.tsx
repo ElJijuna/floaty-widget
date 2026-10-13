@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { type CSSProperties, useEffect, useRef } from 'react';
 import { useFloatyWidgetManager } from '../../hooks/useFloatyWidgetManager';
 import { FloatyPreview } from './FloatyPreview';
 import './Floaty.css';
@@ -35,6 +35,34 @@ export const FloatyMinimizedStack = ({
   ariaLabel = 'Minimized windows',
 }: FloatyMinimizedStackProps) => {
   const manager = useFloatyWidgetManager();
+  const listRef = useRef<HTMLFieldSetElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hasMinimized = Array.from(manager.widgets.values()).some((widget) => widget.isMinimized);
+
+  useEffect(() => {
+    const list = listRef.current;
+    const root = rootRef.current;
+    if (!hasMinimized || !list || !root || root.dataset.position !== position) {
+      return;
+    }
+
+    // A shared camera keeps every card aimed at the viewport center, even when scrolling.
+    const updatePerspective = () => {
+      const bounds = list.getBoundingClientRect();
+      list.style.perspectiveOrigin = `${window.innerWidth / 2 - bounds.left}px ${window.innerHeight / 2 - bounds.top}px`;
+    };
+    updatePerspective();
+    const observer = new ResizeObserver(updatePerspective);
+    observer.observe(root);
+    observer.observe(list);
+    window.addEventListener('resize', updatePerspective);
+    window.addEventListener('scroll', updatePerspective, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updatePerspective);
+      window.removeEventListener('scroll', updatePerspective, true);
+    };
+  }, [hasMinimized, position]);
   const widgets = Array.from(manager.widgets.values()).filter((widget) => widget.isMinimized);
   if (widgets.length === 0) {
     return null;
@@ -57,11 +85,12 @@ export const FloatyMinimizedStack = ({
 
   return (
     <div
+      ref={rootRef}
       className={`floaty-minimized-stack ${className ?? ''}`}
       data-position={position}
       style={stackStyle}
     >
-      <fieldset className="floaty-minimized-stack-list" aria-label={ariaLabel}>
+      <fieldset ref={listRef} className="floaty-minimized-stack-list" aria-label={ariaLabel}>
         {widgets.map((widget) => {
           const title = typeof widget.title === 'string' ? widget.title : widget.id;
           return (

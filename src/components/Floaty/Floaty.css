@@ -1231,6 +1231,7 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   margin: 0;
   border: 0;
   min-inline-size: 0;
+  perspective: 800px;
   display: flex;
   flex-direction: column;
   padding: var(--floaty-stack-room);
@@ -1252,7 +1253,7 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
   box-shadow:
     0 6px 18px #0004,
     0 0 0 1px #8885;
-  transform: perspective(400px) var(--floaty-stack-transform) scale(0.9);
+  transform: var(--floaty-stack-transform) scale(0.9);
   transform-origin: var(--floaty-stack-origin);
   opacity: 0.68;
   transition:
@@ -1276,7 +1277,7 @@ body:has(.floaty-layout-divider[data-dragging]) .floaty {
 .floaty-minimized-card:has(.floaty-minimized-restore:focus-visible) {
   z-index: 1;
   opacity: 0.96;
-  transform: perspective(400px) var(--floaty-stack-transform) scale(var(--floaty-stack-scale));
+  transform: var(--floaty-stack-transform) scale(var(--floaty-stack-scale));
   box-shadow:
     0 10px 24px #0005,
     0 0 0 1px #8885;

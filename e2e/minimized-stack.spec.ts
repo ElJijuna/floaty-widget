@@ -8,6 +8,19 @@ for (const position of ['left', 'right', 'top', 'bottom']) {
     );
     const stack = page.locator('.floaty-minimized-stack');
     await expect(stack).toHaveAttribute('data-position', position);
+    const list = stack.locator('.floaty-minimized-stack-list');
+    const checkVanishingPoint = () =>
+      list.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const [x, y] = getComputedStyle(element)
+          .perspectiveOrigin.split(' ')
+          .map(Number.parseFloat);
+        return Math.max(
+          Math.abs(bounds.left + x - innerWidth / 2),
+          Math.abs(bounds.top + y - innerHeight / 2),
+        );
+      });
+    await expect.poll(checkVanishingPoint).toBeLessThan(1);
     const cards = stack.locator('.floaty-minimized-card');
     await expect(cards).toHaveCount(12);
     const button = page.getByRole('button', { name: 'Restore: Window 1', exact: true });
@@ -38,6 +51,7 @@ for (const position of ['left', 'right', 'top', 'bottom']) {
     await page
       .getByRole('button', { name: 'Restore: Window 12', exact: true })
       .scrollIntoViewIfNeeded();
+    await expect.poll(checkVanishingPoint).toBeLessThan(1);
     await button.focus();
     await expect(button).toBeFocused();
     await expect
